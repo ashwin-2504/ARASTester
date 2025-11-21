@@ -3,7 +3,6 @@
 # ARASTester
 ### The Modern, Automated Testing Suite for ARAS Innovator
 
-[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 ![Version](https://img.shields.io/badge/version-1.0.0-green)
 

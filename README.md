@@ -75,7 +75,3 @@ Need to click a button? Verify a field? Run a server method? Our **Action Regist
 -   **State Management**: Local JSON Storage
 
 ---
-
-<div align="center">
-    <p>Made with ❤️ for the ARAS Community</p>
-</div>

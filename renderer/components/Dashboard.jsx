@@ -29,6 +29,11 @@ export default function Dashboard({ onNavigate }) {
   const [newPlanTitle, setNewPlanTitle] = useState('')
   const [newPlanDesc, setNewPlanDesc] = useState('')
 
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [editPlanTitle, setEditPlanTitle] = useState('')
+  const [editPlanDesc, setEditPlanDesc] = useState('')
+  const [editingFilename, setEditingFilename] = useState(null)
+
   useEffect(() => {
     loadPlans()
   }, [])
@@ -70,6 +75,34 @@ export default function Dashboard({ onNavigate }) {
     }
   }
 
+  const handleEditClick = (e, plan) => {
+    e.stopPropagation()
+    setEditingFilename(plan.__filename)
+    setEditPlanTitle(plan.title)
+    setEditPlanDesc(plan.description)
+    setIsEditOpen(true)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editPlanTitle.trim()) {
+      alert("Title is required")
+      return
+    }
+    try {
+      await TestPlanService.updatePlan(editingFilename, {
+        title: editPlanTitle,
+        description: editPlanDesc
+      })
+      setIsEditOpen(false)
+      setEditingFilename(null)
+      setEditPlanTitle('')
+      setEditPlanDesc('')
+      loadPlans()
+    } catch (err) {
+      alert("Error updating plan: " + err.message)
+    }
+  }
+
   const handleDeletePlan = async (e, filename) => {
     e.stopPropagation()
     if (confirm("Are you sure you want to delete this plan?")) {
@@ -82,7 +115,7 @@ export default function Dashboard({ onNavigate }) {
     }
   }
 
-  const filteredPlans = plans.filter(p => 
+  const filteredPlans = plans.filter(p =>
     (p.title || '').toLowerCase().includes(search.toLowerCase()) ||
     (p.description || '').toLowerCase().includes(search.toLowerCase())
   )
@@ -91,6 +124,7 @@ export default function Dashboard({ onNavigate }) {
     <div className="container mx-auto p-6 space-y-6 h-full overflow-auto">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
+          {/* Create Dialog */}
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -107,25 +141,60 @@ export default function Dashboard({ onNavigate }) {
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
                   <label htmlFor="title" className="text-sm font-medium">Title</label>
-                  <Input 
-                    id="title" 
-                    value={newPlanTitle} 
-                    onChange={(e) => setNewPlanTitle(e.target.value)} 
+                  <Input
+                    id="title"
+                    value={newPlanTitle}
+                    onChange={(e) => setNewPlanTitle(e.target.value)}
                     placeholder="Enter plan title"
                   />
                 </div>
                 <div className="grid gap-2">
                   <label htmlFor="desc" className="text-sm font-medium">Description</label>
-                  <Textarea 
-                    id="desc" 
-                    value={newPlanDesc} 
-                    onChange={(e) => setNewPlanDesc(e.target.value)} 
+                  <Textarea
+                    id="desc"
+                    value={newPlanDesc}
+                    onChange={(e) => setNewPlanDesc(e.target.value)}
                     placeholder="Enter description"
                   />
                 </div>
               </div>
               <DialogFooter>
                 <Button onClick={handleCreatePlan}>Create Plan</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Edit Dialog */}
+          <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit Test Plan</DialogTitle>
+                <DialogDescription>
+                  Update the details for this test plan.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <label htmlFor="edit-title" className="text-sm font-medium">Title</label>
+                  <Input
+                    id="edit-title"
+                    value={editPlanTitle}
+                    onChange={(e) => setEditPlanTitle(e.target.value)}
+                    placeholder="Enter plan title"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <label htmlFor="edit-desc" className="text-sm font-medium">Description</label>
+                  <Textarea
+                    id="edit-desc"
+                    value={editPlanDesc}
+                    onChange={(e) => setEditPlanDesc(e.target.value)}
+                    placeholder="Enter description"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button onClick={handleSaveEdit}>Save Changes</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -138,14 +207,14 @@ export default function Dashboard({ onNavigate }) {
         <div className="flex items-center gap-2">
           <div className="relative w-64">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder="Search plans..." 
-              className="pl-8" 
+            <Input
+              placeholder="Search plans..."
+              className="pl-8"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          
+
           <Button variant="ghost" size="icon" onClick={() => onNavigate('settings')}>
             <SettingsIcon className="h-5 w-5 text-muted-foreground hover:text-foreground transition-colors" />
           </Button>
@@ -154,8 +223,8 @@ export default function Dashboard({ onNavigate }) {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filteredPlans.map((plan) => (
-          <Card 
-            key={plan.__filename} 
+          <Card
+            key={plan.__filename}
             className="cursor-pointer transition-colors hover:bg-accent/50"
             onClick={() => onNavigate('plan', plan.__filename)}
           >
@@ -170,7 +239,12 @@ export default function Dashboard({ onNavigate }) {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
+                    onClick={(e) => handleEditClick(e, plan)}
+                  >
+                    <FileText className="mr-2 h-4 w-4" /> Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
                     className="text-destructive focus:text-destructive"
                     onClick={(e) => handleDeletePlan(e, plan.__filename)}
                   >

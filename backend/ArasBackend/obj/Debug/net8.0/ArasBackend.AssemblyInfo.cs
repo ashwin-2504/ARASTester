@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ArasBackend")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7885b661b102aa9ead5c1978715279e972c8ba29")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+058324c21251245183d4e43773aa7e3e2327296e")]
 [assembly: System.Reflection.AssemblyProductAttribute("ArasBackend")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ArasBackend")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

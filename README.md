@@ -9,7 +9,6 @@
 
 <br />
 
-<!-- PLACEHOLDER: Add a high-resolution screenshot of the application here -->
 ![ARASTester Dashboard Preview](IMAGES/DASHBOARD.png)
 
 <br />

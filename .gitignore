@@ -1,1 +1,16 @@
 node_modules
+dist/
+out/
+build/
+.env
+.DS_Store
+
+# Visual Studio / C#
+.vs/
+bin/
+obj/
+*.user
+*.suo
+*.pdb
+*.cache
+

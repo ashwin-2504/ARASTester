@@ -1,7 +1,7 @@
 <div align="center">
 
 # ARASTester
-### The Modern, Automated Testing Suite for ARAS Innovator
+### The Modern, Automated Functional Testing Suite for ARAS Innovator
 
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 ![Version](https://img.shields.io/badge/version-1.0.0-green)

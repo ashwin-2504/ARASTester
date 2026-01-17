@@ -33,41 +33,64 @@ const { spawn } = require('child_process');
 
 let backendProcess = null;
 
+/**
+ * Get the path to the backend executable
+ * - Production: bundled in resources
+ * - Development: pre-built Debug EXE
+ */
+function getBackendPath() {
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, 'backend', 'ArasBackend.exe');
+  }
+  return path.join(__dirname, 'backend', 'ArasBackend', 'bin', 'Debug', 'net8.0', 'win-x64', 'ArasBackend.exe');
+}
+
+/**
+ * Start the backend process using pre-built EXE (faster than dotnet run)
+ */
 function startBackend() {
-  const backendPath = app.isPackaged
-    ? path.join(process.resourcesPath, 'backend/ArasBackend.exe')
-    : path.join(__dirname, 'backend/ArasBackend/bin/Debug/net8.0/ArasBackend.exe');
+  const exePath = getBackendPath();
 
-  // In dev, we might want to run 'dotnet run' instead if the exe isn't built yet, 
-  // but for simplicity let's assume the user builds it or we run the exe.
-  // Actually, for dev experience, running 'dotnet run' is better if we want to avoid manual builds.
-  // Let's try to spawn the exe directly for now as per the plan, but we need to make sure it exists.
-  // Alternatively, we can spawn 'dotnet' with arguments.
-
-  if (!app.isPackaged) {
-    // Development mode: run using dotnet run
-    backendProcess = spawn('dotnet', ['run', '--project', path.join(__dirname, 'backend/ArasBackend/ArasBackend.csproj'), '--urls', 'http://localhost:5000'], {
-      cwd: path.join(__dirname, 'backend/ArasBackend')
-    });
-  } else {
-    // Production mode: run the executable
-    backendProcess = spawn(backendPath, ['--urls', 'http://localhost:5000']);
+  // Check if EXE exists
+  if (!fs.existsSync(exePath)) {
+    console.error('='.repeat(60));
+    console.error('Backend EXE not found!');
+    console.error('Run: npm run build:backend');
+    console.error('Expected path:', exePath);
+    console.error('='.repeat(60));
+    return;
   }
 
-  if (backendProcess) {
-    backendProcess.stdout.on('data', (data) => {
-      console.log(`Backend: ${data}`);
-    });
+  console.log('Starting backend from:', exePath);
+  backendProcess = spawn(exePath, ['--urls', 'http://localhost:5000']);
 
-    backendProcess.stderr.on('data', (data) => {
-      console.error(`Backend Error: ${data}`);
-    });
-  }
+  backendProcess.stdout.on('data', (data) => {
+    console.log(`Backend: ${data}`);
+  });
+
+  backendProcess.stderr.on('data', (data) => {
+    console.error(`Backend Error: ${data}`);
+  });
+
+  backendProcess.on('error', (err) => {
+    console.error('Failed to start backend:', err);
+  });
+
+  backendProcess.on('exit', (code) => {
+    console.log(`Backend process exited with code ${code}`);
+  });
 }
 
 app.whenReady().then(() => {
-  startBackend();
+  // Show UI immediately
   createWindow();
+
+  // Pre-warm: Start backend after UI is visible (1.5s delay)
+  // This ensures user sees the app immediately while backend starts in background
+  setTimeout(() => {
+    console.log('Pre-warming backend...');
+    startBackend();
+  }, 1500);
 });
 
 app.on('will-quit', () => {

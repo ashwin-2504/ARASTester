@@ -10,6 +10,9 @@ const CustomEditor = ({ params, onChange }) => {
         onChange={(e) => onChange({ ...params, command: e.target.value })}
         placeholder="echo 'Hello'"
       />
+      <p className="text-xs text-muted-foreground">
+        Execute a custom script or command.
+      </p>
     </div>
   );
 };
@@ -17,6 +20,7 @@ const CustomEditor = ({ params, onChange }) => {
 export const CustomAction = {
   type: 'Custom',
   label: 'Custom Script',
+  category: 'Utility',
   Editor: CustomEditor,
   defaultParams: { command: '' }
 };

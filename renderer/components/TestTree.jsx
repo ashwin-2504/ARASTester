@@ -1,5 +1,5 @@
 import React from 'react'
-import { Plus, ChevronRight, ChevronDown, GripVertical, Trash2 } from 'lucide-react'
+import { Plus, ChevronRight, ChevronDown, GripVertical, Trash2, Play } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -30,7 +30,9 @@ export default function TestTree({
   onReorderTests,
   onReorderActions,
   onDeleteTest,
-  onDeleteAction
+  onDeleteAction,
+  onRunTest,
+  onRunAction
 }) {
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -117,6 +119,8 @@ export default function TestTree({
               onReorderActions={onReorderActions}
               onDeleteTest={onDeleteTest}
               onDeleteAction={onDeleteAction}
+              onRunTest={onRunTest}
+              onRunAction={onRunAction}
             />
           ))}
         </SortableContext>
@@ -128,7 +132,7 @@ export default function TestTree({
   )
 }
 
-function TestNode({ test, isExpanded, onToggleExpand, selectedItem, onSelect, onEdit, onAddAction, onReorderActions, onDeleteTest, onDeleteAction }) {
+function TestNode({ test, isExpanded, onToggleExpand, selectedItem, onSelect, onEdit, onAddAction, onReorderActions, onDeleteTest, onDeleteAction, onRunTest, onRunAction }) {
   const isSelected = selectedItem === test
 
   const {
@@ -204,27 +208,41 @@ function TestNode({ test, isExpanded, onToggleExpand, selectedItem, onSelect, on
           onClick={(e) => e.stopPropagation()}
         />
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 ml-2"
-          onClick={handleAddActionClick}
-          title="Add Action"
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 ml-1 text-destructive hover:text-destructive hover:bg-destructive/10"
-          onClick={(e) => {
-            e.stopPropagation()
-            onDeleteTest(test.testID)
-          }}
-          title="Delete Test"
-        >
-          <Trash2 className="h-3 w-3" />
-        </Button>
+        <div className="flex items-center ml-auto gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10"
+            onClick={(e) => {
+              e.stopPropagation()
+              onRunTest && onRunTest(test)
+            }}
+            title="Run Test"
+          >
+            <Play className="h-4 w-4 fill-current" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6"
+            onClick={handleAddActionClick}
+            title="Add Action"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={(e) => {
+              e.stopPropagation()
+              onDeleteTest(test.testID)
+            }}
+            title="Delete Test"
+          >
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        </div>
       </div>
 
       {isExpanded && (
@@ -238,6 +256,7 @@ function TestNode({ test, isExpanded, onToggleExpand, selectedItem, onSelect, on
                 id={action.actionID || `action-${test.testID}-${idx}`}
                 action={action}
                 selectedItem={selectedItem}
+                onRunAction={onRunAction}
                 onSelect={onSelect}
                 onEdit={onEdit}
                 onDeleteAction={onDeleteAction}
@@ -253,7 +272,7 @@ function TestNode({ test, isExpanded, onToggleExpand, selectedItem, onSelect, on
   )
 }
 
-function ActionNode({ id, action, selectedItem, onSelect, onEdit, onDeleteAction }) {
+function ActionNode({ id, action, selectedItem, onSelect, onEdit, onDeleteAction, onRunAction }) {
   const isSelected = selectedItem === action
 
   const {
@@ -316,18 +335,32 @@ function ActionNode({ id, action, selectedItem, onSelect, onEdit, onDeleteAction
         className="h-6 px-1 py-0 text-sm border-transparent hover:border-input focus:border-input bg-transparent flex-1"
         onClick={(e) => e.stopPropagation()}
       />
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-5 w-5 ml-1 opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive hover:bg-destructive/10"
-        onClick={(e) => {
-          e.stopPropagation()
-          onDeleteAction(action.actionID)
-        }}
-        title="Delete Action"
-      >
-        <Trash2 className="h-3 w-3" />
-      </Button>
+      <div className="flex items-center ml-auto gap-1">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-5 w-5 text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10"
+          onClick={(e) => {
+            e.stopPropagation()
+            onRunAction && onRunAction(action)
+          }}
+          title="Run Action"
+        >
+          <Play className="h-3 w-3 fill-current" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-5 w-5 opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive hover:bg-destructive/10"
+          onClick={(e) => {
+            e.stopPropagation()
+            onDeleteAction(action.actionID)
+          }}
+          title="Delete Action"
+        >
+          <Trash2 className="h-3 w-3" />
+        </Button>
+      </div>
     </div>
   )
 }

@@ -55,7 +55,27 @@ export default class TestPlanService {
       description: description || "",
       created: new Date().toISOString(),
       updated: new Date().toISOString(),
-      testPlan: [] // Initialize empty test plan array
+      testPlan: [
+        {
+          testID: `T${Date.now()}`,
+          testTitle: "Setup",
+          isEnabled: true,
+          testActions: [
+            {
+              actionID: `A${Date.now()}`,
+              actionTitle: "Connect to ARAS",
+              actionType: "ArasConnect",
+              isEnabled: true,
+              params: {
+                url: "",
+                database: "",
+                username: "admin",
+                password: "innovator"
+              }
+            }
+          ]
+        }
+      ]
     };
 
     await StorageService.writeFile(filePath, payload);

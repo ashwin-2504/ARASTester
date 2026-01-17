@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { ChevronLeft, RotateCcw, Save, X } from 'lucide-react'
+import { ChevronLeft, RotateCcw, Save, X, Play } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -15,9 +15,20 @@ export default function PlanDetails({ filename, onNavigate }) {
   const [error, setError] = useState(null)
   const [selectedItem, setSelectedItem] = useState(null)
   const [isDirty, setIsDirty] = useState(false)
+  const [logs, setLogs] = useState({})
   const [saveStatus, setSaveStatus] = useState('')
 
   // ... (loadPlan, handleSave, etc.)
+
+  // ... (ensureIds, loadPlan implementation ...)
+
+  // Make sure ensureIds is preserved or just insert the state at the top
+  // I will assume the user wants me to merge this carefully.
+  // Actually, I'll use multi_replace to insert the state and then the other parts.
+  // But wait, replace_file_content is for contiguous blocks.
+  // I should probably use multi_replace for this file as I need to touch multiple places.
+  // Converting to multi_replace...
+
 
 
 
@@ -195,6 +206,91 @@ export default function PlanDetails({ filename, onNavigate }) {
     setSelectedItem(newAction)
   }
 
+  // === Run Handlers ===
+  const handleRunAll = async () => {
+    console.log('🚀 Running all tests in plan:', plan.title)
+    for (const test of plan.testPlan || []) {
+      if (test.isEnabled !== false) {
+        await handleRunTest(test)
+      }
+    }
+    console.log('✅ All tests completed')
+  }
+
+  const handleRunTest = async (test) => {
+    console.log(`▶️ Running test: ${test.testTitle}`)
+    for (const action of test.testActions || []) {
+      if (action.isEnabled !== false) {
+        await handleRunAction(action)
+      }
+    }
+    console.log(`✓ Test completed: ${test.testTitle}`)
+  }
+
+  const handleRunAction = async (action) => {
+    console.log(`  ⚡ Running action: ${action.actionTitle} (${action.actionType})`, action.params)
+
+    // Create Log Entry
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      status: 'Running...',
+      details: null
+    }
+    setLogs(prev => ({ ...prev, [action.actionID]: logEntry }))
+
+    try {
+      if (action.actionType === 'ArasConnect') {
+        const payload = { ...action.params }
+        // Apply defaults if empty
+        if (!payload.url) payload.url = 'http://localhost/InnovatorServer/Server/InnovatorServer.aspx'
+        if (!payload.database) payload.database = 'InnovatorSolutions'
+        if (!payload.username) payload.username = 'admin' // basic default
+
+        const response = await fetch('http://localhost:5000/api/aras/connect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        const data = await response.json()
+
+        setLogs(prev => ({
+          ...prev,
+          [action.actionID]: {
+            timestamp: new Date().toISOString(),
+            status: data.success ? 'Success' : 'Failed',
+            details: data
+          }
+        }))
+
+        if (!data.success) {
+          console.error('Action failed:', data.message)
+        }
+      } else {
+        // Simulate other actions
+        await new Promise(resolve => setTimeout(resolve, 500))
+        setLogs(prev => ({
+          ...prev,
+          [action.actionID]: {
+            timestamp: new Date().toISOString(),
+            status: 'Completed',
+            details: { message: 'Action simulation completed' }
+          }
+        }))
+      }
+    } catch (error) {
+      setLogs(prev => ({
+        ...prev,
+        [action.actionID]: {
+          timestamp: new Date().toISOString(),
+          status: 'Error',
+          details: { message: error.message }
+        }
+      }))
+    }
+
+    console.log(`  ✓ Action completed: ${action.actionTitle}`)
+  }
+
   const renderRightPanel = () => {
     if (!selectedItem) {
       return (
@@ -208,13 +304,24 @@ export default function PlanDetails({ filename, onNavigate }) {
 
     return (
       <div className="h-full flex flex-col p-6">
-        <div className="mb-6 pb-4 border-b">
-          <h2 className="text-2xl font-semibold tracking-tight">
-            {isTest ? 'Test Details' : 'Action Details'}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {isTest ? 'Configure test properties.' : 'Configure action behavior.'}
-          </p>
+        <div className="mb-6 pb-4 border-b flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-semibold tracking-tight">
+              {isTest ? 'Test Details' : 'Action Details'}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {isTest ? 'Configure test properties.' : 'Configure action behavior.'}
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-emerald-500 border-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-400"
+            onClick={() => isTest ? handleRunTest(selectedItem) : handleRunAction(selectedItem)}
+          >
+            <Play className="h-4 w-4 mr-2 fill-current" />
+            Run {isTest ? 'Test' : 'Action'}
+          </Button>
         </div>
 
         <div className="space-y-6">
@@ -309,6 +416,31 @@ export default function PlanDetails({ filename, onNavigate }) {
               })()}
             </>
           )}
+
+          {/* Logs Section */}
+          <div className="pt-6 border-t mt-6 pb-20">
+            <h3 className="text-sm font-semibold mb-3">Execution Log</h3>
+            {logs[selectedItem.actionID] || logs[selectedItem.testID] ? (
+              <div className="bg-muted p-3 rounded-md text-sm font-mono overflow-x-auto">
+                {logs[selectedItem.actionID] && (
+                  <>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className={`px-2 py-0.5 rounded textxs font-bold ${logs[selectedItem.actionID].status === 'Success' ? 'bg-green-500/20 text-green-600' :
+                        logs[selectedItem.actionID].status === 'Failed' || logs[selectedItem.actionID].status === 'Error' ? 'bg-red-500/20 text-red-600' :
+                          'bg-blue-500/20 text-blue-600'
+                        }`}>
+                        {logs[selectedItem.actionID].status}
+                      </span>
+                      <span className="text-muted-foreground text-xs">{logs[selectedItem.actionID].timestamp}</span>
+                    </div>
+                    <pre className="text-xs">{JSON.stringify(logs[selectedItem.actionID].details, null, 2)}</pre>
+                  </>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground italic">No logs available. Run the action to see results.</p>
+            )}
+          </div>
         </div>
       </div>
     )
@@ -333,6 +465,14 @@ export default function PlanDetails({ filename, onNavigate }) {
         </div>
         <div className="flex items-center gap-2">
           {saveStatus && <span className="text-sm text-green-500 font-medium animate-fade-out">{saveStatus}</span>}
+          <Button
+            variant="outline"
+            className="text-emerald-500 border-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-400"
+            onClick={handleRunAll}
+            title="Run All Tests"
+          >
+            <Play className="mr-2 h-4 w-4 fill-current" /> Run All
+          </Button>
           <Button variant="outline" size="icon" onClick={handleRefresh} title="Refresh">
             <RotateCcw className="h-4 w-4" />
           </Button>
@@ -359,6 +499,8 @@ export default function PlanDetails({ filename, onNavigate }) {
               onReorderActions={handleReorderActions}
               onDeleteTest={handleDeleteTest}
               onDeleteAction={handleDeleteAction}
+              onRunTest={handleRunTest}
+              onRunAction={handleRunAction}
             />
           </ScrollArea>
         </aside>

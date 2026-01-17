@@ -1,6 +1,30 @@
-@ArasBackend_HostAddress = http://localhost:5176
+@ArasBackend_HostAddress = http://localhost:5000
 
-GET {{ArasBackend_HostAddress}}/weatherforecast/
+### Check API Status
+GET {{ArasBackend_HostAddress}}/api/status
 Accept: application/json
 
 ###
+
+### Connect to ARAS Innovator
+POST {{ArasBackend_HostAddress}}/api/aras/connect
+Content-Type: application/json
+
+{
+  "url": "http://localhost/InnovatorServer/Server/InnovatorServer.aspx",
+  "database": "InnovatorSolutions",
+  "username": "admin",
+  "password": "your-password"
+}
+
+###
+
+### Check ARAS Connection Status
+GET {{ArasBackend_HostAddress}}/api/aras/connection-status
+Accept: application/json
+
+###
+
+### Disconnect from ARAS
+POST {{ArasBackend_HostAddress}}/api/aras/disconnect
+Accept: application/json

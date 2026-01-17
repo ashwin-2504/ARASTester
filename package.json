@@ -7,6 +7,9 @@
   "type": "commonjs",
   "main": "main.js",
   "scripts": {
+    "build:backend": "cd backend/ArasBackend && dotnet build -c Debug",
+    "build:backend:prod": "cd backend/ArasBackend && dotnet publish -c Release -o ../../dist-backend",
+    "predev": "npm run build:backend",
     "dev": "node dev-runner.js",
     "dev:server": "vite",
     "dev:electron": "electron . --dev",

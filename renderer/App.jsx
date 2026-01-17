@@ -7,15 +7,16 @@ const Settings = React.lazy(() => import('./components/Settings'))
 
 import { actionRegistry } from './registries/ActionRegistry'
 import { viewRegistry } from './registries/ViewRegistry'
-import { ClickAction, TypeAction, WaitAction, VerifyAction } from './plugins/actions/CoreActions'
-import { CustomAction } from './plugins/actions/CustomAction'
 
-// Register core actions
-actionRegistry.register(ClickAction)
-actionRegistry.register(TypeAction)
-actionRegistry.register(WaitAction)
-actionRegistry.register(VerifyAction)
-actionRegistry.register(CustomAction)
+// Import actions from domain-based architecture
+import * as ArasActions from './domains/aras/actions'
+import * as CoreActions from './domains/core/actions'
+
+// Register all ARAS actions
+Object.values(ArasActions).forEach(action => actionRegistry.register(action))
+
+// Register all Core actions
+Object.values(CoreActions).forEach(action => actionRegistry.register(action))
 
 // Register Views
 viewRegistry.register({

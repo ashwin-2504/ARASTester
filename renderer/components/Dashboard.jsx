@@ -47,7 +47,7 @@ export default function Dashboard({ onNavigate }) {
         const controller = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), 2000)
 
-        const res = await fetch('http://localhost:5000/weatherforecast', {
+        const res = await fetch('http://localhost:5000/api/status', {
           signal: controller.signal
         })
         clearTimeout(timeoutId)

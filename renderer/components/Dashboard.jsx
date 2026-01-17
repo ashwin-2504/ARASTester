@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Plus, FolderOpen, Search, MoreVertical, Trash, FileText, Settings as SettingsIcon } from 'lucide-react'
+import { Plus, FolderOpen, Search, MoreVertical, Trash, FileText, Settings as SettingsIcon, Loader2, CheckCircle2 } from 'lucide-react'
 import TestPlanService from '@/services/TestPlanService'
 import { setTestPlansFldrPath } from '@/appSettings'
 import { Button } from '@/components/ui/button'
@@ -34,9 +34,47 @@ export default function Dashboard({ onNavigate }) {
   const [editPlanDesc, setEditPlanDesc] = useState('')
   const [editingFilename, setEditingFilename] = useState(null)
 
+  const [isBackendOnline, setIsBackendOnline] = useState(false)
+
   useEffect(() => {
     loadPlans()
+    checkBackendStatus()
   }, [])
+
+  const checkBackendStatus = async () => {
+    const check = async () => {
+      try {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 2000)
+
+        const res = await fetch('http://localhost:5000/weatherforecast', {
+          signal: controller.signal
+        })
+        clearTimeout(timeoutId)
+
+        if (res.ok) {
+          setIsBackendOnline(true)
+          return true
+        }
+      } catch (e) {
+        // Ignore error, backend not ready yet
+      }
+      return false
+    }
+
+    // Initial check
+    if (await check()) return
+
+    // Poll every 2 seconds
+    const interval = setInterval(async () => {
+      const online = await check()
+      if (online) {
+        clearInterval(interval)
+      }
+    }, 2000)
+
+    return () => clearInterval(interval)
+  }
 
   const loadPlans = async () => {
     // Check if folder is set
@@ -202,6 +240,21 @@ export default function Dashboard({ onNavigate }) {
           <Button variant="secondary" onClick={handleOpenFolder}>
             <FolderOpen className="mr-2 h-4 w-4" /> Open Test Plan
           </Button>
+
+          {/* Backend Status Indicator */}
+          <div className="flex items-center gap-2 ml-2 px-3 py-1.5 rounded-full bg-muted/50 border text-xs font-medium transition-all duration-500">
+            {isBackendOnline ? (
+              <>
+                <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                <span className="text-green-600">Backend Online</span>
+              </>
+            ) : (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                <span className="text-muted-foreground">Connecting to backend...</span>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-2">

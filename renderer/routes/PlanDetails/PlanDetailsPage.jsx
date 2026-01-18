@@ -100,6 +100,7 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }) {
               onRunTest={handleRunTest}
               onRunAction={handleRunAction}
               onToggleEnabled={handleToggleEnabled}
+              logs={logs}
             />
           </ScrollArea>
         </aside>
@@ -279,7 +280,12 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }) {
                           }`}>
                           {logs[selectedItem.actionID].status}
                         </span>
-                        <span className="text-xs text-muted-foreground">{new Date(logs[selectedItem.actionID].timestamp).toLocaleString()}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {(() => {
+                            const d = new Date(logs[selectedItem.actionID].timestamp)
+                            return `${d.getDate().toString().padStart(2, '0')}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getFullYear()} ${d.toLocaleTimeString()}`
+                          })()}
+                        </span>
                       </div>
                       <pre className="text-xs overflow-x-auto">{JSON.stringify(logs[selectedItem.actionID].details, null, 2)}</pre>
                     </div>

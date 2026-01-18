@@ -1,6 +1,7 @@
 import React from 'react'
 import { GripVertical, Play, Trash2, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { StatusIndicator } from '@/components/ui/StatusIndicator'
 import { Draggable } from '@hello-pangea/dnd'
 import { cn } from '@/lib/utils'
 
@@ -68,19 +69,13 @@ const ActionNode = React.memo(function ActionNode({
           >
             {action.actionTitle}
           </span>
-          <div className="flex items-center ml-auto gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10"
-              onClick={(e) => {
-                e.stopPropagation()
-                onRunAction && onRunAction(action)
-              }}
-              title="Run Action"
-            >
-              <Play className="h-3 w-3 fill-current" />
-            </Button>
+          <div className="flex items-center ml-auto gap-1 transition-opacity">
+            <StatusIndicator
+              status={action.status} // Will be passed from parent
+              onRun={() => onRunAction && onRunAction(action)}
+              className="h-6 w-6"
+              iconClassName="h-3 w-3"
+            />
             <Button
               variant="ghost"
               size="icon"

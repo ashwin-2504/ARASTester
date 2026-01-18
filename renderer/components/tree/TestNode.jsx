@@ -1,6 +1,7 @@
 import React from 'react'
 import { GripVertical, ChevronRight, ChevronDown, Play, Plus, Trash2, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { StatusIndicator } from '@/components/ui/StatusIndicator'
 import { Draggable, Droppable } from '@hello-pangea/dnd'
 import { cn } from '@/lib/utils'
 import ActionNode from './ActionNode'
@@ -18,7 +19,8 @@ const TestNode = React.memo(function TestNode({
   onDeleteAction,
   onRunTest,
   onRunAction,
-  onToggleEnabled
+  onToggleEnabled,
+  logs = {} // Add logs prop
 }) {
   const isSelected = selectedItem === test
   const isChildSelected = test.testActions?.some(a => a?.actionID === selectedItem?.actionID)
@@ -90,19 +92,13 @@ const TestNode = React.memo(function TestNode({
               {test.testTitle}
             </span>
 
-            <div className="flex items-center ml-auto gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onRunTest && onRunTest(test)
-                }}
-                title="Run Test"
-              >
-                <Play className="h-3.5 w-3.5 fill-current" />
-              </Button>
+            <div className="flex items-center ml-auto gap-1 transition-opacity">
+              <StatusIndicator
+                status={test.status} // Will be computed in parent or passed down
+                onRun={() => onRunTest && onRunTest(test)}
+                className="h-7 w-7"
+                iconClassName="h-3.5 w-3.5"
+              />
               <Button
                 variant="ghost"
                 size="icon"
@@ -143,7 +139,7 @@ const TestNode = React.memo(function TestNode({
                     {test.testActions && test.testActions.map((action, idx) => (
                       <ActionNode
                         key={action.actionID}
-                        action={action}
+                        action={{ ...action, status: logs[action.actionID]?.status }} // Pass status
                         index={idx}
                         selectedItem={selectedItem}
                         onRunAction={onRunAction}

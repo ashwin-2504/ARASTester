@@ -6,6 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import TestPlanAdapter from '@/core/adapters/TestPlanAdapter'
 import { arrayMove } from '@dnd-kit/sortable'
 import { actionRegistry } from '@/core/registries/ActionRegistry'
+import actionSchemas from '@/core/schemas/action-schemas.json'
 
 export default function PlanDetailsPage({ filename, onNavigate, onBack }) {
   const [plan, setPlan] = useState({ testPlan: [] })
@@ -16,6 +17,7 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }) {
   const [logs, setLogs] = useState({})
   const [saveStatus, setSaveStatus] = useState('')
   const [expandedTests, setExpandedTests] = useState({})
+  const [selectedCategory, setSelectedCategory] = useState('')
 
   const ensureIds = (data) => {
     if (!data.testPlan) return data
@@ -417,24 +419,58 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }) {
                     </div>
                     <div className="space-y-2">
                       <label className="block text-sm font-medium">Action Type</label>
-                      <div className="relative">
-                        <select
-                          value={selectedItem.actionType}
-                          onChange={(e) => {
-                            const newType = e.target.value
-                            selectedItem.actionType = newType
-                            const plugin = actionRegistry.get(newType)
-                            if (plugin) selectedItem.params = JSON.parse(JSON.stringify(plugin.defaultParams))
-                            setPlan({ ...plan })
-                            setIsDirty(true)
-                          }}
-                          className="w-full appearance-none rounded-md border border-input bg-muted/30 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary pr-10"
-                        >
-                          {actionRegistry.getAll().map(p => (
-                            <option key={p.type} value={p.type}>{p.label}</option>
-                          ))}
-                        </select>
-                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      <div className="flex gap-3">
+                        {/* Parent: Category Selector (Left) */}
+                        <div className="flex-1 relative">
+                          <select
+                            value={selectedCategory || actionSchemas.actions.find(a => a.type === selectedItem.actionType)?.category || ''}
+                            onChange={(e) => {
+                              const newCategory = e.target.value
+                              setSelectedCategory(newCategory)
+                              // Auto-select first action in category
+                              const actionsInCategory = actionSchemas.actions.filter(a => a.category === newCategory)
+                              if (actionsInCategory.length > 0) {
+                                const firstAction = actionsInCategory[0]
+                                selectedItem.actionType = firstAction.type
+                                const plugin = actionRegistry.get(firstAction.type)
+                                if (plugin) selectedItem.params = JSON.parse(JSON.stringify(plugin.defaultParams))
+                                setPlan({ ...plan })
+                                setIsDirty(true)
+                              }
+                            }}
+                            className="w-full appearance-none rounded-md border border-input bg-muted/30 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary pr-10"
+                          >
+                            {actionSchemas.categories.map(cat => (
+                              <option key={cat.id} value={cat.id}>{cat.icon} {cat.label}</option>
+                            ))}
+                          </select>
+                          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                        </div>
+                        {/* Child: Action Type Selector (Right) */}
+                        <div className="flex-1 relative">
+                          <select
+                            value={selectedItem.actionType}
+                            onChange={(e) => {
+                              const newType = e.target.value
+                              selectedItem.actionType = newType
+                              const plugin = actionRegistry.get(newType)
+                              if (plugin) selectedItem.params = JSON.parse(JSON.stringify(plugin.defaultParams))
+                              setPlan({ ...plan })
+                              setIsDirty(true)
+                            }}
+                            className="w-full appearance-none rounded-md border border-input bg-muted/30 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary pr-10"
+                          >
+                            {actionSchemas.actions
+                              .filter(action => {
+                                const currentCategory = selectedCategory || actionSchemas.actions.find(a => a.type === selectedItem.actionType)?.category
+                                return action.category === currentCategory
+                              })
+                              .map(action => (
+                                <option key={action.type} value={action.type}>{action.label}</option>
+                              ))}
+                          </select>
+                          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                        </div>
                       </div>
                     </div>
 

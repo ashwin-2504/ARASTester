@@ -1,5 +1,8 @@
 // main.js
-const { app, BrowserWindow, ipcMain, dialog } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, Menu } = require("electron");
+
+// Disable the default menu
+Menu.setApplicationMenu(null);
 const fs = require("fs");
 const path = require("path");
 
@@ -7,7 +10,7 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
-    autoHideMenuBar: true, // Hide the default menu bar
+    // autoHideMenuBar: true, // Hide the default menu bar
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -22,7 +25,7 @@ function createWindow() {
     console.log('Running in development mode: Loading http://localhost:5173');
     win.loadURL('http://localhost:5173');
     // Open the DevTools by default in dev mode if desired
-    // win.webContents.openDevTools();
+    win.webContents.openDevTools();
   } else {
     // Load from dist folder (built by Vite)
     win.loadFile(path.join(__dirname, "dist", "index.html"));

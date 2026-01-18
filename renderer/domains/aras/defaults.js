@@ -13,10 +13,4 @@ export const ARAS_DEFAULTS = {
   urlTemplate: 'https://<server>/InnovatorServer/Server/InnovatorServer.aspx'
 };
 
-export const ARAS_ACTION_CATEGORIES = {
-  CONNECTION: 'Connection',
-  CRUD: 'Item Operations',
-  LIFECYCLE: 'Lifecycle',
-  ASSERTIONS: 'Assertions',
-  ADVANCED: 'Advanced'
-};
+

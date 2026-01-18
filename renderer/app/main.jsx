@@ -6,8 +6,9 @@ import '../globals.css'
 // Force dark mode
 document.documentElement.classList.add('dark')
 
+// Disable context menu global listener
+
+
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
+  <App />
 )

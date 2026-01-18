@@ -42,36 +42,16 @@
     --warning: 39 74% 59%; /* #E2AD4C */
     --info: 206 70% 59%; /* #4EA1E0 */
   }
-
-  .dark {
-    --background: 225 6% 13%;
-    --foreground: 240 5% 90%;
-    --card: 228 5% 17%;
-    --card-foreground: 240 5% 90%;
-    --popover: 228 5% 17%;
-    --popover-foreground: 240 5% 90%;
-    --primary: 232 100% 74%;
-    --primary-foreground: 225 6% 13%;
-    --secondary: 228 5% 17%;
-    --secondary-foreground: 240 5% 90%;
-    --muted: 228 5% 17%;
-    --muted-foreground: 225 2% 67%;
-    --accent: 232 100% 74%;
-    --accent-foreground: 225 6% 13%;
-    --destructive: 358 100% 68%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 230 5% 24%;
-    --input: 230 5% 24%;
-    --ring: 232 100% 74%;
-  }
 }
+
+
 
 @layer base {
   * {
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground select-none;
   }
   
   /* Ensure cards and modals have the correct background and border */

@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePlanCacheStore } from '@/stores/usePlanCacheStore'
-import TestPlanAdapter from '@/core/adapters/TestPlanAdapter'
+import * as TestPlanAdapter from '@/core/adapters/TestPlanAdapter'
 import { setTestPlansFldrPath } from '@/core/ipc/appSettings'
 
 export function useDashboard() {

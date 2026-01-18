@@ -1,251 +1,51 @@
-import React, { useState, useEffect } from 'react'
-import { ChevronLeft, RotateCcw, Save, Play, Plus, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
+import React from 'react'
+import { ChevronLeft, RotateCcw, Save, Play, ChevronDown, Check } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import TestPlanAdapter from '@/core/adapters/TestPlanAdapter'
-import { arrayMove } from '@dnd-kit/sortable'
+import TestTree from '@/components/TestTree'
+import { usePlanDetails } from './usePlanDetails'
 import { actionRegistry } from '@/core/registries/ActionRegistry'
 import actionSchemas from '@/core/schemas/action-schemas.json'
+import { useEscapeKey } from '@/lib/hooks/useEscapeKey'
 
 export default function PlanDetailsPage({ filename, onNavigate, onBack }) {
-  const [plan, setPlan] = useState({ testPlan: [] })
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [selectedItem, setSelectedItem] = useState(null)
-  const [isDirty, setIsDirty] = useState(false)
-  const [logs, setLogs] = useState({})
-  const [saveStatus, setSaveStatus] = useState('')
-  const [expandedTests, setExpandedTests] = useState({})
-  const [selectedCategory, setSelectedCategory] = useState('')
+  const {
+    plan, loading, error, isDirty, saveStatus, logs, selectedItem,
+    setSelectedItem,
+    loadPlan,
+    handleSave,
+    handleAddTest, handleAddAction,
+    handleDeleteTest, handleDeleteAction,
+    handleMoveTest, handleMoveAction,
+    handleRunAll, handleRunTest, handleRunAction,
+    updateSelectedItem,
+    handleToggleEnabled
+  } = usePlanDetails(filename)
 
-  const ensureIds = (data) => {
-    if (!data.testPlan) return data
-    data.testPlan.forEach(t => {
-      if (!t.testID) t.testID = `T${Math.random().toString(36).substr(2, 9)}`
-      if (t.testActions) {
-        t.testActions.forEach((a) => {
-          if (!a.actionID) a.actionID = `A${Math.random().toString(36).substr(2, 9)}`
-        })
-      }
-    })
-    return data
-  }
-
-  const loadPlan = async () => {
-    try {
-      setLoading(true)
-      const data = await TestPlanAdapter.getPlan(filename)
-      const withIds = ensureIds(data)
-      setPlan(withIds)
-      // Expand all tests by default
-      const expanded = {}
-      withIds.testPlan?.forEach(t => { expanded[t.testID] = true })
-      setExpandedTests(expanded)
-      setIsDirty(false)
-      setError(null)
-      setSelectedItem(null)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    loadPlan()
-  }, [filename])
-
-  const handleSave = async () => {
-    try {
-      await TestPlanAdapter.updatePlan(filename, plan)
-      setIsDirty(false)
-      setSaveStatus('Saved!')
-      setTimeout(() => setSaveStatus(''), 2000)
-    } catch (err) {
-      setError(err.message)
-    }
-  }
-
-  const handleBack = () => {
+  // Handle back navigation
+  const handleBackNavigation = () => {
     if (isDirty) {
       if (!confirm('You have unsaved changes. Are you sure you want to leave?')) return
     }
     onBack?.() || onNavigate?.('dashboard')
   }
 
-  const handleRefresh = () => {
-    if (isDirty) {
-      if (!confirm('You have unsaved changes. Discard them?')) return
-    }
-    loadPlan()
-  }
+  useEscapeKey(() => {
+    // Optional: Deselect item on escape? Or maybe just do nothing
+    // setSelectedItem(null) 
+  })
 
-  const handleAddTest = () => {
-    const newTest = {
-      testTitle: "New Test",
-      testID: `T${Date.now()}`,
-      isEnabled: true,
-      testActions: []
-    }
-    const newPlan = { ...plan }
-    if (!newPlan.testPlan) newPlan.testPlan = []
-    newPlan.testPlan.push(newTest)
-    setPlan(newPlan)
-    setExpandedTests({ ...expandedTests, [newTest.testID]: true })
-    setIsDirty(true)
-    setSelectedItem(newTest)
-  }
-
-  const handleAddAction = (test) => {
-    const defaultType = actionRegistry.getAll()[0]?.type || 'Custom'
-    const plugin = actionRegistry.get(defaultType)
-    const newAction = {
-      actionTitle: "New Action",
-      actionType: defaultType,
-      actionID: `A${Date.now()}`,
-      isEnabled: true,
-      params: plugin ? JSON.parse(JSON.stringify(plugin.defaultParams)) : {}
-    }
-    if (!test.testActions) test.testActions = []
-    test.testActions.push(newAction)
-    setPlan({ ...plan })
-    setIsDirty(true)
-    setSelectedItem(newAction)
-  }
-
-  const handleDeleteTest = (testId) => {
-    if (!confirm("Delete this test and all its actions?")) return
-    setPlan(prev => ({
-      ...prev,
-      testPlan: prev.testPlan.filter(t => t.testID !== testId)
-    }))
-    setSelectedItem(null)
-    setIsDirty(true)
-  }
-
-  const handleDeleteAction = (actionId) => {
-    if (!confirm("Delete this action?")) return
-    setPlan(prev => {
-      const newPlan = { ...prev }
-      newPlan.testPlan.forEach(t => {
-        if (t.testActions) {
-          t.testActions = t.testActions.filter(a => a.actionID !== actionId)
-        }
-      })
-      return newPlan
-    })
-    setSelectedItem(null)
-    setIsDirty(true)
-  }
-
-  // === Run Handlers ===
-  const handleRunAll = async () => {
-    // Auto-save before running
-    if (isDirty) {
-      console.log('💾 Auto-saving before run...')
-      await handleSave()
-    }
-    console.log('🚀 Running all tests')
-    for (const test of plan.testPlan || []) {
-      if (test.isEnabled !== false) await handleRunTest(test)
-    }
-  }
-
-  const handleRunTest = async (test) => {
-    console.log(`▶️ Running: ${test.testTitle}`)
-    for (const action of test.testActions || []) {
-      if (action.isEnabled !== false) await handleRunAction(action)
-    }
-  }
-
-  const handleRunAction = async (action) => {
-    setLogs(prev => ({ ...prev, [action.actionID]: { status: 'Running...', timestamp: new Date().toISOString() } }))
-
-    try {
-      const plugin = actionRegistry.get(action.actionType)
-
-      // Handle client-side only actions (Wait, SetVariable, LogMessage, etc.)
-      if (plugin?.isClientSide) {
-        const result = await executeClientSideAction(action, plugin)
-        setLogs(prev => ({
-          ...prev, [action.actionID]: {
-            status: result.success ? 'Success' : 'Failed',
-            details: result,
-            timestamp: new Date().toISOString()
-          }
-        }))
-        return
-      }
-
-      // Handle server-side actions via API
-      if (plugin?.apiEndpoint) {
-        const response = await fetch(`http://localhost:5000${plugin.apiEndpoint}`, {
-          method: plugin.apiMethod || 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: plugin.apiMethod === 'GET' ? undefined : JSON.stringify(action.params || {})
-        })
-        const data = await response.json()
-        setLogs(prev => ({
-          ...prev, [action.actionID]: {
-            status: data.success ? 'Success' : 'Failed',
-            details: data,
-            timestamp: new Date().toISOString()
-          }
-        }))
-      } else {
-        // Unknown action type - log warning
-        setLogs(prev => ({
-          ...prev, [action.actionID]: {
-            status: 'Warning',
-            details: { message: `No handler for action type: ${action.actionType}` },
-            timestamp: new Date().toISOString()
-          }
-        }))
-      }
-    } catch (err) {
-      setLogs(prev => ({
-        ...prev, [action.actionID]: {
-          status: 'Error',
-          details: { message: err.message },
-          timestamp: new Date().toISOString()
-        }
-      }))
-    }
-  }
-
-  // Execute client-side actions (no API call needed)
-  const executeClientSideAction = async (action, plugin) => {
-    switch (action.actionType) {
-      case 'Wait':
-        const duration = action.params?.duration || 1000
-        await new Promise(r => setTimeout(r, duration))
-        return { success: true, message: `Waited ${duration}ms` }
-
-      case 'LogMessage':
-        console.log(`[${action.params?.level || 'info'}]`, action.params?.message)
-        return { success: true, message: action.params?.message }
-
-      case 'SetVariable':
-        // Variables would be stored in a context - for now just log
-        console.log(`Set variable: ${action.params?.variableName} = ${action.params?.value}`)
-        return { success: true, variableName: action.params?.variableName, value: action.params?.value }
-
-      case 'Custom':
-        // Custom code execution - simplified for now
-        console.log('Custom script:', action.params?.code)
-        return { success: true, message: 'Custom script executed' }
-
-      default:
-        return { success: true, message: 'Action completed' }
-    }
-  }
-
-  const toggleTest = (testId) => {
-    setExpandedTests(prev => ({ ...prev, [testId]: !prev[testId] }))
-  }
-
-  const isTest = (item) => item?.hasOwnProperty('testID')
+  // Helper to determine if selected item is a test
+  const isTest = (item) => item?.hasOwnProperty('testID') && !item.hasOwnProperty('actionID')
 
   if (loading) return <div className="flex h-full items-center justify-center text-muted-foreground">Loading...</div>
   if (error) return <div className="flex h-full items-center justify-center text-red-500">{error}</div>
@@ -256,7 +56,7 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }) {
       <header className="flex-none h-16 border-b px-6 flex items-center justify-between bg-card">
         <div className="flex items-center gap-4">
           <button
-            onClick={handleBack}
+            onClick={handleBackNavigation}
             className="p-2 -ml-2 rounded-full hover:bg-muted text-muted-foreground transition-colors"
           >
             <ChevronLeft className="h-5 w-5" />
@@ -272,7 +72,7 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }) {
           >
             <Play className="h-4 w-4 mr-2 fill-current" /> Run All
           </Button>
-          <Button variant="ghost" size="icon" onClick={handleRefresh}>
+          <Button variant="ghost" size="icon" onClick={() => { if (!isDirty || confirm("Discard changes?")) loadPlan() }}>
             <RotateCcw className="h-4 w-4" />
           </Button>
           <Button onClick={handleSave} disabled={!isDirty}>
@@ -285,77 +85,22 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }) {
       <main className="flex-1 flex overflow-hidden">
         {/* Left Sidebar - Test Tree */}
         <aside className="w-1/3 max-w-sm flex flex-col border-r bg-card">
-          <ScrollArea className="flex-1 p-4">
-            <div className="border rounded-lg overflow-hidden bg-muted/30">
-              {plan.testPlan?.map((test, testIndex) => (
-                <div key={test.testID}>
-                  {/* Test Row */}
-                  <div
-                    className={`group flex items-center justify-between p-2 hover:bg-muted/50 cursor-pointer border-b border-border/50 ${selectedItem?.testID === test.testID ? 'bg-amber-500/10 border-l-[3px] border-l-amber-500' : ''}`}
-                    onClick={() => setSelectedItem(test)}
-                  >
-                    <div className="flex items-center gap-2 overflow-hidden">
-                      <button onClick={(e) => { e.stopPropagation(); toggleTest(test.testID) }} className="text-muted-foreground">
-                        {expandedTests[test.testID] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                      </button>
-                      <input
-                        type="checkbox"
-                        checked={test.isEnabled !== false}
-                        onChange={(e) => { e.stopPropagation(); test.isEnabled = e.target.checked; setPlan({ ...plan }); setIsDirty(true) }}
-                        className="rounded border-border text-primary focus:ring-primary h-4 w-4"
-                      />
-                      <span className="text-sm font-medium truncate">{test.testTitle}</span>
-                    </div>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={(e) => { e.stopPropagation(); handleRunTest(test) }} className="text-emerald-500 p-1 hover:bg-emerald-500/10 rounded">
-                        <Play className="h-3 w-3 fill-current" />
-                      </button>
-                      <button onClick={(e) => { e.stopPropagation(); handleAddAction(test) }} className="text-muted-foreground p-1 hover:bg-muted rounded">
-                        <Plus className="h-3 w-3" />
-                      </button>
-                      <button onClick={(e) => { e.stopPropagation(); handleDeleteTest(test.testID) }} className="text-muted-foreground hover:text-red-500 p-1 hover:bg-red-500/10 rounded">
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  {expandedTests[test.testID] && test.testActions?.map((action) => (
-                    <div
-                      key={action.actionID}
-                      className={`group flex items-center justify-between py-2 pr-2 pl-10 hover:bg-muted/50 cursor-pointer ${selectedItem?.actionID === action.actionID ? 'bg-amber-500/10 border-l-[3px] border-l-amber-500' : ''}`}
-                      onClick={() => setSelectedItem(action)}
-                    >
-                      <div className="flex items-center gap-2 overflow-hidden">
-                        <input
-                          type="checkbox"
-                          checked={action.isEnabled !== false}
-                          onChange={(e) => { e.stopPropagation(); action.isEnabled = e.target.checked; setPlan({ ...plan }); setIsDirty(true) }}
-                          className="rounded border-border text-primary focus:ring-primary h-4 w-4"
-                        />
-                        <span className="text-sm truncate">{action.actionTitle}</span>
-                      </div>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={(e) => { e.stopPropagation(); handleRunAction(action) }} className="text-emerald-500 p-1 hover:bg-emerald-500/10 rounded">
-                          <Play className="h-3 w-3 fill-current" />
-                        </button>
-                        <button onClick={(e) => { e.stopPropagation(); handleDeleteAction(action.actionID) }} className="text-muted-foreground hover:text-red-500 p-1 hover:bg-red-500/10 rounded">
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-
-            {/* Add Test Button */}
-            <button
-              onClick={handleAddTest}
-              className="w-full mt-4 flex items-center justify-center gap-2 py-2 px-4 rounded border border-dashed border-border text-muted-foreground hover:border-primary hover:text-primary hover:bg-muted/30 transition-all text-sm font-medium"
-            >
-              <Plus className="h-4 w-4" /> Add Test
-            </button>
+          <ScrollArea className="flex-1 p-0">
+            <TestTree
+              testPlan={plan.testPlan}
+              selectedItem={selectedItem}
+              onSelect={setSelectedItem}
+              onEdit={() => { }}
+              onAddTest={handleAddTest}
+              onAddAction={handleAddAction}
+              onMoveTest={handleMoveTest}
+              onMoveAction={handleMoveAction}
+              onDeleteTest={handleDeleteTest}
+              onDeleteAction={handleDeleteAction}
+              onRunTest={handleRunTest}
+              onRunAction={handleRunAction}
+              onToggleEnabled={handleToggleEnabled}
+            />
           </ScrollArea>
         </aside>
 
@@ -392,8 +137,7 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }) {
                       <label className="block text-sm font-medium">Test Title</label>
                       <Input
                         value={selectedItem.testTitle}
-                        onChange={(e) => { selectedItem.testTitle = e.target.value; setPlan({ ...plan }); setIsDirty(true) }}
-                        className="bg-muted/30"
+                        onChange={(e) => updateSelectedItem({ testTitle: e.target.value })}
                       />
                     </div>
                     <div className="flex items-center gap-2">
@@ -401,7 +145,7 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }) {
                         type="checkbox"
                         id="testEnabled"
                         checked={selectedItem.isEnabled !== false}
-                        onChange={(e) => { selectedItem.isEnabled = e.target.checked; setPlan({ ...plan }); setIsDirty(true) }}
+                        onChange={(e) => updateSelectedItem({ isEnabled: e.target.checked })}
                         className="rounded border-border text-primary focus:ring-primary h-4 w-4"
                       />
                       <label htmlFor="testEnabled" className="text-sm font-medium">Enabled</label>
@@ -413,64 +157,94 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }) {
                       <label className="block text-sm font-medium">Action Title</label>
                       <Input
                         value={selectedItem.actionTitle}
-                        onChange={(e) => { selectedItem.actionTitle = e.target.value; setPlan({ ...plan }); setIsDirty(true) }}
-                        className="bg-muted/30"
+                        onChange={(e) => updateSelectedItem({ actionTitle: e.target.value })}
                       />
                     </div>
+
                     <div className="space-y-2">
                       <label className="block text-sm font-medium">Action Type</label>
                       <div className="flex gap-3">
-                        {/* Parent: Category Selector (Left) */}
-                        <div className="flex-1 relative">
-                          <select
-                            value={selectedCategory || actionSchemas.actions.find(a => a.type === selectedItem.actionType)?.category || ''}
-                            onChange={(e) => {
-                              const newCategory = e.target.value
-                              setSelectedCategory(newCategory)
-                              // Auto-select first action in category
-                              const actionsInCategory = actionSchemas.actions.filter(a => a.category === newCategory)
-                              if (actionsInCategory.length > 0) {
-                                const firstAction = actionsInCategory[0]
-                                selectedItem.actionType = firstAction.type
-                                const plugin = actionRegistry.get(firstAction.type)
-                                if (plugin) selectedItem.params = JSON.parse(JSON.stringify(plugin.defaultParams))
-                                setPlan({ ...plan })
-                                setIsDirty(true)
-                              }
-                            }}
-                            className="w-full appearance-none rounded-md border border-input bg-muted/30 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary pr-10"
-                          >
-                            {actionSchemas.categories.map(cat => (
-                              <option key={cat.id} value={cat.id}>{cat.icon} {cat.label}</option>
-                            ))}
-                          </select>
-                          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                        </div>
-                        {/* Child: Action Type Selector (Right) */}
-                        <div className="flex-1 relative">
-                          <select
-                            value={selectedItem.actionType}
-                            onChange={(e) => {
-                              const newType = e.target.value
-                              selectedItem.actionType = newType
-                              const plugin = actionRegistry.get(newType)
-                              if (plugin) selectedItem.params = JSON.parse(JSON.stringify(plugin.defaultParams))
-                              setPlan({ ...plan })
-                              setIsDirty(true)
-                            }}
-                            className="w-full appearance-none rounded-md border border-input bg-muted/30 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary pr-10"
-                          >
-                            {actionSchemas.actions
-                              .filter(action => {
-                                const currentCategory = selectedCategory || actionSchemas.actions.find(a => a.type === selectedItem.actionType)?.category
-                                return action.category === currentCategory
-                              })
-                              .map(action => (
-                                <option key={action.type} value={action.type}>{action.label}</option>
-                              ))}
-                          </select>
-                          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                        </div>
+                        {/* Action Type Selector Logic needs to be robust */}
+                        {/* Custom Dropdown Selectors */}
+                        {(() => {
+                          const currentCatId = actionSchemas.actions.find(a => a.type === selectedItem.actionType)?.category || actionSchemas.categories[0].id
+                          const currentCategory = actionSchemas.categories.find(c => c.id === currentCatId) || actionSchemas.categories[0]
+                          const currentAction = actionSchemas.actions.find(a => a.type === selectedItem.actionType)
+
+                          return (
+                            <>
+                              {/* Category Dropdown */}
+                              <div className="flex-1 relative">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <button className="w-full flex items-center justify-between rounded-md border border-input bg-background/50 hover:bg-accent/50 hover:text-accent-foreground px-4 py-2.5 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors">
+                                      <span className="flex items-center gap-2 truncate">
+                                        <span>{currentCategory.icon}</span>
+                                        <span>{currentCategory.label}</span>
+                                      </span>
+                                      <ChevronDown className="h-4 w-4 opacity-50" />
+                                    </button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent className="w-[300px]" align="start">
+                                    {actionSchemas.categories.map(c => (
+                                      <DropdownMenuItem
+                                        key={c.id}
+                                        onSelect={() => {
+                                          const firstAction = actionSchemas.actions.find(a => a.category === c.id)
+                                          if (firstAction) {
+                                            const plugin = actionRegistry.get(firstAction.type)
+                                            updateSelectedItem({
+                                              actionType: firstAction.type,
+                                              params: plugin ? JSON.parse(JSON.stringify(plugin.defaultParams)) : {}
+                                            })
+                                          }
+                                        }}
+                                        className="flex items-center gap-2"
+                                      >
+                                        <span className="text-muted-foreground">{c.icon}</span>
+                                        {c.label}
+                                        {currentCatId === c.id && <Check className="ml-auto h-4 w-4" />}
+                                      </DropdownMenuItem>
+                                    ))}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+
+                              {/* Action Type Dropdown */}
+                              <div className="flex-1 relative">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <button className="w-full flex items-center justify-between rounded-md border border-input bg-background/50 hover:bg-accent/50 hover:text-accent-foreground px-4 py-2.5 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors">
+                                      <span className="truncate">{currentAction?.label || "Select Action"}</span>
+                                      <ChevronDown className="h-4 w-4 opacity-50" />
+                                    </button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent className="w-[300px]" align="start">
+                                    <ScrollArea className="h-[300px]">
+                                      {actionSchemas.actions
+                                        .filter(a => a.category === currentCatId)
+                                        .map(a => (
+                                          <DropdownMenuItem
+                                            key={a.type}
+                                            onSelect={() => {
+                                              const plugin = actionRegistry.get(a.type)
+                                              updateSelectedItem({
+                                                actionType: a.type,
+                                                params: plugin ? JSON.parse(JSON.stringify(plugin.defaultParams)) : {}
+                                              })
+                                            }}
+                                          >
+                                            {a.label}
+                                            {selectedItem.actionType === a.type && <Check className="ml-auto h-4 w-4" />}
+                                          </DropdownMenuItem>
+                                        ))}
+                                    </ScrollArea>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </>
+                          )
+                        })()}
                       </div>
                     </div>
 
@@ -483,7 +257,7 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }) {
                           <div className="mt-6 rounded-lg border bg-muted/20 p-5 space-y-5">
                             <Editor
                               params={selectedItem.params || {}}
-                              onChange={(newParams) => { selectedItem.params = newParams; setPlan({ ...plan }); setIsDirty(true) }}
+                              onChange={(newParams) => updateSelectedItem({ params: newParams })}
                             />
                           </div>
                         )
@@ -500,17 +274,14 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }) {
                     <div className="bg-muted/30 p-4 rounded-md text-sm font-mono">
                       <div className="flex items-center gap-2 mb-2">
                         <span className={`px-2 py-0.5 rounded text-xs font-bold ${logs[selectedItem.actionID].status === 'Success' ? 'bg-emerald-500/20 text-emerald-500' :
-                          logs[selectedItem.actionID].status === 'Failed' || logs[selectedItem.actionID].status === 'Error' ? 'bg-red-500/20 text-red-500' :
-                            logs[selectedItem.actionID].status === 'Warning' ? 'bg-amber-500/20 text-amber-500' :
-                              'bg-blue-500/20 text-blue-500'
+                          ['Failed', 'Error'].includes(logs[selectedItem.actionID].status) ? 'bg-red-500/20 text-red-500' :
+                            'bg-blue-500/20 text-blue-500'
                           }`}>
                           {logs[selectedItem.actionID].status}
                         </span>
-                        <span className="text-xs text-muted-foreground">{logs[selectedItem.actionID].timestamp}</span>
+                        <span className="text-xs text-muted-foreground">{new Date(logs[selectedItem.actionID].timestamp).toLocaleString()}</span>
                       </div>
-                      {logs[selectedItem.actionID].details && (
-                        <pre className="text-xs overflow-x-auto">{JSON.stringify(logs[selectedItem.actionID].details, null, 2)}</pre>
-                      )}
+                      <pre className="text-xs overflow-x-auto">{JSON.stringify(logs[selectedItem.actionID].details, null, 2)}</pre>
                     </div>
                   </div>
                 )}

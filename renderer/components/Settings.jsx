@@ -1,24 +1,20 @@
-import React, { useState, useEffect, useCallback } from 'react'
-import { X, FolderOpen } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { FolderOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { getTestPlansFldrPath, setTestPlansFldrPath } from '@/core/ipc/appSettings'
 
 export default function Settings({ onClose }) {
-  const [activeTab, setActiveTab] = useState('general')
   const [folderPath, setFolderPath] = useState('')
-
-  // Handle ESC key to close
-  const handleKeyDown = useCallback((e) => {
-    if (e.key === 'Escape') {
-      onClose?.()
-    }
-  }, [onClose])
 
   useEffect(() => {
     loadSettings()
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [handleKeyDown])
+  }, [])
 
   const loadSettings = async () => {
     const f = await getTestPlansFldrPath()
@@ -35,47 +31,36 @@ export default function Settings({ onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex bg-background/80 backdrop-blur-sm text-foreground animate-in fade-in duration-200">
-      <div className="m-auto w-full max-w-2xl bg-background border rounded-lg shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b">
-          <h2 className="text-lg font-semibold">Settings</h2>
-          <div
-            className="flex items-center gap-2 cursor-pointer group"
-            onClick={onClose}
-          >
-            <span className="text-xs text-muted-foreground group-hover:text-foreground">ESC</span>
-            <div className="rounded-full p-1 hover:bg-muted transition-colors">
-              <X className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
+    <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Settings</DialogTitle>
+          <div className="hidden" id="settings-desc">Application configuration settings</div>
+        </DialogHeader>
+
+        <div className="py-4 space-y-6">
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Storage</h3>
+            <div className="rounded-lg border bg-card p-4 space-y-3">
+              <label className="text-sm font-medium">Test Plans Folder</label>
+              <div className="flex items-center gap-3">
+                <div className="flex-1 flex items-center gap-2 p-2.5 bg-muted/50 rounded-md border border-input/50">
+                  <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-mono truncate text-foreground/90" title={folderPath}>
+                    {folderPath}
+                  </span>
+                </div>
+                <Button variant="secondary" onClick={handlePickFolder} className="shrink-0">
+                  Browse...
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Location where your test plans are stored.
+              </p>
             </div>
           </div>
         </div>
-
-        {/* Content */}
-        <div className="p-6">
-          {activeTab === 'general' && (
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground uppercase">Test Plans Folder</label>
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 flex items-center gap-2 p-3 bg-secondary rounded-md">
-                    <FolderOpen className="h-5 w-5 text-muted-foreground" />
-                    <span className="text-sm font-mono truncate text-foreground/90" title={folderPath}>
-                      {folderPath}
-                    </span>
-                  </div>
-                  <Button variant="secondary" onClick={handlePickFolder} className="shrink-0">
-                    Change Folder
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  This folder will be used to store all your test plans.
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

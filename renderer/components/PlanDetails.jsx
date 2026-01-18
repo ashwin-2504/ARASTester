@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from 'react'
-import { ChevronLeft, RotateCcw, Save, X, Play } from 'lucide-react'
+import { ChevronLeft, RotateCcw, Save, Play, Plus, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import TestTree from './TestTree'
 import TestPlanService from '../services/TestPlanService'
 import { arrayMove } from '@dnd-kit/sortable'
 import { actionRegistry } from '../registries/ActionRegistry'
 
-export default function PlanDetails({ filename, onNavigate }) {
+export default function PlanDetails({ filename, onNavigate, onBack }) {
   const [plan, setPlan] = useState({ testPlan: [] })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -17,46 +15,14 @@ export default function PlanDetails({ filename, onNavigate }) {
   const [isDirty, setIsDirty] = useState(false)
   const [logs, setLogs] = useState({})
   const [saveStatus, setSaveStatus] = useState('')
-
-  // ... (loadPlan, handleSave, etc.)
-
-  // ... (ensureIds, loadPlan implementation ...)
-
-  // Make sure ensureIds is preserved or just insert the state at the top
-  // I will assume the user wants me to merge this carefully.
-  // Actually, I'll use multi_replace to insert the state and then the other parts.
-  // But wait, replace_file_content is for contiguous blocks.
-  // I should probably use multi_replace for this file as I need to touch multiple places.
-  // Converting to multi_replace...
-
-
-
-
-  // Note: We need to handle action reordering. 
-  // Since TestTree handles the drag event, it needs to pass enough info.
-  // But wait, TestTree's handleDragEnd logic was:
-  // if (isTest) onReorderTests(...)
-  // else ...
-
-  // We need to ensure TestTree passes the right IDs.
-  // For actions, we need to know WHICH test they belong to.
-  // Let's assume TestTree passes (testId, activeActionId, overActionId) or similar?
-  // Actually, my TestTree implementation of handleDragEnd was incomplete for actions.
-  // "Let's assume onReorder prop that takes (activeId, overId)."
-
-  // I need to update PlanDetails to handle the reordering based on IDs.
-  // Since I don't have unique Action IDs globally (only locally generated in TestTree if missing),
-  // this is tricky.
-  // Ideally, I should generate Action IDs when loading the plan if they are missing.
-
-  // Let's add a helper to ensure IDs exist on load.
+  const [expandedTests, setExpandedTests] = useState({})
 
   const ensureIds = (data) => {
     if (!data.testPlan) return data
     data.testPlan.forEach(t => {
       if (!t.testID) t.testID = `T${Math.random().toString(36).substr(2, 9)}`
       if (t.testActions) {
-        t.testActions.forEach((a, i) => {
+        t.testActions.forEach((a) => {
           if (!a.actionID) a.actionID = `A${Math.random().toString(36).substr(2, 9)}`
         })
       }
@@ -70,6 +36,10 @@ export default function PlanDetails({ filename, onNavigate }) {
       const data = await TestPlanService.getPlan(filename)
       const withIds = ensureIds(data)
       setPlan(withIds)
+      // Expand all tests by default
+      const expanded = {}
+      withIds.testPlan?.forEach(t => { expanded[t.testID] = true })
+      setExpandedTests(expanded)
       setIsDirty(false)
       setError(null)
       setSelectedItem(null)
@@ -99,82 +69,15 @@ export default function PlanDetails({ filename, onNavigate }) {
     if (isDirty) {
       if (!confirm('You have unsaved changes. Are you sure you want to leave?')) return
     }
-    onNavigate('dashboard')
+    onBack?.() || onNavigate?.('dashboard')
   }
 
   const handleRefresh = () => {
     if (isDirty) {
-      if (!confirm('You have unsaved changes. Are you sure you want to discard them?')) return
+      if (!confirm('You have unsaved changes. Discard them?')) return
     }
     loadPlan()
   }
-
-
-  const handleTitleChange = (e) => {
-    setPlan({ ...plan, title: e.target.value })
-    setIsDirty(true)
-  }
-
-  const handleReorderTests = (activeId, overId) => {
-    setPlan((prevPlan) => {
-      const oldIndex = prevPlan.testPlan.findIndex((t) => t.testID === activeId)
-      const newIndex = prevPlan.testPlan.findIndex((t) => t.testID === overId)
-
-      if (oldIndex !== -1 && newIndex !== -1) {
-        const newTestPlan = arrayMove(prevPlan.testPlan, oldIndex, newIndex)
-        return { ...prevPlan, testPlan: newTestPlan }
-      }
-      return prevPlan
-    })
-    setIsDirty(true)
-  }
-
-  const handleReorderActions = (activeId, overId) => {
-    setPlan((prevPlan) => {
-      const newPlan = { ...prevPlan }
-      // Find test with the active action
-      const test = newPlan.testPlan.find(t => t.testActions && t.testActions.find(a => a.actionID === activeId))
-
-      if (test) {
-        const oldIndex = test.testActions.findIndex(a => a.actionID === activeId)
-        const newIndex = test.testActions.findIndex(a => a.actionID === overId)
-
-        if (oldIndex !== -1 && newIndex !== -1) {
-          test.testActions = arrayMove(test.testActions, oldIndex, newIndex)
-          return newPlan
-        }
-      }
-      return prevPlan
-    })
-    setIsDirty(true)
-  }
-
-  const handleDeleteTest = (testId) => {
-    if (!confirm("Are you sure you want to delete this test and all its actions?")) return
-    setPlan((prevPlan) => ({
-      ...prevPlan,
-      testPlan: prevPlan.testPlan.filter(t => t.testID !== testId)
-    }))
-    setSelectedItem(null)
-    setIsDirty(true)
-  }
-
-  const handleDeleteAction = (actionId) => {
-    if (!confirm("Are you sure you want to delete this action?")) return
-    setPlan((prevPlan) => {
-      const newPlan = { ...prevPlan }
-      newPlan.testPlan.forEach(t => {
-        if (t.testActions) {
-          t.testActions = t.testActions.filter(a => a.actionID !== actionId)
-        }
-      })
-      return newPlan
-    })
-    setSelectedItem(null)
-    setIsDirty(true)
-  }
-
-  // ... (handleAddTest, handleAddAction)
 
   const handleAddTest = () => {
     const newTest = {
@@ -187,17 +90,20 @@ export default function PlanDetails({ filename, onNavigate }) {
     if (!newPlan.testPlan) newPlan.testPlan = []
     newPlan.testPlan.push(newTest)
     setPlan(newPlan)
+    setExpandedTests({ ...expandedTests, [newTest.testID]: true })
     setIsDirty(true)
     setSelectedItem(newTest)
   }
 
   const handleAddAction = (test) => {
+    const defaultType = actionRegistry.getAll()[0]?.type || 'Custom'
+    const plugin = actionRegistry.get(defaultType)
     const newAction = {
       actionTitle: "New Action",
-      actionType: "Click",
+      actionType: defaultType,
       actionID: `A${Date.now()}`,
       isEnabled: true,
-      params: actionRegistry.get("Click") ? JSON.parse(JSON.stringify(actionRegistry.get("Click").defaultParams)) : {}
+      params: plugin ? JSON.parse(JSON.stringify(plugin.defaultParams)) : {}
     }
     if (!test.testActions) test.testActions = []
     test.testActions.push(newAction)
@@ -206,309 +112,312 @@ export default function PlanDetails({ filename, onNavigate }) {
     setSelectedItem(newAction)
   }
 
+  const handleDeleteTest = (testId) => {
+    if (!confirm("Delete this test and all its actions?")) return
+    setPlan(prev => ({
+      ...prev,
+      testPlan: prev.testPlan.filter(t => t.testID !== testId)
+    }))
+    setSelectedItem(null)
+    setIsDirty(true)
+  }
+
+  const handleDeleteAction = (actionId) => {
+    if (!confirm("Delete this action?")) return
+    setPlan(prev => {
+      const newPlan = { ...prev }
+      newPlan.testPlan.forEach(t => {
+        if (t.testActions) {
+          t.testActions = t.testActions.filter(a => a.actionID !== actionId)
+        }
+      })
+      return newPlan
+    })
+    setSelectedItem(null)
+    setIsDirty(true)
+  }
+
   // === Run Handlers ===
   const handleRunAll = async () => {
-    console.log('🚀 Running all tests in plan:', plan.title)
+    console.log('🚀 Running all tests')
     for (const test of plan.testPlan || []) {
-      if (test.isEnabled !== false) {
-        await handleRunTest(test)
-      }
+      if (test.isEnabled !== false) await handleRunTest(test)
     }
-    console.log('✅ All tests completed')
   }
 
   const handleRunTest = async (test) => {
-    console.log(`▶️ Running test: ${test.testTitle}`)
+    console.log(`▶️ Running: ${test.testTitle}`)
     for (const action of test.testActions || []) {
-      if (action.isEnabled !== false) {
-        await handleRunAction(action)
-      }
+      if (action.isEnabled !== false) await handleRunAction(action)
     }
-    console.log(`✓ Test completed: ${test.testTitle}`)
   }
 
   const handleRunAction = async (action) => {
-    console.log(`  ⚡ Running action: ${action.actionTitle} (${action.actionType})`, action.params)
-
-    // Create Log Entry
-    const logEntry = {
-      timestamp: new Date().toISOString(),
-      status: 'Running...',
-      details: null
-    }
-    setLogs(prev => ({ ...prev, [action.actionID]: logEntry }))
-
+    setLogs(prev => ({ ...prev, [action.actionID]: { status: 'Running...', timestamp: new Date().toISOString() } }))
     try {
       if (action.actionType === 'ArasConnect') {
         const payload = { ...action.params }
-        // Apply defaults if empty
         if (!payload.url) payload.url = 'http://localhost/InnovatorServer/Server/InnovatorServer.aspx'
         if (!payload.database) payload.database = 'InnovatorSolutions'
-        if (!payload.username) payload.username = 'admin' // basic default
-
         const response = await fetch('http://localhost:5000/api/aras/connect', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         })
         const data = await response.json()
-
-        setLogs(prev => ({
-          ...prev,
-          [action.actionID]: {
-            timestamp: new Date().toISOString(),
-            status: data.success ? 'Success' : 'Failed',
-            details: data
-          }
-        }))
-
-        if (!data.success) {
-          console.error('Action failed:', data.message)
-        }
+        setLogs(prev => ({ ...prev, [action.actionID]: { status: data.success ? 'Success' : 'Failed', details: data, timestamp: new Date().toISOString() } }))
       } else {
-        // Simulate other actions
-        await new Promise(resolve => setTimeout(resolve, 500))
-        setLogs(prev => ({
-          ...prev,
-          [action.actionID]: {
-            timestamp: new Date().toISOString(),
-            status: 'Completed',
-            details: { message: 'Action simulation completed' }
-          }
-        }))
+        await new Promise(r => setTimeout(r, 500))
+        setLogs(prev => ({ ...prev, [action.actionID]: { status: 'Completed', timestamp: new Date().toISOString() } }))
       }
-    } catch (error) {
-      setLogs(prev => ({
-        ...prev,
-        [action.actionID]: {
-          timestamp: new Date().toISOString(),
-          status: 'Error',
-          details: { message: error.message }
-        }
-      }))
+    } catch (err) {
+      setLogs(prev => ({ ...prev, [action.actionID]: { status: 'Error', details: { message: err.message }, timestamp: new Date().toISOString() } }))
     }
-
-    console.log(`  ✓ Action completed: ${action.actionTitle}`)
   }
 
-  const renderRightPanel = () => {
-    if (!selectedItem) {
-      return (
-        <div className="flex items-center justify-center h-full text-muted-foreground">
-          <p className="text-lg font-medium">Select a test or action to view details</p>
-        </div>
-      )
-    }
-
-    const isTest = selectedItem.hasOwnProperty('testID')
-
-    return (
-      <div className="h-full flex flex-col p-6">
-        <div className="mb-6 pb-4 border-b flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-semibold tracking-tight">
-              {isTest ? 'Test Details' : 'Action Details'}
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {isTest ? 'Configure test properties.' : 'Configure action behavior.'}
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-emerald-500 border-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-400"
-            onClick={() => isTest ? handleRunTest(selectedItem) : handleRunAction(selectedItem)}
-          >
-            <Play className="h-4 w-4 mr-2 fill-current" />
-            Run {isTest ? 'Test' : 'Action'}
-          </Button>
-        </div>
-
-        <div className="space-y-6">
-          {isTest ? (
-            <>
-              <div className="grid gap-2">
-                <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Test Title</label>
-                <Input
-                  value={selectedItem.testTitle}
-                  onChange={(e) => {
-                    selectedItem.testTitle = e.target.value
-                    setPlan({ ...plan })
-                    setIsDirty(true)
-                  }}
-                />
-              </div>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="isEnabled"
-                  checked={selectedItem.isEnabled}
-                  onChange={(e) => {
-                    selectedItem.isEnabled = e.target.checked
-                    setPlan({ ...plan })
-                    setIsDirty(true)
-                  }}
-                  className="h-4 w-4 rounded border-primary text-primary focus:ring-primary"
-                />
-                <label htmlFor="isEnabled" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Enabled</label>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="grid gap-2">
-                <label className="text-sm font-medium leading-none">Action Title</label>
-                <Input
-                  value={selectedItem.actionTitle}
-                  onChange={(e) => {
-                    selectedItem.actionTitle = e.target.value
-                    setPlan({ ...plan })
-                    setIsDirty(true)
-                  }}
-                />
-              </div>
-              <div className="grid gap-2">
-                <label className="text-sm font-medium leading-none">Action Type</label>
-                <select
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  value={selectedItem.actionType || "Click"}
-                  onChange={(e) => {
-                    const newType = e.target.value
-                    selectedItem.actionType = newType
-                    // Reset params to default for the new type
-                    const plugin = actionRegistry.get(newType)
-                    if (plugin) {
-                      // Deep copy default params to avoid reference issues
-                      selectedItem.params = JSON.parse(JSON.stringify(plugin.defaultParams))
-                    }
-                    setPlan({ ...plan })
-                    setIsDirty(true)
-                  }}
-                >
-                  {actionRegistry.getAll().map(plugin => (
-                    <option key={plugin.type} value={plugin.type}>{plugin.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Dynamic Action Editor */}
-              {(() => {
-                const plugin = actionRegistry.get(selectedItem.actionType)
-                if (plugin && plugin.Editor) {
-                  const Editor = plugin.Editor
-                  return (
-                    <div className="border rounded-md p-4 bg-accent/20">
-                      <Editor
-                        params={selectedItem.params || {}}
-                        onChange={(newParams) => {
-                          selectedItem.params = newParams
-                          setPlan({ ...plan })
-                          setIsDirty(true)
-                        }}
-                      />
-                    </div>
-                  )
-                }
-                return (
-                  <div className="text-sm text-muted-foreground">
-                    No editor available for action type: {selectedItem.actionType}
-                  </div>
-                )
-              })()}
-            </>
-          )}
-
-          {/* Logs Section */}
-          <div className="pt-6 border-t mt-6 pb-20">
-            <h3 className="text-sm font-semibold mb-3">Execution Log</h3>
-            {logs[selectedItem.actionID] || logs[selectedItem.testID] ? (
-              <div className="bg-muted p-3 rounded-md text-sm font-mono overflow-x-auto">
-                {logs[selectedItem.actionID] && (
-                  <>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className={`px-2 py-0.5 rounded textxs font-bold ${logs[selectedItem.actionID].status === 'Success' ? 'bg-green-500/20 text-green-600' :
-                        logs[selectedItem.actionID].status === 'Failed' || logs[selectedItem.actionID].status === 'Error' ? 'bg-red-500/20 text-red-600' :
-                          'bg-blue-500/20 text-blue-600'
-                        }`}>
-                        {logs[selectedItem.actionID].status}
-                      </span>
-                      <span className="text-muted-foreground text-xs">{logs[selectedItem.actionID].timestamp}</span>
-                    </div>
-                    <pre className="text-xs">{JSON.stringify(logs[selectedItem.actionID].details, null, 2)}</pre>
-                  </>
-                )}
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground italic">No logs available. Run the action to see results.</p>
-            )}
-          </div>
-        </div>
-      </div>
-    )
+  const toggleTest = (testId) => {
+    setExpandedTests(prev => ({ ...prev, [testId]: !prev[testId] }))
   }
 
-  // ... (render)
+  const isTest = (item) => item?.hasOwnProperty('testID')
+
+  if (loading) return <div className="flex h-full items-center justify-center text-muted-foreground">Loading...</div>
+  if (error) return <div className="flex h-full items-center justify-center text-red-500">{error}</div>
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header ... */}
-      <header className="flex items-center justify-between border-b pb-4 mb-4 px-4">
-        {/* ... existing header content ... */}
+    <div className="flex flex-col h-full bg-background">
+      {/* Header */}
+      <header className="flex-none h-16 border-b px-6 flex items-center justify-between bg-card">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={handleBack}>
+          <button
+            onClick={handleBack}
+            className="p-2 -ml-2 rounded-full hover:bg-muted text-muted-foreground transition-colors"
+          >
             <ChevronLeft className="h-5 w-5" />
-          </Button>
-          <Input
-            value={plan.title}
-            onChange={handleTitleChange}
-            className="text-2xl font-bold h-auto py-1 px-2 border-transparent hover:border-input focus:border-input w-[400px]"
-          />
+          </button>
+          <h1 className="text-xl font-bold tracking-tight">{plan.title || filename}</h1>
         </div>
-        <div className="flex items-center gap-2">
-          {saveStatus && <span className="text-sm text-green-500 font-medium animate-fade-out">{saveStatus}</span>}
+        <div className="flex items-center gap-3">
+          {saveStatus && <span className="text-sm text-emerald-500 font-medium">{saveStatus}</span>}
           <Button
             variant="outline"
-            className="text-emerald-500 border-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-400"
+            className="text-emerald-500 border-emerald-500 hover:bg-emerald-500/10"
             onClick={handleRunAll}
-            title="Run All Tests"
           >
-            <Play className="mr-2 h-4 w-4 fill-current" /> Run All
+            <Play className="h-4 w-4 mr-2 fill-current" /> Run All
           </Button>
-          <Button variant="outline" size="icon" onClick={handleRefresh} title="Refresh">
+          <Button variant="ghost" size="icon" onClick={handleRefresh}>
             <RotateCcw className="h-4 w-4" />
           </Button>
-          <Button onClick={handleSave} disabled={!isDirty} title="Save">
-            <Save className="mr-2 h-4 w-4" /> Save
+          <Button onClick={handleSave} disabled={!isDirty}>
+            <Save className="h-4 w-4 mr-2" /> Save
           </Button>
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
-        <aside className="w-1/3 border-r flex flex-col bg-card/50">
-          <ScrollArea className="flex-1">
-            <TestTree
-              testPlan={plan.testPlan}
-              selectedItem={selectedItem}
-              onSelect={setSelectedItem}
-              onEdit={() => {
-                setIsDirty(true)
-                setPlan({ ...plan })
-              }}
-              onAddTest={handleAddTest}
-              onAddAction={handleAddAction}
-              onReorderTests={handleReorderTests}
-              onReorderActions={handleReorderActions}
-              onDeleteTest={handleDeleteTest}
-              onDeleteAction={handleDeleteAction}
-              onRunTest={handleRunTest}
-              onRunAction={handleRunAction}
-            />
+      {/* Main Content */}
+      <main className="flex-1 flex overflow-hidden">
+        {/* Left Sidebar - Test Tree */}
+        <aside className="w-1/3 max-w-sm flex flex-col border-r bg-card">
+          <ScrollArea className="flex-1 p-4">
+            <div className="border rounded-lg overflow-hidden bg-muted/30">
+              {plan.testPlan?.map((test, testIndex) => (
+                <div key={test.testID}>
+                  {/* Test Row */}
+                  <div
+                    className={`group flex items-center justify-between p-2 hover:bg-muted/50 cursor-pointer border-b border-border/50 ${selectedItem?.testID === test.testID ? 'bg-amber-500/10 border-l-[3px] border-l-amber-500' : ''}`}
+                    onClick={() => setSelectedItem(test)}
+                  >
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <button onClick={(e) => { e.stopPropagation(); toggleTest(test.testID) }} className="text-muted-foreground">
+                        {expandedTests[test.testID] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                      </button>
+                      <input
+                        type="checkbox"
+                        checked={test.isEnabled !== false}
+                        onChange={(e) => { e.stopPropagation(); test.isEnabled = e.target.checked; setPlan({ ...plan }); setIsDirty(true) }}
+                        className="rounded border-border text-primary focus:ring-primary h-4 w-4"
+                      />
+                      <span className="text-sm font-medium truncate">{test.testTitle}</span>
+                    </div>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={(e) => { e.stopPropagation(); handleRunTest(test) }} className="text-emerald-500 p-1 hover:bg-emerald-500/10 rounded">
+                        <Play className="h-3 w-3 fill-current" />
+                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); handleAddAction(test) }} className="text-muted-foreground p-1 hover:bg-muted rounded">
+                        <Plus className="h-3 w-3" />
+                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); handleDeleteTest(test.testID) }} className="text-muted-foreground hover:text-red-500 p-1 hover:bg-red-500/10 rounded">
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  {expandedTests[test.testID] && test.testActions?.map((action) => (
+                    <div
+                      key={action.actionID}
+                      className={`group flex items-center justify-between py-2 pr-2 pl-10 hover:bg-muted/50 cursor-pointer ${selectedItem?.actionID === action.actionID ? 'bg-amber-500/10 border-l-[3px] border-l-amber-500' : ''}`}
+                      onClick={() => setSelectedItem(action)}
+                    >
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <input
+                          type="checkbox"
+                          checked={action.isEnabled !== false}
+                          onChange={(e) => { e.stopPropagation(); action.isEnabled = e.target.checked; setPlan({ ...plan }); setIsDirty(true) }}
+                          className="rounded border-border text-primary focus:ring-primary h-4 w-4"
+                        />
+                        <span className="text-sm truncate">{action.actionTitle}</span>
+                      </div>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={(e) => { e.stopPropagation(); handleRunAction(action) }} className="text-emerald-500 p-1 hover:bg-emerald-500/10 rounded">
+                          <Play className="h-3 w-3 fill-current" />
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); handleDeleteAction(action.actionID) }} className="text-muted-foreground hover:text-red-500 p-1 hover:bg-red-500/10 rounded">
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+
+            {/* Add Test Button */}
+            <button
+              onClick={handleAddTest}
+              className="w-full mt-4 flex items-center justify-center gap-2 py-2 px-4 rounded border border-dashed border-border text-muted-foreground hover:border-primary hover:text-primary hover:bg-muted/30 transition-all text-sm font-medium"
+            >
+              <Plus className="h-4 w-4" /> Add Test
+            </button>
           </ScrollArea>
         </aside>
 
-        <main className="flex-1 bg-background overflow-auto">
-          {renderRightPanel()}
-        </main>
-      </div>
+        {/* Right Panel - Details */}
+        <section className="flex-1 overflow-y-auto bg-background p-6 lg:p-10">
+          {!selectedItem ? (
+            <div className="flex items-center justify-center h-full text-muted-foreground">
+              <p>Select a test or action to view details</p>
+            </div>
+          ) : (
+            <div className="max-w-4xl mx-auto space-y-8">
+              {/* Panel Header */}
+              <div className="flex items-end justify-between border-b pb-6">
+                <div>
+                  <h2 className="text-2xl font-bold mb-1">{isTest(selectedItem) ? 'Test Details' : 'Action Details'}</h2>
+                  <p className="text-sm text-muted-foreground">
+                    {isTest(selectedItem) ? 'Configure test properties' : 'Configure action behavior and parameters'}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  className="text-emerald-500 border-emerald-500 hover:bg-emerald-500/10"
+                  onClick={() => isTest(selectedItem) ? handleRunTest(selectedItem) : handleRunAction(selectedItem)}
+                >
+                  <Play className="h-4 w-4 mr-2 fill-current" /> Run {isTest(selectedItem) ? 'Test' : 'Action'}
+                </Button>
+              </div>
+
+              {/* Form */}
+              <div className="space-y-6">
+                {isTest(selectedItem) ? (
+                  <>
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium">Test Title</label>
+                      <Input
+                        value={selectedItem.testTitle}
+                        onChange={(e) => { selectedItem.testTitle = e.target.value; setPlan({ ...plan }); setIsDirty(true) }}
+                        className="bg-muted/30"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="testEnabled"
+                        checked={selectedItem.isEnabled !== false}
+                        onChange={(e) => { selectedItem.isEnabled = e.target.checked; setPlan({ ...plan }); setIsDirty(true) }}
+                        className="rounded border-border text-primary focus:ring-primary h-4 w-4"
+                      />
+                      <label htmlFor="testEnabled" className="text-sm font-medium">Enabled</label>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium">Action Title</label>
+                      <Input
+                        value={selectedItem.actionTitle}
+                        onChange={(e) => { selectedItem.actionTitle = e.target.value; setPlan({ ...plan }); setIsDirty(true) }}
+                        className="bg-muted/30"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium">Action Type</label>
+                      <div className="relative">
+                        <select
+                          value={selectedItem.actionType}
+                          onChange={(e) => {
+                            const newType = e.target.value
+                            selectedItem.actionType = newType
+                            const plugin = actionRegistry.get(newType)
+                            if (plugin) selectedItem.params = JSON.parse(JSON.stringify(plugin.defaultParams))
+                            setPlan({ ...plan })
+                            setIsDirty(true)
+                          }}
+                          className="w-full appearance-none rounded-md border border-input bg-muted/30 px-4 py-2.5 text-sm focus:border-primary focus:ring-primary pr-10"
+                        >
+                          {actionRegistry.getAll().map(p => (
+                            <option key={p.type} value={p.type}>{p.label}</option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      </div>
+                    </div>
+
+                    {/* Dynamic Action Editor */}
+                    {(() => {
+                      const plugin = actionRegistry.get(selectedItem.actionType)
+                      if (plugin?.Editor) {
+                        const Editor = plugin.Editor
+                        return (
+                          <div className="mt-6 rounded-lg border bg-muted/20 p-5 space-y-5">
+                            <Editor
+                              params={selectedItem.params || {}}
+                              onChange={(newParams) => { selectedItem.params = newParams; setPlan({ ...plan }); setIsDirty(true) }}
+                            />
+                          </div>
+                        )
+                      }
+                      return null
+                    })()}
+                  </>
+                )}
+
+                {/* Execution Log */}
+                {!isTest(selectedItem) && logs[selectedItem.actionID] && (
+                  <div className="pt-6 border-t mt-6">
+                    <h3 className="text-sm font-semibold mb-3">Execution Log</h3>
+                    <div className="bg-muted/30 p-4 rounded-md text-sm font-mono">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${logs[selectedItem.actionID].status === 'Success' ? 'bg-emerald-500/20 text-emerald-500' :
+                            logs[selectedItem.actionID].status === 'Failed' || logs[selectedItem.actionID].status === 'Error' ? 'bg-red-500/20 text-red-500' :
+                              'bg-blue-500/20 text-blue-500'
+                          }`}>
+                          {logs[selectedItem.actionID].status}
+                        </span>
+                        <span className="text-xs text-muted-foreground">{logs[selectedItem.actionID].timestamp}</span>
+                      </div>
+                      {logs[selectedItem.actionID].details && (
+                        <pre className="text-xs overflow-x-auto">{JSON.stringify(logs[selectedItem.actionID].details, null, 2)}</pre>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </section>
+      </main>
     </div>
   )
 }

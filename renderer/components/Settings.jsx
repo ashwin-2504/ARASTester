@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { X, FolderOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { getTestPlansFldrPath, setTestPlansFldrPath } from '../appSettings'
+import { getTestPlansFldrPath, setTestPlansFldrPath } from '@/core/ipc/appSettings'
 
 export default function Settings({ onClose }) {
   const [activeTab, setActiveTab] = useState('general')

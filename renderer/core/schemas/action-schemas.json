@@ -1,0 +1,1202 @@
+{
+  "version": "1.0.0",
+  "categories": [
+    {
+      "id": "connection",
+      "label": "Connection & Authentication",
+      "icon": "🔐"
+    },
+    {
+      "id": "crud",
+      "label": "Item CRUD Operations",
+      "icon": "📦"
+    },
+    {
+      "id": "lock",
+      "label": "Lock Operations",
+      "icon": "🔒"
+    },
+    {
+      "id": "lifecycle",
+      "label": "Lifecycle Operations",
+      "icon": "🔄"
+    },
+    {
+      "id": "relationship",
+      "label": "Relationship Operations",
+      "icon": "🔗"
+    },
+    {
+      "id": "workflow",
+      "label": "Workflow Operations",
+      "icon": "⚙️"
+    },
+    {
+      "id": "aml",
+      "label": "AML & SQL Execution",
+      "icon": "📄"
+    },
+    {
+      "id": "assertion",
+      "label": "Assertion / Verification",
+      "icon": "✅"
+    },
+    {
+      "id": "file",
+      "label": "File Vault Operations",
+      "icon": "📁"
+    },
+    {
+      "id": "utility",
+      "label": "Utility Actions",
+      "icon": "🔧"
+    }
+  ],
+  "actions": [
+    {
+      "type": "ArasConnect",
+      "label": "Connect to ARAS",
+      "category": "connection",
+      "description": "Establish connection to ARAS Innovator server using IomFactory.CreateHttpServerConnection() and Login()",
+      "apiEndpoint": "/api/aras/connect",
+      "apiMethod": "POST",
+      "fields": [
+        {
+          "name": "url",
+          "label": "Server URL",
+          "type": "text",
+          "required": true,
+          "default": "http://localhost/InnovatorServer/Server/InnovatorServer.aspx",
+          "placeholder": "https://server/InnovatorServer/Server/InnovatorServer.aspx",
+          "helpText": "Full URL to the Innovator server endpoint"
+        },
+        {
+          "name": "database",
+          "label": "Database",
+          "type": "text",
+          "required": true,
+          "default": "InnovatorSolutions",
+          "placeholder": "InnovatorSolutions"
+        },
+        {
+          "name": "username",
+          "label": "Username",
+          "type": "text",
+          "required": true,
+          "default": "admin",
+          "placeholder": "admin"
+        },
+        {
+          "name": "password",
+          "label": "Password",
+          "type": "password",
+          "required": true,
+          "default": "innovator"
+        }
+      ]
+    },
+    {
+      "type": "ArasDisconnect",
+      "label": "Disconnect",
+      "category": "connection",
+      "description": "Close session and release resources using connection.Logout()",
+      "apiEndpoint": "/api/aras/disconnect",
+      "apiMethod": "POST",
+      "fields": []
+    },
+    {
+      "type": "ValidateConnection",
+      "label": "Validate Connection",
+      "category": "connection",
+      "description": "Test if connection is still valid by querying current user",
+      "apiEndpoint": "/api/aras/validate",
+      "apiMethod": "GET",
+      "fields": []
+    },
+    {
+      "type": "QueryItem",
+      "label": "Query Items",
+      "category": "crud",
+      "description": "Get items by criteria using newItem(type, 'get') → apply()",
+      "apiEndpoint": "/api/aras/query",
+      "apiMethod": "POST",
+      "fields": [
+        {
+          "name": "itemType",
+          "label": "Item Type",
+          "type": "text",
+          "required": true,
+          "placeholder": "Part",
+          "helpText": "The ItemType name to query (e.g., Part, Document, CAD)"
+        },
+        {
+          "name": "select",
+          "label": "Select Properties",
+          "type": "text",
+          "placeholder": "item_number,name,state",
+          "helpText": "Comma-separated list of properties to return"
+        },
+        {
+          "name": "criteria",
+          "label": "Search Criteria",
+          "type": "keyvalue",
+          "helpText": "Property name/value pairs for filtering (value can include wildcards like %)"
+        },
+        {
+          "name": "pageSize",
+          "label": "Page Size",
+          "type": "number",
+          "default": 25,
+          "helpText": "Maximum number of items to return"
+        },
+        {
+          "name": "page",
+          "label": "Page Number",
+          "type": "number",
+          "default": 1,
+          "helpText": "Page number for pagination (1-indexed)"
+        }
+      ]
+    },
+    {
+      "type": "GetItemById",
+      "label": "Get Item by ID",
+      "category": "crud",
+      "description": "Get a single item by its ID using innovator.getItemById(type, id)",
+      "apiEndpoint": "/api/aras/get-by-id",
+      "apiMethod": "POST",
+      "fields": [
+        {
+          "name": "itemType",
+          "label": "Item Type",
+          "type": "text",
+          "required": true,
+          "placeholder": "Part"
+        },
+        {
+          "name": "id",
+          "label": "Item ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+          "helpText": "32-character GUID of the item"
+        },
+        {
+          "name": "select",
+          "label": "Select Properties",
+          "type": "text",
+          "placeholder": "item_number,name,state"
+        }
+      ]
+    },
+    {
+      "type": "GetItemByKeyedName",
+      "label": "Get Item by Keyed Name",
+      "category": "crud",
+      "description": "Get item by its keyed name using innovator.getItemByKeyedName(type, name)",
+      "apiEndpoint": "/api/aras/get-by-keyed-name",
+      "apiMethod": "POST",
+      "fields": [
+        {
+          "name": "itemType",
+          "label": "Item Type",
+          "type": "text",
+          "required": true,
+          "placeholder": "Part"
+        },
+        {
+          "name": "keyedName",
+          "label": "Keyed Name",
+          "type": "text",
+          "required": true,
+          "placeholder": "PART-001",
+          "helpText": "The keyed_name value of the item"
+        }
+      ]
+    },
+    {
+      "type": "CreateItem",
+      "label": "Create Item",
+      "category": "crud",
+      "description": "Add a new item using newItem(type, 'add') → setProperty() → apply()",
+      "apiEndpoint": "/api/aras/create",
+      "apiMethod": "POST",
+      "fields": [
+        {
+          "name": "itemType",
+          "label": "Item Type",
+          "type": "text",
+          "required": true,
+          "placeholder": "Part"
+        },
+        {
+          "name": "properties",
+          "label": "Properties",
+          "type": "keyvalue",
+          "required": true,
+          "helpText": "Property name/value pairs to set on the new item"
+        }
+      ]
+    },
+    {
+      "type": "UpdateItem",
+      "label": "Update Item",
+      "category": "crud",
+      "description": "Edit an existing item using newItem(type, 'edit') → setID() → setProperty() → apply()",
+      "apiEndpoint": "/api/aras/update",
+      "apiMethod": "POST",
+      "fields": [
+        {
+          "name": "itemType",
+          "label": "Item Type",
+          "type": "text",
+          "required": true,
+          "placeholder": "Part"
+        },
+        {
+          "name": "id",
+          "label": "Item ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        },
+        {
+          "name": "properties",
+          "label": "Properties",
+          "type": "keyvalue",
+          "required": true,
+          "helpText": "Property name/value pairs to update"
+        }
+      ]
+    },
+    {
+      "type": "DeleteItem",
+      "label": "Delete Item",
+      "category": "crud",
+      "description": "Delete an item (current version) using newItem(type, 'delete') → setID() → apply()",
+      "apiEndpoint": "/api/aras/delete",
+      "apiMethod": "POST",
+      "fields": [
+        {
+          "name": "itemType",
+          "label": "Item Type",
+          "type": "text",
+          "required": true,
+          "placeholder": "Part"
+        },
+        {
+          "name": "id",
+          "label": "Item ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        }
+      ]
+    },
+    {
+      "type": "PurgeItem",
+      "label": "Purge Item",
+      "category": "crud",
+      "description": "Permanently remove all versions using newItem(type, 'purge') → apply()",
+      "apiEndpoint": "/api/aras/purge",
+      "apiMethod": "POST",
+      "fields": [
+        {
+          "name": "itemType",
+          "label": "Item Type",
+          "type": "text",
+          "required": true,
+          "placeholder": "Part"
+        },
+        {
+          "name": "id",
+          "label": "Item ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        }
+      ]
+    },
+    {
+      "type": "LockItem",
+      "label": "Lock Item",
+      "category": "lock",
+      "description": "Lock an item for editing using item.lockItem()",
+      "apiEndpoint": "/api/aras/lock",
+      "apiMethod": "POST",
+      "fields": [
+        {
+          "name": "itemType",
+          "label": "Item Type",
+          "type": "text",
+          "required": true,
+          "placeholder": "Part"
+        },
+        {
+          "name": "id",
+          "label": "Item ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        }
+      ]
+    },
+    {
+      "type": "UnlockItem",
+      "label": "Unlock Item",
+      "category": "lock",
+      "description": "Release lock on item using item.unlockItem()",
+      "apiEndpoint": "/api/aras/unlock",
+      "apiMethod": "POST",
+      "fields": [
+        {
+          "name": "itemType",
+          "label": "Item Type",
+          "type": "text",
+          "required": true,
+          "placeholder": "Part"
+        },
+        {
+          "name": "id",
+          "label": "Item ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        }
+      ]
+    },
+    {
+      "type": "CheckLockStatus",
+      "label": "Check Lock Status",
+      "category": "lock",
+      "description": "Verify lock state using item.fetchLockStatus()",
+      "apiEndpoint": "/api/aras/check-lock",
+      "apiMethod": "POST",
+      "fields": [
+        {
+          "name": "itemType",
+          "label": "Item Type",
+          "type": "text",
+          "required": true,
+          "placeholder": "Part"
+        },
+        {
+          "name": "id",
+          "label": "Item ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        }
+      ]
+    },
+    {
+      "type": "PromoteItem",
+      "label": "Promote Item",
+      "category": "lifecycle",
+      "description": "Change lifecycle state using item.promote(state, comments)",
+      "apiEndpoint": "/api/aras/promote",
+      "apiMethod": "POST",
+      "fields": [
+        {
+          "name": "itemType",
+          "label": "Item Type",
+          "type": "text",
+          "required": true,
+          "placeholder": "Part"
+        },
+        {
+          "name": "id",
+          "label": "Item ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        },
+        {
+          "name": "targetState",
+          "label": "Target State",
+          "type": "text",
+          "required": true,
+          "placeholder": "Released",
+          "helpText": "The lifecycle state to promote to"
+        },
+        {
+          "name": "comments",
+          "label": "Comments",
+          "type": "textarea",
+          "placeholder": "Promotion comments..."
+        }
+      ]
+    },
+    {
+      "type": "GetCurrentState",
+      "label": "Get Current State",
+      "category": "lifecycle",
+      "description": "Get lifecycle state using item.getProperty('state')",
+      "apiEndpoint": "/api/aras/get-state",
+      "apiMethod": "POST",
+      "fields": [
+        {
+          "name": "itemType",
+          "label": "Item Type",
+          "type": "text",
+          "required": true,
+          "placeholder": "Part"
+        },
+        {
+          "name": "id",
+          "label": "Item ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        }
+      ]
+    },
+    {
+      "type": "AddRelationship",
+      "label": "Add Relationship",
+      "category": "relationship",
+      "description": "Create a relationship between items using item.addRelationship()",
+      "apiEndpoint": "/api/aras/add-relationship",
+      "apiMethod": "POST",
+      "fields": [
+        {
+          "name": "parentType",
+          "label": "Parent Item Type",
+          "type": "text",
+          "required": true,
+          "placeholder": "Part"
+        },
+        {
+          "name": "parentId",
+          "label": "Parent Item ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        },
+        {
+          "name": "relationshipType",
+          "label": "Relationship Type",
+          "type": "text",
+          "required": true,
+          "placeholder": "Part BOM",
+          "helpText": "The RelationshipType name (e.g., Part BOM, Part CAD)"
+        },
+        {
+          "name": "relatedId",
+          "label": "Related Item ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        },
+        {
+          "name": "properties",
+          "label": "Relationship Properties",
+          "type": "keyvalue",
+          "helpText": "Optional properties on the relationship itself (e.g., quantity)"
+        }
+      ]
+    },
+    {
+      "type": "GetRelationships",
+      "label": "Get Relationships",
+      "category": "relationship",
+      "description": "Fetch item's relationships using item.fetchRelationships(relType)",
+      "apiEndpoint": "/api/aras/get-relationships",
+      "apiMethod": "POST",
+      "fields": [
+        {
+          "name": "itemType",
+          "label": "Item Type",
+          "type": "text",
+          "required": true,
+          "placeholder": "Part"
+        },
+        {
+          "name": "id",
+          "label": "Item ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        },
+        {
+          "name": "relationshipType",
+          "label": "Relationship Type",
+          "type": "text",
+          "required": true,
+          "placeholder": "Part BOM"
+        },
+        {
+          "name": "select",
+          "label": "Select Properties",
+          "type": "text",
+          "placeholder": "quantity,related_id(item_number,name)"
+        }
+      ]
+    },
+    {
+      "type": "DeleteRelationship",
+      "label": "Delete Relationship",
+      "category": "relationship",
+      "description": "Remove a relationship using newItem(relType, 'delete')",
+      "apiEndpoint": "/api/aras/delete-relationship",
+      "apiMethod": "POST",
+      "fields": [
+        {
+          "name": "relationshipType",
+          "label": "Relationship Type",
+          "type": "text",
+          "required": true,
+          "placeholder": "Part BOM"
+        },
+        {
+          "name": "relationshipId",
+          "label": "Relationship ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+          "helpText": "The ID of the relationship item itself (not the related item)"
+        }
+      ]
+    },
+    {
+      "type": "StartWorkflow",
+      "label": "Start Workflow",
+      "category": "workflow",
+      "description": "Initiate workflow using item.apply('startWorkflow')",
+      "apiEndpoint": "/api/aras/start-workflow",
+      "apiMethod": "POST",
+      "fields": [
+        {
+          "name": "itemType",
+          "label": "Item Type",
+          "type": "text",
+          "required": true,
+          "placeholder": "Part"
+        },
+        {
+          "name": "id",
+          "label": "Item ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        },
+        {
+          "name": "workflowMap",
+          "label": "Workflow Map",
+          "type": "text",
+          "required": true,
+          "placeholder": "Part Workflow",
+          "helpText": "Name or ID of the Workflow Map to start"
+        }
+      ]
+    },
+    {
+      "type": "GetAssignedActivities",
+      "label": "Get Assigned Activities",
+      "category": "workflow",
+      "description": "Get pending activities using innovator.getAssignedActivities()",
+      "apiEndpoint": "/api/aras/get-activities",
+      "apiMethod": "GET",
+      "fields": []
+    },
+    {
+      "type": "CompleteActivity",
+      "label": "Complete Activity",
+      "category": "workflow",
+      "description": "Finish workflow activity using apply('closeActivity')",
+      "apiEndpoint": "/api/aras/complete-activity",
+      "apiMethod": "POST",
+      "fields": [
+        {
+          "name": "activityId",
+          "label": "Activity ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        },
+        {
+          "name": "path",
+          "label": "Path Name",
+          "type": "text",
+          "required": true,
+          "placeholder": "Approve",
+          "helpText": "The workflow path to follow (e.g., 'Approve', 'Reject')"
+        },
+        {
+          "name": "comments",
+          "label": "Comments",
+          "type": "textarea",
+          "placeholder": "Activity completion comments..."
+        }
+      ]
+    },
+    {
+      "type": "ApplyAML",
+      "label": "Apply AML",
+      "category": "aml",
+      "description": "Execute raw AML query using innovator.applyAML(aml)",
+      "apiEndpoint": "/api/aras/apply-aml",
+      "apiMethod": "POST",
+      "fields": [
+        {
+          "name": "aml",
+          "label": "AML Query",
+          "type": "textarea",
+          "required": true,
+          "placeholder": "<Item type=\"Part\" action=\"get\" select=\"item_number,name\">\n  <state>Released</state>\n</Item>",
+          "helpText": "Raw AML (Aras Markup Language) to execute"
+        }
+      ]
+    },
+    {
+      "type": "ApplySQL",
+      "label": "Apply SQL",
+      "category": "aml",
+      "description": "Execute SQL query using innovator.applySQL(sql)",
+      "apiEndpoint": "/api/aras/apply-sql",
+      "apiMethod": "POST",
+      "fields": [
+        {
+          "name": "sql",
+          "label": "SQL Query",
+          "type": "textarea",
+          "required": true,
+          "placeholder": "SELECT id, item_number, name FROM innovator.PART WHERE state = 'Released'",
+          "helpText": "Raw SQL query to execute (read-only recommended)"
+        }
+      ]
+    },
+    {
+      "type": "ApplyMethod",
+      "label": "Apply Method",
+      "category": "aml",
+      "description": "Call a server method using innovator.applyMethod(name, body)",
+      "apiEndpoint": "/api/aras/apply-method",
+      "apiMethod": "POST",
+      "fields": [
+        {
+          "name": "methodName",
+          "label": "Method Name",
+          "type": "text",
+          "required": true,
+          "placeholder": "MyServerMethod",
+          "helpText": "Name of the server-side Method item"
+        },
+        {
+          "name": "body",
+          "label": "Method Body",
+          "type": "textarea",
+          "placeholder": "<param1>value1</param1>",
+          "helpText": "XML body to pass to the method"
+        }
+      ]
+    },
+    {
+      "type": "AssertItemExists",
+      "label": "Assert Item Exists",
+      "category": "assertion",
+      "description": "Verify item exists - PASS if query returns ≥1 item",
+      "apiEndpoint": "/api/aras/assert-exists",
+      "apiMethod": "POST",
+      "fields": [
+        {
+          "name": "itemType",
+          "label": "Item Type",
+          "type": "text",
+          "required": true,
+          "placeholder": "Part"
+        },
+        {
+          "name": "criteria",
+          "label": "Search Criteria",
+          "type": "keyvalue",
+          "required": true,
+          "helpText": "Property name/value pairs to identify the item"
+        }
+      ]
+    },
+    {
+      "type": "AssertItemNotExists",
+      "label": "Assert Item Not Exists",
+      "category": "assertion",
+      "description": "Verify item doesn't exist - PASS if query returns 0 items",
+      "apiEndpoint": "/api/aras/assert-not-exists",
+      "apiMethod": "POST",
+      "fields": [
+        {
+          "name": "itemType",
+          "label": "Item Type",
+          "type": "text",
+          "required": true,
+          "placeholder": "Part"
+        },
+        {
+          "name": "criteria",
+          "label": "Search Criteria",
+          "type": "keyvalue",
+          "required": true,
+          "helpText": "Property name/value pairs to search for"
+        }
+      ]
+    },
+    {
+      "type": "AssertPropertyValue",
+      "label": "Assert Property Value",
+      "category": "assertion",
+      "description": "Check property equals expected value - PASS if getProperty() == expected",
+      "apiEndpoint": "/api/aras/assert-property",
+      "apiMethod": "POST",
+      "fields": [
+        {
+          "name": "itemType",
+          "label": "Item Type",
+          "type": "text",
+          "required": true,
+          "placeholder": "Part"
+        },
+        {
+          "name": "id",
+          "label": "Item ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        },
+        {
+          "name": "property",
+          "label": "Property Name",
+          "type": "text",
+          "required": true,
+          "placeholder": "state"
+        },
+        {
+          "name": "expected",
+          "label": "Expected Value",
+          "type": "text",
+          "required": true,
+          "placeholder": "Released"
+        }
+      ]
+    },
+    {
+      "type": "AssertPropertyContains",
+      "label": "Assert Property Contains",
+      "category": "assertion",
+      "description": "Check property contains text - PASS if getProperty().Contains(text)",
+      "apiEndpoint": "/api/aras/assert-property-contains",
+      "apiMethod": "POST",
+      "fields": [
+        {
+          "name": "itemType",
+          "label": "Item Type",
+          "type": "text",
+          "required": true,
+          "placeholder": "Part"
+        },
+        {
+          "name": "id",
+          "label": "Item ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        },
+        {
+          "name": "property",
+          "label": "Property Name",
+          "type": "text",
+          "required": true,
+          "placeholder": "description"
+        },
+        {
+          "name": "contains",
+          "label": "Contains Text",
+          "type": "text",
+          "required": true,
+          "placeholder": "Assembly"
+        }
+      ]
+    },
+    {
+      "type": "AssertState",
+      "label": "Assert State",
+      "category": "assertion",
+      "description": "Verify lifecycle state - PASS if state == expectedState",
+      "apiEndpoint": "/api/aras/assert-state",
+      "apiMethod": "POST",
+      "fields": [
+        {
+          "name": "itemType",
+          "label": "Item Type",
+          "type": "text",
+          "required": true,
+          "placeholder": "Part"
+        },
+        {
+          "name": "id",
+          "label": "Item ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        },
+        {
+          "name": "expectedState",
+          "label": "Expected State",
+          "type": "text",
+          "required": true,
+          "placeholder": "Released"
+        }
+      ]
+    },
+    {
+      "type": "AssertCount",
+      "label": "Assert Count",
+      "category": "assertion",
+      "description": "Verify result count - PASS if getItemCount() == expected",
+      "apiEndpoint": "/api/aras/assert-count",
+      "apiMethod": "POST",
+      "fields": [
+        {
+          "name": "itemType",
+          "label": "Item Type",
+          "type": "text",
+          "required": true,
+          "placeholder": "Part"
+        },
+        {
+          "name": "criteria",
+          "label": "Search Criteria",
+          "type": "keyvalue",
+          "helpText": "Property name/value pairs for filtering"
+        },
+        {
+          "name": "expectedCount",
+          "label": "Expected Count",
+          "type": "number",
+          "required": true,
+          "default": 1
+        },
+        {
+          "name": "operator",
+          "label": "Comparison",
+          "type": "select",
+          "default": "eq",
+          "options": [
+            {
+              "value": "eq",
+              "label": "Equals (=)"
+            },
+            {
+              "value": "gt",
+              "label": "Greater Than (>)"
+            },
+            {
+              "value": "gte",
+              "label": "Greater Than or Equal (≥)"
+            },
+            {
+              "value": "lt",
+              "label": "Less Than (<)"
+            },
+            {
+              "value": "lte",
+              "label": "Less Than or Equal (≤)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "AssertLocked",
+      "label": "Assert Locked",
+      "category": "assertion",
+      "description": "Verify item is locked - PASS if locked_by_id != null",
+      "apiEndpoint": "/api/aras/assert-locked",
+      "apiMethod": "POST",
+      "fields": [
+        {
+          "name": "itemType",
+          "label": "Item Type",
+          "type": "text",
+          "required": true,
+          "placeholder": "Part"
+        },
+        {
+          "name": "id",
+          "label": "Item ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        }
+      ]
+    },
+    {
+      "type": "AssertUnlocked",
+      "label": "Assert Unlocked",
+      "category": "assertion",
+      "description": "Verify item is unlocked - PASS if locked_by_id == null",
+      "apiEndpoint": "/api/aras/assert-unlocked",
+      "apiMethod": "POST",
+      "fields": [
+        {
+          "name": "itemType",
+          "label": "Item Type",
+          "type": "text",
+          "required": true,
+          "placeholder": "Part"
+        },
+        {
+          "name": "id",
+          "label": "Item ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        }
+      ]
+    },
+    {
+      "type": "UploadFile",
+      "label": "Upload File",
+      "category": "file",
+      "description": "Vault a file using item.setFileProperty(prop, path)",
+      "apiEndpoint": "/api/aras/upload-file",
+      "apiMethod": "POST",
+      "fields": [
+        {
+          "name": "itemType",
+          "label": "Item Type",
+          "type": "text",
+          "required": true,
+          "placeholder": "CAD",
+          "helpText": "The ItemType with a file property (e.g., CAD, Document)"
+        },
+        {
+          "name": "id",
+          "label": "Item ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        },
+        {
+          "name": "propertyName",
+          "label": "Property Name",
+          "type": "text",
+          "required": true,
+          "placeholder": "native_file",
+          "helpText": "The file property name on the item"
+        },
+        {
+          "name": "filePath",
+          "label": "File Path",
+          "type": "text",
+          "required": true,
+          "placeholder": "C:\\Files\\document.docx",
+          "helpText": "Local path to the file to upload"
+        }
+      ]
+    },
+    {
+      "type": "DownloadFile",
+      "label": "Download File",
+      "category": "file",
+      "description": "Get file from vault using item.fetchFileProperty(prop, path)",
+      "apiEndpoint": "/api/aras/download-file",
+      "apiMethod": "POST",
+      "fields": [
+        {
+          "name": "itemType",
+          "label": "Item Type",
+          "type": "text",
+          "required": true,
+          "placeholder": "CAD"
+        },
+        {
+          "name": "id",
+          "label": "Item ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        },
+        {
+          "name": "propertyName",
+          "label": "Property Name",
+          "type": "text",
+          "required": true,
+          "placeholder": "native_file"
+        },
+        {
+          "name": "savePath",
+          "label": "Save Path",
+          "type": "text",
+          "required": true,
+          "placeholder": "C:\\Downloads\\",
+          "helpText": "Local directory to save the downloaded file"
+        }
+      ]
+    },
+    {
+      "type": "VerifyFileExists",
+      "label": "Verify File Exists",
+      "category": "file",
+      "description": "Check if file is vaulted by checking File relationship",
+      "apiEndpoint": "/api/aras/verify-file-exists",
+      "apiMethod": "POST",
+      "fields": [
+        {
+          "name": "itemType",
+          "label": "Item Type",
+          "type": "text",
+          "required": true,
+          "placeholder": "CAD"
+        },
+        {
+          "name": "id",
+          "label": "Item ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        },
+        {
+          "name": "propertyName",
+          "label": "Property Name",
+          "type": "text",
+          "required": true,
+          "placeholder": "native_file"
+        }
+      ]
+    },
+    {
+      "type": "GenerateID",
+      "label": "Generate ID",
+      "category": "utility",
+      "description": "Create new GUID using innovator.getNewID()",
+      "apiEndpoint": "/api/aras/generate-id",
+      "apiMethod": "GET",
+      "fields": []
+    },
+    {
+      "type": "GetNextSequence",
+      "label": "Get Next Sequence",
+      "category": "utility",
+      "description": "Get next sequence value using innovator.getNextSequence(name)",
+      "apiEndpoint": "/api/aras/next-sequence",
+      "apiMethod": "POST",
+      "fields": [
+        {
+          "name": "sequenceName",
+          "label": "Sequence Name",
+          "type": "text",
+          "required": true,
+          "placeholder": "Default Innovator Sequence",
+          "helpText": "Name of the Sequence item in Aras"
+        }
+      ]
+    },
+    {
+      "type": "Wait",
+      "label": "Wait",
+      "category": "utility",
+      "description": "Pause execution for specified duration",
+      "apiEndpoint": null,
+      "apiMethod": null,
+      "isClientSide": true,
+      "fields": [
+        {
+          "name": "duration",
+          "label": "Duration (ms)",
+          "type": "number",
+          "required": true,
+          "default": 1000,
+          "helpText": "Time to wait in milliseconds"
+        }
+      ]
+    },
+    {
+      "type": "SetVariable",
+      "label": "Set Variable",
+      "category": "utility",
+      "description": "Store a value for use in later actions",
+      "apiEndpoint": null,
+      "apiMethod": null,
+      "isClientSide": true,
+      "fields": [
+        {
+          "name": "variableName",
+          "label": "Variable Name",
+          "type": "text",
+          "required": true,
+          "placeholder": "createdItemId",
+          "helpText": "Name to reference this variable in later actions"
+        },
+        {
+          "name": "value",
+          "label": "Value",
+          "type": "text",
+          "required": true,
+          "placeholder": "${lastResult.id}",
+          "helpText": "Value to store (can reference previous results)"
+        }
+      ]
+    },
+    {
+      "type": "LogMessage",
+      "label": "Log Message",
+      "category": "utility",
+      "description": "Write a message to the test log",
+      "apiEndpoint": null,
+      "apiMethod": null,
+      "isClientSide": true,
+      "fields": [
+        {
+          "name": "message",
+          "label": "Message",
+          "type": "textarea",
+          "required": true,
+          "placeholder": "Test started at ${timestamp}",
+          "helpText": "Message to log (can include variable references)"
+        },
+        {
+          "name": "level",
+          "label": "Log Level",
+          "type": "select",
+          "default": "info",
+          "options": [
+            {
+              "value": "info",
+              "label": "Info"
+            },
+            {
+              "value": "warn",
+              "label": "Warning"
+            },
+            {
+              "value": "error",
+              "label": "Error"
+            },
+            {
+              "value": "debug",
+              "label": "Debug"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Custom",
+      "label": "Custom Script",
+      "category": "utility",
+      "description": "Execute custom JavaScript code",
+      "apiEndpoint": null,
+      "apiMethod": null,
+      "isClientSide": true,
+      "fields": [
+        {
+          "name": "code",
+          "label": "JavaScript Code",
+          "type": "textarea",
+          "required": true,
+          "placeholder": "// Available: context, variables, lastResult\nreturn { success: true };",
+          "helpText": "Custom JavaScript to execute in test context"
+        }
+      ]
+    }
+  ]
+}

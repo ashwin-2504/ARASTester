@@ -1,21 +1,17 @@
 import React, { useState } from 'react'
 import { HashRouter as Router, Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom'
-import AppShell from './layouts/AppShell'
+import AppShell from '../layouts/AppShell'
 
 // Lazy load views
-const DashboardPage = React.lazy(() => import('./routes/Dashboard/DashboardPage'))
-const PlanDetails = React.lazy(() => import('./components/PlanDetails'))
-const Settings = React.lazy(() => import('./components/Settings'))
+const DashboardPage = React.lazy(() => import('../routes/Dashboard/DashboardPage'))
+const PlanDetailsPage = React.lazy(() => import('../routes/PlanDetails/PlanDetailsPage'))
+const Settings = React.lazy(() => import('../components/Settings'))
 
-import { actionRegistry } from './registries/ActionRegistry'
+import { actionRegistry } from '../core/registries/ActionRegistry'
 
-// Import actions from domains (PRESERVED)
-import * as ArasActions from './domains/aras/actions'
-import * as CoreActions from './domains/core/actions'
-
-// Register all actions (Side-effect on load)
-Object.values(ArasActions).forEach(action => actionRegistry.register(action))
-Object.values(CoreActions).forEach(action => actionRegistry.register(action))
+// NOTE: Actions are now loaded from action-schemas.json in the ActionRegistry constructor.
+// Domain action plugins (domains/aras/actions, domains/core/actions) are deprecated.
+// The schema provides: type, label, apiEndpoint, apiMethod, fields, and generates Editors dynamically.
 
 export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -42,13 +38,13 @@ export default function App() {
   )
 }
 
-// Wrapper to bridge Route params to old PlanDetails props
+// Wrapper to bridge Route params to PlanDetailsPage props
 function PlanWrapper() {
   const { filename } = useParams()
   const navigate = useNavigate()
 
   return (
-    <PlanDetails
+    <PlanDetailsPage
       filename={decodeURIComponent(filename)}
       onNavigate={(target) => {
         if (target === 'dashboard') navigate('/')

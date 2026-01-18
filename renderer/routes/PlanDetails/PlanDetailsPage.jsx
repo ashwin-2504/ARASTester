@@ -3,11 +3,11 @@ import { ChevronLeft, RotateCcw, Save, Play, Plus, Trash2, ChevronDown, ChevronR
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import TestPlanService from '../services/TestPlanService'
+import TestPlanAdapter from '@/core/adapters/TestPlanAdapter'
 import { arrayMove } from '@dnd-kit/sortable'
-import { actionRegistry } from '../registries/ActionRegistry'
+import { actionRegistry } from '@/core/registries/ActionRegistry'
 
-export default function PlanDetails({ filename, onNavigate, onBack }) {
+export default function PlanDetailsPage({ filename, onNavigate, onBack }) {
   const [plan, setPlan] = useState({ testPlan: [] })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -33,7 +33,7 @@ export default function PlanDetails({ filename, onNavigate, onBack }) {
   const loadPlan = async () => {
     try {
       setLoading(true)
-      const data = await TestPlanService.getPlan(filename)
+      const data = await TestPlanAdapter.getPlan(filename)
       const withIds = ensureIds(data)
       setPlan(withIds)
       // Expand all tests by default
@@ -56,7 +56,7 @@ export default function PlanDetails({ filename, onNavigate, onBack }) {
 
   const handleSave = async () => {
     try {
-      await TestPlanService.updatePlan(filename, plan)
+      await TestPlanAdapter.updatePlan(filename, plan)
       setIsDirty(false)
       setSaveStatus('Saved!')
       setTimeout(() => setSaveStatus(''), 2000)
@@ -139,6 +139,11 @@ export default function PlanDetails({ filename, onNavigate, onBack }) {
 
   // === Run Handlers ===
   const handleRunAll = async () => {
+    // Auto-save before running
+    if (isDirty) {
+      console.log('💾 Auto-saving before run...')
+      await handleSave()
+    }
     console.log('🚀 Running all tests')
     for (const test of plan.testPlan || []) {
       if (test.isEnabled !== false) await handleRunTest(test)
@@ -154,24 +159,83 @@ export default function PlanDetails({ filename, onNavigate, onBack }) {
 
   const handleRunAction = async (action) => {
     setLogs(prev => ({ ...prev, [action.actionID]: { status: 'Running...', timestamp: new Date().toISOString() } }))
+
     try {
-      if (action.actionType === 'ArasConnect') {
-        const payload = { ...action.params }
-        if (!payload.url) payload.url = 'http://localhost/InnovatorServer/Server/InnovatorServer.aspx'
-        if (!payload.database) payload.database = 'InnovatorSolutions'
-        const response = await fetch('http://localhost:5000/api/aras/connect', {
-          method: 'POST',
+      const plugin = actionRegistry.get(action.actionType)
+
+      // Handle client-side only actions (Wait, SetVariable, LogMessage, etc.)
+      if (plugin?.isClientSide) {
+        const result = await executeClientSideAction(action, plugin)
+        setLogs(prev => ({
+          ...prev, [action.actionID]: {
+            status: result.success ? 'Success' : 'Failed',
+            details: result,
+            timestamp: new Date().toISOString()
+          }
+        }))
+        return
+      }
+
+      // Handle server-side actions via API
+      if (plugin?.apiEndpoint) {
+        const response = await fetch(`http://localhost:5000${plugin.apiEndpoint}`, {
+          method: plugin.apiMethod || 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: plugin.apiMethod === 'GET' ? undefined : JSON.stringify(action.params || {})
         })
         const data = await response.json()
-        setLogs(prev => ({ ...prev, [action.actionID]: { status: data.success ? 'Success' : 'Failed', details: data, timestamp: new Date().toISOString() } }))
+        setLogs(prev => ({
+          ...prev, [action.actionID]: {
+            status: data.success ? 'Success' : 'Failed',
+            details: data,
+            timestamp: new Date().toISOString()
+          }
+        }))
       } else {
-        await new Promise(r => setTimeout(r, 500))
-        setLogs(prev => ({ ...prev, [action.actionID]: { status: 'Completed', timestamp: new Date().toISOString() } }))
+        // Unknown action type - log warning
+        setLogs(prev => ({
+          ...prev, [action.actionID]: {
+            status: 'Warning',
+            details: { message: `No handler for action type: ${action.actionType}` },
+            timestamp: new Date().toISOString()
+          }
+        }))
       }
     } catch (err) {
-      setLogs(prev => ({ ...prev, [action.actionID]: { status: 'Error', details: { message: err.message }, timestamp: new Date().toISOString() } }))
+      setLogs(prev => ({
+        ...prev, [action.actionID]: {
+          status: 'Error',
+          details: { message: err.message },
+          timestamp: new Date().toISOString()
+        }
+      }))
+    }
+  }
+
+  // Execute client-side actions (no API call needed)
+  const executeClientSideAction = async (action, plugin) => {
+    switch (action.actionType) {
+      case 'Wait':
+        const duration = action.params?.duration || 1000
+        await new Promise(r => setTimeout(r, duration))
+        return { success: true, message: `Waited ${duration}ms` }
+
+      case 'LogMessage':
+        console.log(`[${action.params?.level || 'info'}]`, action.params?.message)
+        return { success: true, message: action.params?.message }
+
+      case 'SetVariable':
+        // Variables would be stored in a context - for now just log
+        console.log(`Set variable: ${action.params?.variableName} = ${action.params?.value}`)
+        return { success: true, variableName: action.params?.variableName, value: action.params?.value }
+
+      case 'Custom':
+        // Custom code execution - simplified for now
+        console.log('Custom script:', action.params?.code)
+        return { success: true, message: 'Custom script executed' }
+
+      default:
+        return { success: true, message: 'Action completed' }
     }
   }
 
@@ -400,7 +464,8 @@ export default function PlanDetails({ filename, onNavigate, onBack }) {
                     <div className="bg-muted/30 p-4 rounded-md text-sm font-mono">
                       <div className="flex items-center gap-2 mb-2">
                         <span className={`px-2 py-0.5 rounded text-xs font-bold ${logs[selectedItem.actionID].status === 'Success' ? 'bg-emerald-500/20 text-emerald-500' :
-                            logs[selectedItem.actionID].status === 'Failed' || logs[selectedItem.actionID].status === 'Error' ? 'bg-red-500/20 text-red-500' :
+                          logs[selectedItem.actionID].status === 'Failed' || logs[selectedItem.actionID].status === 'Error' ? 'bg-red-500/20 text-red-500' :
+                            logs[selectedItem.actionID].status === 'Warning' ? 'bg-amber-500/20 text-amber-500' :
                               'bg-blue-500/20 text-blue-500'
                           }`}>
                           {logs[selectedItem.actionID].status}

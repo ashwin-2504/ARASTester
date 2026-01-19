@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import TestTree from '@/components/TestTree'
+import JsonViewer from '@/components/JsonViewer'
 import { usePlanDetails } from './usePlanDetails'
 import { actionRegistry } from '@/core/registries/ActionRegistry'
 import actionSchemas from '@/core/schemas/action-schemas.json'
@@ -221,7 +222,7 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }) {
                                     </button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent className="w-[300px]" align="start">
-                                    <ScrollArea className="h-[300px]">
+                                    <ScrollArea className="h-auto max-h-[300px]">
                                       {actionSchemas.actions
                                         .filter(a => a.category === currentCatId)
                                         .map(a => (
@@ -287,7 +288,7 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }) {
                           })()}
                         </span>
                       </div>
-                      <pre className="text-xs overflow-x-auto">{JSON.stringify(logs[selectedItem.actionID].details, null, 2)}</pre>
+                      <JsonViewer data={logs[selectedItem.actionID].details} />
                     </div>
                   </div>
                 )}

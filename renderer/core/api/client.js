@@ -14,7 +14,8 @@ export const apiClient = {
     const response = await fetch(`${API_BASE}${endpoint}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
+      credentials: 'include' // Send cookies (ARAS_SESSION_ID)
     })
 
     // Attempt to parse JSON, fall back to text if needed or throw
@@ -28,7 +29,9 @@ export const apiClient = {
    * @returns {Promise<any>}
    */
   async get(endpoint) {
-    const response = await fetch(`${API_BASE}${endpoint}`)
+    const response = await fetch(`${API_BASE}${endpoint}`, {
+      credentials: 'include' // Send cookies
+    })
     const result = await response.json()
     return result
   }

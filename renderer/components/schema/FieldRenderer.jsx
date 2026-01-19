@@ -81,12 +81,14 @@ const FieldRenderer = ({ field, value, onChange }) => {
       return (
         <div className="space-y-1">
           {renderLabel()}
+          {field.prefix && <div className="text-xs font-mono text-muted-foreground font-bold">{field.prefix}</div>}
           <textarea
             value={value ?? field.default ?? ''}
             onChange={(e) => handleChange(e.target.value)}
             placeholder={field.placeholder}
             className={`w-full min-h-[120px] rounded-md border border-input px-3 py-2 text-sm font-mono focus:border-primary focus:ring-1 focus:ring-primary ${baseInputClass}`}
           />
+          {field.suffix && <div className="text-xs font-mono text-muted-foreground font-bold">{field.suffix}</div>}
           {renderHelpText()}
         </div>
       );

@@ -17,7 +17,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           'vendor': ['react', 'react-dom', 'lucide-react'],
-          'dnd': ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
+          'dnd': ['@hello-pangea/dnd'],
         }
       }
     }

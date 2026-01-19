@@ -22,7 +22,7 @@ const TestNode = React.memo(function TestNode({
   onToggleEnabled,
   logs = {} // Add logs prop
 }) {
-  const isSelected = selectedItem === test
+  const isSelected = selectedItem?.testID === test.testID
   const isChildSelected = test.testActions?.some(a => a?.actionID === selectedItem?.actionID)
   const isActiveContext = isSelected || isChildSelected
 

@@ -5,7 +5,7 @@ import AppShell from '../layouts/AppShell'
 // Lazy load views
 const DashboardPage = React.lazy(() => import('../routes/Dashboard/DashboardPage'))
 const PlanDetailsPage = React.lazy(() => import('../routes/PlanDetails/PlanDetailsPage'))
-const Settings = React.lazy(() => import('../components/Settings'))
+const SettingsPage = React.lazy(() => import('../routes/Settings/SettingsPage'))
 
 import { actionRegistry } from '../core/registries/ActionRegistry'
 
@@ -14,25 +14,17 @@ import { actionRegistry } from '../core/registries/ActionRegistry'
 // The schema provides: type, label, apiEndpoint, apiMethod, fields, and generates Editors dynamically.
 
 export default function App() {
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
-
   return (
     <Router>
       <AppShell>
         <React.Suspense fallback={<div className="flex h-full items-center justify-center">Loading...</div>}>
           <Routes>
-            <Route path="/" element={<DashboardPage onOpenSettings={() => setIsSettingsOpen(true)} />} />
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
             <Route path="/plan/:filename" element={<PlanWrapper />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </React.Suspense>
-
-        {/* Settings Modal Overlay */}
-        {isSettingsOpen && (
-          <React.Suspense fallback={null}>
-            <Settings onClose={() => setIsSettingsOpen(false)} />
-          </React.Suspense>
-        )}
       </AppShell>
     </Router>
   )

@@ -46,9 +46,12 @@ export const ActionExecutor = {
       } else {
         data = await apiClient.post(plugin.apiEndpoint, action.params || {})
       }
+      // Normalize Backend (PascalCase) to Frontend (camelCase)
+      const { Success, ...rest } = data
+
       return {
-        success: data.success ?? true, // Assume success if not specified, unless error thrown
-        ...data
+        success: Success ?? data.success ?? true,
+        ...rest
       }
     } catch (err) {
       throw err

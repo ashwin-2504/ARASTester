@@ -17,9 +17,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-
     <PackageReference Include="Aras.IOM" Version="15.0.1" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ArasBackend.Core\ArasBackend.Core.csproj" />
+    <ProjectReference Include="..\ArasBackend.Application\ArasBackend.Application.csproj" />
+    <ProjectReference Include="..\ArasBackend.Infrastructure\ArasBackend.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

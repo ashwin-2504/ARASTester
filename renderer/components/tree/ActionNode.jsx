@@ -15,7 +15,7 @@ const ActionNode = React.memo(function ActionNode({
   onRunAction,
   onToggleEnabled
 }) {
-  const isSelected = selectedItem === action
+  const isSelected = selectedItem?.actionID === action.actionID
 
   return (
     <Draggable draggableId={action.actionID} index={index}>

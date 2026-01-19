@@ -37,10 +37,17 @@ const SchemaFormRenderer = ({ schema, params = {}, onChange }) => {
   }
 
   const handleFieldChange = (fieldName, value) => {
-    onChange({
+    const newParams = {
       ...params,
       [fieldName]: value
-    });
+    };
+
+    // Automatically cleanup legacy "undefined" key caused by previous bug
+    if (Object.prototype.hasOwnProperty.call(newParams, 'undefined')) {
+      delete newParams['undefined'];
+    }
+
+    onChange(newParams);
   };
 
   // Group fields for better layout (2 columns for simple fields)
@@ -56,9 +63,9 @@ const SchemaFormRenderer = ({ schema, params = {}, onChange }) => {
       {/* Simple fields - can be 2 columns if there are many */}
       {simpleFields.length > 0 && (
         <div className={simpleFields.length > 2 ? "grid grid-cols-1 md:grid-cols-2 gap-4" : "space-y-4"}>
-          {simpleFields.map(field => (
+          {simpleFields.map((field, index) => (
             <FieldRenderer
-              key={field.name}
+              key={field.name || `simple-${index}`}
               field={field}
               value={params[field.name]}
               onChange={(value) => handleFieldChange(field.name, value)}
@@ -70,9 +77,9 @@ const SchemaFormRenderer = ({ schema, params = {}, onChange }) => {
       {/* Complex fields - always full width */}
       {complexFields.length > 0 && (
         <div className="space-y-4">
-          {complexFields.map(field => (
+          {complexFields.map((field, index) => (
             <FieldRenderer
-              key={field.name}
+              key={field.name || `complex-${index}`}
               field={field}
               value={params[field.name]}
               onChange={(value) => handleFieldChange(field.name, value)}

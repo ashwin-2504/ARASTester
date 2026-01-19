@@ -643,6 +643,8 @@
           "label": "AML Query",
           "type": "textarea",
           "required": true,
+          "prefix": "<AML>",
+          "suffix": "</AML>",
           "placeholder": "<Item type=\"Part\" action=\"get\" select=\"item_number,name\">\n  <state>Released</state>\n</Item>",
           "helpText": "Raw AML (Aras Markup Language) to execute"
         }

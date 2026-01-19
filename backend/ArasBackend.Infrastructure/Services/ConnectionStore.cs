@@ -1,0 +1,19 @@
+using Aras.IOM;
+using ArasBackend.Core.Models;
+
+namespace ArasBackend.Infrastructure.Services;
+
+public class SessionContext
+{
+    public required HttpServerConnection Connection { get; set; }
+    public required Innovator Innovator { get; set; }
+    public object Lock { get; } = new();
+    public required ServerInfo ServerInfo { get; set; }
+}
+
+public interface IConnectionStore
+{
+    string AddSession(SessionContext session);
+    SessionContext? GetSession(string sessionId);
+    void RemoveSession(string sessionId);
+}

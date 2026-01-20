@@ -1,126 +1,148 @@
-import { useState, useEffect, useCallback } from 'react'
-import * as TestPlanAdapter from '@/core/adapters/TestPlanAdapter'
-import { ActionExecutor } from '@/core/services/ActionExecutor'
-import { actionRegistry } from '@/core/registries/ActionRegistry'
-import actionSchemas from '@/core/schemas/action-schemas.json'
-
+import { useState, useEffect, useCallback } from "react";
+import * as TestPlanAdapter from "@/core/adapters/TestPlanAdapter";
+import { ActionExecutor } from "@/core/services/ActionExecutor";
+import { actionRegistry } from "@/core/registries/ActionRegistry";
+import actionSchemas from "@/core/schemas/action-schemas.json";
+import { apiClient } from "@/core/api/client";
+import { generateTestId, generateActionId } from "@/lib/idGenerator";
+import { confirm } from "@/lib/hooks/useConfirmDialog";
 
 export function usePlanDetails(filename, onNavigate) {
-  const [plan, setPlan] = useState({ testPlan: [] })
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [selectedItem, setSelectedItem] = useState(null)
-  const [isDirty, setIsDirty] = useState(false)
-  const [logs, setLogs] = useState({})
-  const [saveStatus, setSaveStatus] = useState('')
+  const [plan, setPlan] = useState({ testPlan: [] });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [isDirty, setIsDirty] = useState(false);
+  const [logs, setLogs] = useState({});
+  const [saveStatus, setSaveStatus] = useState("");
 
-  // Ensure unique IDs for all items
+  // Ensure unique IDs for all items (backfill for legacy data)
   const ensureIds = (data) => {
-    if (!data.testPlan) return data
-    data.testPlan.forEach(t => {
-      if (!t.testID) t.testID = `T${Math.random().toString(36).substr(2, 9)}`
+    if (!data.testPlan) return data;
+    data.testPlan.forEach((t) => {
+      if (!t.testID) t.testID = generateTestId();
       if (t.testActions) {
         t.testActions.forEach((a) => {
-          if (!a.actionID) a.actionID = `A${Math.random().toString(36).substr(2, 9)}`
-        })
+          if (!a.actionID) a.actionID = generateActionId();
+        });
       }
-    })
-    return data
-  }
+    });
+    return data;
+  };
 
   const loadPlan = useCallback(async () => {
     try {
-      setLoading(true)
-      const data = await TestPlanAdapter.getPlan(filename)
-      setPlan(ensureIds(data))
-      setIsDirty(false)
-      setError(null)
-      setSelectedItem(null)
+      setLoading(true);
+      const data = await TestPlanAdapter.getPlan(filename);
+      setPlan(ensureIds(data));
+      setIsDirty(false);
+      setError(null);
+      setSelectedItem(null);
     } catch (err) {
-      setError(err.message)
+      setError(err.message);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [filename])
+  }, [filename]);
 
   useEffect(() => {
-    loadPlan()
-  }, [loadPlan])
+    loadPlan();
+
+    // Cleanup: cancel pending API requests when leaving
+    return () => {
+      apiClient.cancelAll();
+    };
+  }, [loadPlan]);
 
   const handleSave = async () => {
     try {
-      await TestPlanAdapter.updatePlan(filename, plan)
-      setIsDirty(false)
-      setSaveStatus('Saved!')
-      setTimeout(() => setSaveStatus(''), 2000)
+      await TestPlanAdapter.updatePlan(filename, plan);
+      setIsDirty(false);
+      setSaveStatus("Saved!");
+      setTimeout(() => setSaveStatus(""), 2000);
     } catch (err) {
-      setError(err.message)
+      setError(err.message);
     }
-  }
+  };
 
   const handleAddTest = () => {
     const newTest = {
       testTitle: "New Test",
-      testID: `T${Date.now()}`,
+      testID: generateTestId(),
       isEnabled: true,
-      testActions: []
-    }
-    const newPlan = { ...plan }
-    if (!newPlan.testPlan) newPlan.testPlan = []
-    newPlan.testPlan.push(newTest)
-    setPlan(newPlan)
-    setIsDirty(true)
-    setSelectedItem(newTest)
-  }
+      testActions: [],
+    };
+    const newPlan = { ...plan };
+    if (!newPlan.testPlan) newPlan.testPlan = [];
+    newPlan.testPlan.push(newTest);
+    setPlan(newPlan);
+    setIsDirty(true);
+    setSelectedItem(newTest);
+  };
 
   const handleAddAction = (test) => {
-    const defaultType = actionRegistry.getAll()[0]?.type || 'Custom'
-    const plugin = actionRegistry.get(defaultType)
+    const defaultType = actionRegistry.getAll()[0]?.type || "Custom";
+    const plugin = actionRegistry.get(defaultType);
     const newAction = {
       actionTitle: "New Action",
       actionType: defaultType,
-      actionID: `A${Date.now()}`,
+      actionID: generateActionId(),
       isEnabled: true,
-      params: plugin ? JSON.parse(JSON.stringify(plugin.defaultParams)) : {}
-    }
+      params: plugin ? JSON.parse(JSON.stringify(plugin.defaultParams)) : {},
+    };
 
     // Find test index to update
-    const testIndex = plan.testPlan.findIndex(t => t.testID === test.testID)
-    if (testIndex === -1) return
+    const testIndex = plan.testPlan.findIndex((t) => t.testID === test.testID);
+    if (testIndex === -1) return;
 
-    const newPlan = { ...plan }
-    if (!newPlan.testPlan[testIndex].testActions) newPlan.testPlan[testIndex].testActions = []
-    newPlan.testPlan[testIndex].testActions.push(newAction)
+    const newPlan = { ...plan };
+    if (!newPlan.testPlan[testIndex].testActions)
+      newPlan.testPlan[testIndex].testActions = [];
+    newPlan.testPlan[testIndex].testActions.push(newAction);
 
-    setPlan(newPlan)
-    setIsDirty(true)
-    setSelectedItem(newAction)
-  }
+    setPlan(newPlan);
+    setIsDirty(true);
+    setSelectedItem(newAction);
+  };
 
-  const handleDeleteTest = (testId) => {
-    if (!confirm("Delete this test and all its actions?")) return
-    setPlan(prev => ({
+  const handleDeleteTest = async (testId) => {
+    const confirmed = await confirm({
+      title: "Delete Test",
+      description: "Delete this test and all its actions?",
+      confirmText: "Delete",
+      variant: "destructive",
+    });
+    if (!confirmed) return;
+
+    setPlan((prev) => ({
       ...prev,
-      testPlan: prev.testPlan.filter(t => t.testID !== testId)
-    }))
-    if (selectedItem?.testID === testId) setSelectedItem(null)
-    setIsDirty(true)
-  }
+      testPlan: prev.testPlan.filter((t) => t.testID !== testId),
+    }));
+    if (selectedItem?.testID === testId) setSelectedItem(null);
+    setIsDirty(true);
+  };
 
-  const handleDeleteAction = (actionId) => {
-    if (!confirm("Delete this action?")) return
-    setPlan(prev => {
-      const newPlan = { ...prev }
-      newPlan.testPlan.forEach(t => {
+  const handleDeleteAction = async (actionId) => {
+    const confirmed = await confirm({
+      title: "Delete Action",
+      description: "Delete this action?",
+      confirmText: "Delete",
+      variant: "destructive",
+    });
+    if (!confirmed) return;
+
+    setPlan((prev) => {
+      const newPlan = { ...prev };
+      newPlan.testPlan.forEach((t) => {
         if (t.testActions) {
-          t.testActions = t.testActions.filter(a => a.actionID !== actionId)
+          t.testActions = t.testActions.filter((a) => a.actionID !== actionId);
         }
-      })
-      return newPlan
-    })
-    if (selectedItem?.actionID === actionId) setSelectedItem(null)
-    setIsDirty(true)
-  }
+      });
+      return newPlan;
+    });
+    if (selectedItem?.actionID === actionId) setSelectedItem(null);
+    setIsDirty(true);
+  };
 
   // Helper for reordering list
   const reorder = (list, startIndex, endIndex) => {
@@ -136,23 +158,41 @@ export function usePlanDetails(filename, onNavigate) {
       return { ...prev, testPlan: newTests };
     });
     setIsDirty(true);
-  }
+  };
 
-  const handleMoveAction = (sourceTestId, sourceIndex, destTestId, destIndex) => {
+  const handleMoveAction = (
+    sourceTestId,
+    sourceIndex,
+    destTestId,
+    destIndex,
+  ) => {
     // Deep clone logic - synchronous
     const newPlan = { ...plan };
     newPlan.testPlan = [...plan.testPlan];
 
-    const sourceTestIndex = newPlan.testPlan.findIndex(t => t.testID === sourceTestId);
-    const destTestIndex = newPlan.testPlan.findIndex(t => t.testID === destTestId);
+    const sourceTestIndex = newPlan.testPlan.findIndex(
+      (t) => t.testID === sourceTestId,
+    );
+    const destTestIndex = newPlan.testPlan.findIndex(
+      (t) => t.testID === destTestId,
+    );
 
     if (sourceTestIndex === -1 || destTestIndex === -1) return;
 
     // Clone tests
-    const sourceTest = { ...newPlan.testPlan[sourceTestIndex], testActions: [...(newPlan.testPlan[sourceTestIndex].testActions || [])] };
-    const destTest = (sourceTestIndex === destTestIndex)
-      ? sourceTest
-      : { ...newPlan.testPlan[destTestIndex], testActions: [...(newPlan.testPlan[destTestIndex].testActions || [])] };
+    const sourceTest = {
+      ...newPlan.testPlan[sourceTestIndex],
+      testActions: [...(newPlan.testPlan[sourceTestIndex].testActions || [])],
+    };
+    const destTest =
+      sourceTestIndex === destTestIndex
+        ? sourceTest
+        : {
+            ...newPlan.testPlan[destTestIndex],
+            testActions: [
+              ...(newPlan.testPlan[destTestIndex].testActions || []),
+            ],
+          };
 
     // Move logic
     if (sourceIndex < 0 || sourceIndex >= sourceTest.testActions.length) return;
@@ -175,40 +215,47 @@ export function usePlanDetails(filename, onNavigate) {
     if (selectedItem?.actionID === movedAction.actionID) {
       setSelectedItem(movedAction);
     }
-  }
+  };
 
   const handleRunAction = async (action) => {
-    setLogs(prev => ({ ...prev, [action.actionID]: { status: 'Running...', timestamp: new Date().toISOString() } }))
+    setLogs((prev) => ({
+      ...prev,
+      [action.actionID]: {
+        status: "Running...",
+        timestamp: new Date().toISOString(),
+      },
+    }));
 
-    const result = await ActionExecutor.execute(action)
+    const result = await ActionExecutor.execute(action);
 
-    setLogs(prev => ({
-      ...prev, [action.actionID]: {
-        status: result.success ? 'Success' : 'Failed',
+    setLogs((prev) => ({
+      ...prev,
+      [action.actionID]: {
+        status: result.success ? "Success" : "Failed",
         details: result,
-        timestamp: new Date().toISOString()
-      }
-    }))
-  }
+        timestamp: new Date().toISOString(),
+      },
+    }));
+  };
 
   const handleRunTest = async (test) => {
-    console.log(`▶️ Running: ${test.testTitle}`)
+    console.log(`▶️ Running: ${test.testTitle}`);
     for (const action of test.testActions || []) {
-      if (action.isEnabled !== false) await handleRunAction(action)
+      if (action.isEnabled !== false) await handleRunAction(action);
     }
-  }
+  };
 
   const handleRunAll = async () => {
-    if (isDirty) await handleSave()
+    if (isDirty) await handleSave();
     for (const test of plan.testPlan || []) {
-      if (test.isEnabled !== false) await handleRunTest(test)
+      if (test.isEnabled !== false) await handleRunTest(test);
     }
-  }
+  };
 
   const updateSelectedItem = (updates) => {
-    if (!selectedItem) return
+    if (!selectedItem) return;
 
-    setPlan(currentPlan => {
+    setPlan((currentPlan) => {
       // 1. Shallow clone the plan object
       const newPlan = { ...currentPlan };
 
@@ -218,9 +265,11 @@ export function usePlanDetails(filename, onNavigate) {
       let newItemReference = null;
 
       // Check if it's a test
-      const testIdx = newPlan.testPlan.findIndex(t => t.testID === selectedItem.testID);
+      const testIdx = newPlan.testPlan.findIndex(
+        (t) => t.testID === selectedItem.testID,
+      );
 
-      if (testIdx !== -1 && !selectedItem.hasOwnProperty('actionID')) {
+      if (testIdx !== -1 && !selectedItem.hasOwnProperty("actionID")) {
         // --- UPDATING A TEST ---
         // Clone the specific test object
         const updatedTest = { ...newPlan.testPlan[testIdx], ...updates };
@@ -232,8 +281,10 @@ export function usePlanDetails(filename, onNavigate) {
         // We need to find which test contains this action (it might be selectedItem.actionID)
         // Note: selectedItem might be stale, so we search by ID.
         // We iterate to find the test containing the action.
-        const parentTestIndex = newPlan.testPlan.findIndex(t =>
-          t.testActions && t.testActions.some(a => a.actionID === selectedItem.actionID)
+        const parentTestIndex = newPlan.testPlan.findIndex(
+          (t) =>
+            t.testActions &&
+            t.testActions.some((a) => a.actionID === selectedItem.actionID),
         );
 
         if (parentTestIndex !== -1) {
@@ -242,11 +293,16 @@ export function usePlanDetails(filename, onNavigate) {
           // Clone the actions array
           parentTest.testActions = [...parentTest.testActions];
 
-          const actionIdx = parentTest.testActions.findIndex(a => a.actionID === selectedItem.actionID);
+          const actionIdx = parentTest.testActions.findIndex(
+            (a) => a.actionID === selectedItem.actionID,
+          );
 
           if (actionIdx !== -1) {
             // Clone the action
-            const updatedAction = { ...parentTest.testActions[actionIdx], ...updates };
+            const updatedAction = {
+              ...parentTest.testActions[actionIdx],
+              ...updates,
+            };
             // Replace action in the array
             parentTest.testActions[actionIdx] = updatedAction;
             // Replace test in the plan
@@ -264,21 +320,24 @@ export function usePlanDetails(filename, onNavigate) {
 
       return currentPlan; // No change found
     });
-  }
+  };
 
   const handleToggleEnabled = (item) => {
-    setPlan(currentPlan => {
+    setPlan((currentPlan) => {
       const newPlan = { ...currentPlan };
       newPlan.testPlan = [...currentPlan.testPlan];
 
       // Check if it's a test
-      const testIdx = newPlan.testPlan.findIndex(t => t.testID === item.testID);
+      const testIdx = newPlan.testPlan.findIndex(
+        (t) => t.testID === item.testID,
+      );
 
       if (testIdx !== -1 && !item.actionID) {
         // Toggle Test
         newPlan.testPlan[testIdx] = {
           ...newPlan.testPlan[testIdx],
-          isEnabled: newPlan.testPlan[testIdx].isEnabled === false ? true : false
+          isEnabled:
+            newPlan.testPlan[testIdx].isEnabled === false ? true : false,
         };
         // Also update selectedItem if it matches
         if (selectedItem?.testID === item.testID) {
@@ -286,20 +345,27 @@ export function usePlanDetails(filename, onNavigate) {
         }
       } else {
         // Find parent test for Action
-        const parentTestIndex = newPlan.testPlan.findIndex(t =>
-          t.testActions && t.testActions.some(a => a.actionID === item.actionID)
+        const parentTestIndex = newPlan.testPlan.findIndex(
+          (t) =>
+            t.testActions &&
+            t.testActions.some((a) => a.actionID === item.actionID),
         );
 
         if (parentTestIndex !== -1) {
           const parentTest = { ...newPlan.testPlan[parentTestIndex] };
           parentTest.testActions = [...parentTest.testActions];
 
-          const actionIdx = parentTest.testActions.findIndex(a => a.actionID === item.actionID);
+          const actionIdx = parentTest.testActions.findIndex(
+            (a) => a.actionID === item.actionID,
+          );
 
           if (actionIdx !== -1) {
             const updatedAction = {
               ...parentTest.testActions[actionIdx],
-              isEnabled: parentTest.testActions[actionIdx].isEnabled === false ? true : false
+              isEnabled:
+                parentTest.testActions[actionIdx].isEnabled === false
+                  ? true
+                  : false,
             };
             parentTest.testActions[actionIdx] = updatedAction;
             newPlan.testPlan[parentTestIndex] = parentTest;
@@ -314,18 +380,29 @@ export function usePlanDetails(filename, onNavigate) {
       setIsDirty(true);
       return newPlan;
     });
-  }
+  };
 
   return {
-    plan, loading, error, isDirty, saveStatus, logs, selectedItem,
+    plan,
+    loading,
+    error,
+    isDirty,
+    saveStatus,
+    logs,
+    selectedItem,
     setSelectedItem,
     loadPlan,
     handleSave,
-    handleAddTest, handleAddAction,
-    handleDeleteTest, handleDeleteAction,
-    handleMoveTest, handleMoveAction,
-    handleRunAll, handleRunTest, handleRunAction,
+    handleAddTest,
+    handleAddAction,
+    handleDeleteTest,
+    handleDeleteAction,
+    handleMoveTest,
+    handleMoveAction,
+    handleRunAll,
+    handleRunTest,
+    handleRunAction,
     updateSelectedItem,
-    handleToggleEnabled
-  }
+    handleToggleEnabled,
+  };
 }

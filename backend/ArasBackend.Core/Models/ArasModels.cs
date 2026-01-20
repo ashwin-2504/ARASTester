@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace ArasBackend.Core.Models
 {
@@ -12,9 +13,13 @@ namespace ArasBackend.Core.Models
 
     public class ConnectionRequest
     {
+        [Required, Url]
         public required string Url { get; set; }
+        [Required, MinLength(1)]
         public required string Database { get; set; }
+        [Required, MinLength(1)]
         public required string Username { get; set; }
+        [Required]
         public required string Password { get; set; }
     }
 
@@ -34,116 +39,156 @@ namespace ArasBackend.Core.Models
 
     public class QueryRequest
     {
+        [Required, MinLength(1)]
         public required string ItemType { get; set; }
         public string? Select { get; set; }
+        [Range(1, int.MaxValue)]
         public int Page { get; set; } = 1;
+        [Range(1, 1000)]
         public int PageSize { get; set; } = 100;
         public Dictionary<string, string>? Criteria { get; set; }
     }
 
     public class GetByIdRequest
     {
+        [Required, MinLength(1)]
         public required string ItemType { get; set; }
+        [Required, MinLength(1)]
         public required string Id { get; set; }
         public string? Select { get; set; }
     }
 
     public class GetByKeyedNameRequest
     {
+        [Required, MinLength(1)]
         public required string ItemType { get; set; }
+        [Required, MinLength(1)]
         public required string KeyedName { get; set; }
+        public string? Select { get; set; }
     }
 
     public class CreateItemRequest
     {
+        [Required, MinLength(1)]
         public required string ItemType { get; set; }
+        [Required, MinLength(1)]
         public required Dictionary<string, string> Properties { get; set; }
     }
 
     public class UpdateItemRequest
     {
+        [Required, MinLength(1)]
         public required string ItemType { get; set; }
+        [Required, MinLength(1)]
         public required string Id { get; set; }
+        [Required, MinLength(1)]
         public required Dictionary<string, string> Properties { get; set; }
     }
 
     public class DeleteItemRequest
     {
+        [Required, MinLength(1)]
         public required string ItemType { get; set; }
+        [Required, MinLength(1)]
         public required string Id { get; set; }
     }
 
     public class LockRequest
     {
+        [Required, MinLength(1)]
         public required string ItemType { get; set; }
+        [Required, MinLength(1)]
         public required string Id { get; set; }
     }
 
     public class PromoteRequest
     {
+        [Required, MinLength(1)]
         public required string ItemType { get; set; }
+        [Required, MinLength(1)]
         public required string Id { get; set; }
+        [Required, MinLength(1)]
         public required string TargetState { get; set; }
         public string? Comments { get; set; }
     }
 
     public class ApplyAmlRequest
     {
+        [Required, MinLength(1)]
         public required string Aml { get; set; }
     }
 
     public class ApplySqlRequest
     {
+        [Required, MinLength(1)]
         public required string Sql { get; set; }
     }
 
     public class ApplyMethodRequest
     {
+        [Required, MinLength(1)]
         public required string MethodName { get; set; }
         public string? Body { get; set; }
     }
 
     public class AssertExistsRequest
     {
+        [Required, MinLength(1)]
         public required string ItemType { get; set; }
+        [Required, MinLength(1)]
         public required Dictionary<string, string> Criteria { get; set; }
     }
 
     public class AssertPropertyRequest
     {
+        [Required, MinLength(1)]
         public required string ItemType { get; set; }
+        [Required, MinLength(1)]
         public required string Id { get; set; }
+        [Required, MinLength(1)]
         public required string Property { get; set; }
         public string? Expected { get; set; }
     }
 
     public class AddRelationshipRequest
     {
+         [Required, MinLength(1)]
          public required string ParentType { get; set; }
+         [Required, MinLength(1)]
          public required string ParentId { get; set; }
+         [Required, MinLength(1)]
          public required string RelationshipType { get; set; }
+         [Required, MinLength(1)]
          public required string RelatedId { get; set; }
          public Dictionary<string, string>? Properties { get; set; }
     }
 
     public class GetRelationshipsRequest
     {
+        [Required, MinLength(1)]
         public required string ItemType { get; set; }
+        [Required, MinLength(1)]
         public required string Id { get; set; }
+        [Required, MinLength(1)]
         public required string RelationshipType { get; set; }
         public string? Select { get; set; }
     }
 
     public class DeleteRelationshipRequest
     {
+        [Required, MinLength(1)]
         public required string RelationshipType { get; set; }
+        [Required, MinLength(1)]
         public required string RelationshipId { get; set; }
     }
 
     public class AssertStateRequest
     {
+        [Required, MinLength(1)]
         public required string ItemType { get; set; }
+        [Required, MinLength(1)]
         public required string Id { get; set; }
+        [Required, MinLength(1)]
         public required string ExpectedState { get; set; }
     }
 

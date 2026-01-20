@@ -22,7 +22,12 @@ builder.Services.AddCors(options =>
 // Register Architecture Layers
 builder.Services.AddInfrastructure();
 builder.Services.AddApplication();
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        // This ensures [ApiController] returns 400 for validation errors automatically
+        options.SuppressModelStateInvalidFilter = false;
+    });
 
 var app = builder.Build();
 

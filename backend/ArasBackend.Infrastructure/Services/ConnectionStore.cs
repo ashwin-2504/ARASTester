@@ -9,6 +9,8 @@ public class SessionContext
     public required Innovator Innovator { get; set; }
     public object Lock { get; } = new();
     public required ServerInfo ServerInfo { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime LastAccessedAt { get; set; } = DateTime.UtcNow;
 }
 
 public interface IConnectionStore

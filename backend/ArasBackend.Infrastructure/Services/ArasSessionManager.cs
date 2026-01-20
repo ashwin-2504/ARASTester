@@ -41,7 +41,8 @@ public class ArasSessionManager : IArasSessionManager
     private SessionContext? GetCurrentSession()
     {
         var sessionId = GetSessionId();
-        return _connectionStore.GetSession(sessionId!);
+        if (string.IsNullOrEmpty(sessionId)) return null;
+        return _connectionStore.GetSession(sessionId);
     }
 
     public bool IsConnected

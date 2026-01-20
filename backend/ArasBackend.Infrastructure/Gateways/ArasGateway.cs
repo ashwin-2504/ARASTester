@@ -85,7 +85,16 @@ public class ArasGateway : IArasGateway
 
     public ItemResponse GetItemByKeyedName(GetByKeyedNameRequest request)
     {
-        return ExecuteIom(inn => inn.getItemByKeyedName(request.ItemType, request.KeyedName), "Item retrieved");
+        return ExecuteIom(inn =>
+        {
+            var item = inn.newItem(request.ItemType, "get");
+            item.setProperty("keyed_name", request.KeyedName);
+            if (!string.IsNullOrEmpty(request.Select))
+            {
+                item.setAttribute("select", request.Select);
+            }
+            return item.apply();
+        }, "Item retrieved");
     }
 
     public ItemResponse CreateItem(CreateItemRequest request)

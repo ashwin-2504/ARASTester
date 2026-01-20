@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { HashRouter as Router, Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom'
 import AppShell from '../layouts/AppShell'
+import { ConfirmDialogProvider } from '@/lib/hooks/useConfirmDialog'
 
 // Lazy load views
 const DashboardPage = React.lazy(() => import('../routes/Dashboard/DashboardPage'))
@@ -15,18 +16,20 @@ import { actionRegistry } from '../core/registries/ActionRegistry'
 
 export default function App() {
   return (
-    <Router>
-      <AppShell>
-        <React.Suspense fallback={<div className="flex h-full items-center justify-center">Loading...</div>}>
-          <Routes>
-            <Route path="/" element={<DashboardPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/plan/:filename" element={<PlanWrapper />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </React.Suspense>
-      </AppShell>
-    </Router>
+    <ConfirmDialogProvider>
+      <Router>
+        <AppShell>
+          <React.Suspense fallback={<div className="flex h-full items-center justify-center">Loading...</div>}>
+            <Routes>
+              <Route path="/" element={<DashboardPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/plan/:filename" element={<PlanWrapper />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </React.Suspense>
+        </AppShell>
+      </Router>
+    </ConfirmDialogProvider>
   )
 }
 

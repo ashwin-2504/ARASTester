@@ -1,6 +1,7 @@
 # 02_ARCHITECTURE
 
 > ⚠ HUMAN REVIEW REQUIRED
+>
 > - Business logic interpretation
 > - Security implications
 > - Architectural intent
@@ -13,64 +14,74 @@
 ## System Architecture Diagram
 
 ```mermaid
-flowchart TB
-    subgraph Desktop["Electron Desktop App"]
-        Main["main.js<br/>(Main Process)"]
-        Preload["preload.js"]
-        
-        subgraph Renderer["React Frontend (Renderer)"]
-            UI["UI Components"]
-            Stores["Zustand Stores"]
-            Executor["ActionExecutor"]
-            API["apiClient"]
+flowchart LR
+    %% --- Styles ---
+    classDef react fill:#e1f5fe,stroke:#0277bd,stroke-width:2px,color:#01579b;
+    classDef electron fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,stroke-dasharray: 5 5,color:#f57f17;
+    classDef dotnet fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#4a148c;
+    classDef external fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#b71c1c;
+    classDef storage fill:#eceff1,stroke:#546e7a,stroke-width:2px,color:#37474f;
+
+    %% --- Desktop App ---
+    subgraph Desktop ["🖥️ Electron Desktop App"]
+        direction TB
+
+        subgraph MainProcess ["Main Process (Node.js)"]
+            Main["main.js"]:::electron
+            Preload["preload.js"]:::electron
+            FS[("Local FS<br/>(JSON Plans)")]:::storage
+        end
+
+        subgraph Renderer ["Renderer (React Frontend)"]
+            UI["UI Components"]:::react
+            Store["Zustand Stores"]:::react
+            Executor["ActionExecutor"]:::react
+            API["Axios/API Client"]:::react
         end
     end
-    
-    subgraph Backend["ASP.NET Core Backend"]
-        Controllers["Controllers<br/>ItemController<br/>ConnectionController"]
-        Middleware["ExceptionHandlingMiddleware"]
-        AppServices["Application Services<br/>ItemAppService<br/>ConnectionAppService"]
-        Gateway["ArasGateway"]
-        Session["ArasSessionManager"]
+
+    %% --- Backend App ---
+    subgraph Backend ["⚙️ ASP.NET Core Backend"]
+        direction TB
+        Middleware["Exception Middleware"]:::dotnet
+        Controllers["Controllers<br/>(Item/Connection)"]:::dotnet
+        Services["App Services"]:::dotnet
+        Gateway["Aras Gateway"]:::dotnet
+        Session["Aras Session Mgr"]:::dotnet
     end
-    
-    subgraph External["External System"]
-        ARAS["ARAS Innovator<br/>Server"]
+
+    %% --- External ---
+    subgraph External ["☁️ External Systems"]
+        ARAS[("ARAS Innovator<br/>Server")]:::external
     end
-    
-    %% Electron IPC
+
+    %% --- Relations: Electron Internals ---
     UI -->|"User Action"| Executor
-    Executor -->|"Server Action"| API
-    UI <-->|"Electron IPC"| Preload
-    Preload <-->|"ipcRenderer/ipcMain"| Main
-    Main -->|"spawn()"| Backend
-    
-    %% HTTP Flow
-    API -->|"HTTP REST<br/>localhost:5000"| Middleware
+    Executor --> Store
+    Executor -->|"Trigger"| API
+    UI <-->|"IPC"| Preload
+    Preload <-->|"IPC"| Main
+    Main <-->|"Read/Write"| FS
+
+    %% --- Relations: System Startup ---
+    Main -.->|"spawn(dotnet)"| Backend
+
+    %% --- Relations: HTTP Flow ---
+    API ==>|"REST (localhost:5000)"| Middleware
     Middleware --> Controllers
-    Controllers --> AppServices
-    AppServices --> Gateway
+    Controllers --> Services
+    Services --> Gateway
     Gateway --> Session
-    Session -->|"Aras.IOM SDK"| ARAS
-    
-    %% Responses
-    ARAS -->|"AML Response"| Session
-    Session --> Gateway
-    Gateway --> AppServices
-    AppServices --> Controllers
-    Controllers -->|"JSON"| API
-    
-    %% File I/O
-    Main <-->|"fs operations"| FS["Local File System<br/>(JSON Plans)"]
+    Session ==>|"IOM SDK (SOAP/XML)"| ARAS
 ```
 
 ## Data Flow Summary
 
-| Flow | Path | Protocol |
-|------|------|----------|
-| **Action Execution** | UI → ActionExecutor → apiClient → Backend → ARAS | HTTP → IOM |
-| **File Operations** | UI → IPC → Main Process → File System | Electron IPC |
-| **State Updates** | Backend Response → apiClient → Zustand → UI | HTTP + React |
+| Flow                 | Path                                             | Protocol     |
+| -------------------- | ------------------------------------------------ | ------------ |
+| **Action Execution** | UI → ActionExecutor → apiClient → Backend → ARAS | HTTP → IOM   |
+| **File Operations**  | UI → IPC → Main Process → File System            | Electron IPC |
+| **State Updates**    | Backend Response → apiClient → Zustand → UI      | HTTP + React |
 
 ---
 
@@ -122,11 +133,11 @@ The following namespaces and folder groupings exist. **No architectural meaning 
 
 ### 2.1 Backend Namespace Structure
 
-| Folder | Namespace | Project File |
-|--------|-----------|--------------|
-| backend/ArasBackend | ArasBackend.Controllers | ArasBackend.csproj |
-| backend/ArasBackend.Core | ArasBackend.Core.Models, ArasBackend.Core.Interfaces | ArasBackend.Core.csproj |
-| backend/ArasBackend.Application | ArasBackend.Application.Services | ArasBackend.Application.csproj |
+| Folder                             | Namespace                                                                | Project File                      |
+| ---------------------------------- | ------------------------------------------------------------------------ | --------------------------------- |
+| backend/ArasBackend                | ArasBackend.Controllers                                                  | ArasBackend.csproj                |
+| backend/ArasBackend.Core           | ArasBackend.Core.Models, ArasBackend.Core.Interfaces                     | ArasBackend.Core.csproj           |
+| backend/ArasBackend.Application    | ArasBackend.Application.Services                                         | ArasBackend.Application.csproj    |
 | backend/ArasBackend.Infrastructure | ArasBackend.Infrastructure.Gateways, ArasBackend.Infrastructure.Services | ArasBackend.Infrastructure.csproj |
 
 **Source**: Namespace declarations in each file (verified in FACT_PUBLIC_INTERFACES.md)
@@ -163,6 +174,7 @@ HTTP Request
 ```
 
 **Observations**:
+
 - `ItemController` directly calls `_itemService.*` methods (observed in FACT_PUBLIC_INTERFACES.md)
 - `ArasGateway` uses `Aras.IOM.Innovator` object via `_sessionManager.Execute()` (observed in ArasGateway.cs Line 21)
 
@@ -172,11 +184,11 @@ HTTP Request
 
 **Service Registration** (from Program.cs):
 
-| Method | Namespace | Line |
-|--------|-----------|------|
-| AddInfrastructure() | ArasBackend.Infrastructure | 23 |
-| AddApplication() | ArasBackend.Application | 24 |
-| AddControllers() | Microsoft.Extensions.DependencyInjection | 25 |
+| Method              | Namespace                                | Line |
+| ------------------- | ---------------------------------------- | ---- |
+| AddInfrastructure() | ArasBackend.Infrastructure               | 23   |
+| AddApplication()    | ArasBackend.Application                  | 24   |
+| AddControllers()    | Microsoft.Extensions.DependencyInjection | 25   |
 
 > **Design rationale not found in code or documentation.**
 
@@ -184,11 +196,11 @@ HTTP Request
 
 ## 5. Communication Protocol
 
-| From | To | Protocol | Evidence |
-|------|----|----------|----------|
-| Frontend (Renderer) | Backend | HTTP REST | API endpoints in FACT_PUBLIC_INTERFACES.md |
-| Frontend (Renderer) | Main Process | Electron IPC | IPC handlers in main.js (FACT_ENTRY_POINTS.md) |
-| Main Process | Backend | Process spawn | spawn() call in main.js Line 68 |
+| From                | To           | Protocol      | Evidence                                       |
+| ------------------- | ------------ | ------------- | ---------------------------------------------- |
+| Frontend (Renderer) | Backend      | HTTP REST     | API endpoints in FACT_PUBLIC_INTERFACES.md     |
+| Frontend (Renderer) | Main Process | Electron IPC  | IPC handlers in main.js (FACT_ENTRY_POINTS.md) |
+| Main Process        | Backend      | Process spawn | spawn() call in main.js Line 68                |
 
 ---
 
@@ -196,8 +208,8 @@ HTTP Request
 
 The following terms appear explicitly in code comments or strings:
 
-| Term | Location | Context |
-|------|----------|---------|
+| Term                  | Location           | Context                                    |
+| --------------------- | ------------------ | ------------------------------------------ |
 | "Architecture Layers" | Program.cs Line 22 | Comment: "// Register Architecture Layers" |
 
 > **Note**: The term "Layers" appears in a comment. This is the only explicit architectural terminology found.

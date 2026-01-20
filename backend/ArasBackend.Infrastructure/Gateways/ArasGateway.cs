@@ -71,7 +71,16 @@ public class ArasGateway : IArasGateway
 
     public ItemResponse GetItemById(GetByIdRequest request)
     {
-        return ExecuteIom(inn => inn.getItemById(request.ItemType, request.Id), "Item retrieved");
+        return ExecuteIom(inn => 
+        {
+            var item = inn.newItem(request.ItemType, "get");
+            item.setID(request.Id);
+            if (!string.IsNullOrEmpty(request.Select)) 
+            {
+                item.setAttribute("select", request.Select);
+            }
+            return item.apply();
+        }, "Item retrieved");
     }
 
     public ItemResponse GetItemByKeyedName(GetByKeyedNameRequest request)
@@ -126,9 +135,9 @@ public class ArasGateway : IArasGateway
     {
         return ExecuteIom(inn =>
         {
-            var item = inn.getItemById(request.ItemType, request.Id);
-            if (item.isError()) return item;
-            return item.lockItem();
+            var item = inn.newItem(request.ItemType, "lock");
+            item.setID(request.Id);
+            return item.apply();
         }, "Item locked successfully");
     }
 
@@ -136,9 +145,9 @@ public class ArasGateway : IArasGateway
     {
         return ExecuteIom(inn =>
         {
-            var item = inn.getItemById(request.ItemType, request.Id);
-            if (item.isError()) return item;
-            return item.unlockItem();
+            var item = inn.newItem(request.ItemType, "unlock");
+            item.setID(request.Id);
+            return item.apply();
         }, "Item unlocked successfully");
     }
 
@@ -147,11 +156,15 @@ public class ArasGateway : IArasGateway
         // Custom logic for CheckLockStatus as it returns specific Data structure
         return _sessionManager.Execute(inn =>
         {
-            var item = inn.getItemById(request.ItemType, request.Id);
-            if (item.isError())
-                return new ItemResponse { Success = false, Message = item.getErrorString() };
+            var item = inn.newItem(request.ItemType, "get");
+            item.setID(request.Id);
+            item.setAttribute("select", "locked_by_id");
+            
+            var result = item.apply();
+            if (result.isError())
+                return new ItemResponse { Success = false, Message = result.getErrorString() };
 
-            var lockedById = item.getProperty("locked_by_id", "");
+            var lockedById = result.getProperty("locked_by_id", "");
             return new ItemResponse
             {
                 Success = true,
@@ -161,13 +174,56 @@ public class ArasGateway : IArasGateway
         });
     }
 
+    public ItemResponse AddRelationship(AddRelationshipRequest request)
+    {
+        return ExecuteIom(inn =>
+        {
+            var rel = inn.newItem(request.RelationshipType, "add");
+            rel.setProperty("source_id", request.ParentId);
+            rel.setProperty("related_id", request.RelatedId);
+
+            if (request.Properties != null)
+            {
+                foreach (var prop in request.Properties)
+                    rel.setProperty(prop.Key, prop.Value);
+            }
+            return rel.apply();
+        }, "Relationship created successfully");
+    }
+
+    public ItemResponse GetRelationships(GetRelationshipsRequest request)
+    {
+        return ExecuteIom(inn =>
+        {
+            var rel = inn.newItem(request.RelationshipType, "get");
+            rel.setProperty("source_id", request.Id);
+            if (!string.IsNullOrEmpty(request.Select))
+                rel.setAttribute("select", request.Select);
+            
+            return rel.apply();
+        }, "Relationships retrieved");
+    }
+
+    public ItemResponse DeleteRelationship(DeleteRelationshipRequest request)
+    {
+        return ExecuteIom(inn =>
+        {
+            var rel = inn.newItem(request.RelationshipType, "delete");
+            rel.setID(request.RelationshipId);
+            return rel.apply();
+        }, "Relationship deleted successfully");
+    }
+
     public ItemResponse PromoteItem(PromoteRequest request)
     {
         return ExecuteIom(inn =>
         {
-            var item = inn.getItemById(request.ItemType, request.Id);
-            if (item.isError()) return item;
-            return item.promote(request.TargetState, request.Comments ?? "");
+            var item = inn.newItem(request.ItemType, "promoteItem");
+            item.setID(request.Id);
+            item.setProperty("state", request.TargetState);
+            if (!string.IsNullOrEmpty(request.Comments))
+                item.setProperty("comments", request.Comments);
+            return item.apply();
         }, $"Item promoted to {request.TargetState}");
     }
 
@@ -175,11 +231,16 @@ public class ArasGateway : IArasGateway
     {
          return _sessionManager.Execute(inn =>
         {
-            var item = inn.getItemById(request.ItemType, request.Id);
-            if (item.isError())
-                return new ItemResponse { Success = false, Message = item.getErrorString() };
+            var item = inn.newItem(request.ItemType, "get");
+            item.setID(request.Id);
+            item.setAttribute("select", "state");
+            
+            var result = item.apply();
 
-            var state = item.getProperty("state", "Unknown");
+            if (result.isError())
+                return new ItemResponse { Success = false, Message = result.getErrorString() };
+
+            var state = result.getProperty("state", "Unknown");
             return new ItemResponse
             {
                 Success = true,
@@ -202,6 +263,11 @@ public class ArasGateway : IArasGateway
     public ItemResponse ApplySQL(ApplySqlRequest request)
     {
         return ExecuteIom(inn => inn.applySQL(request.Sql), "SQL executed successfully");
+    }
+
+    public ItemResponse ApplyMethod(ApplyMethodRequest request)
+    {
+        return ExecuteIom(inn => inn.applyMethod(request.MethodName, request.Body ?? ""), "Method executed successfully");
     }
 
     public AssertionResponse AssertItemExists(AssertExistsRequest request)

@@ -25,11 +25,16 @@ public interface IArasGateway
     ItemResponse UnlockItem(LockRequest request);
     ItemResponse CheckLockStatus(LockRequest request);
     
+    ItemResponse AddRelationship(AddRelationshipRequest request);
+    ItemResponse GetRelationships(GetRelationshipsRequest request);
+    ItemResponse DeleteRelationship(DeleteRelationshipRequest request);
+    
     ItemResponse PromoteItem(PromoteRequest request);
     ItemResponse GetCurrentState(GetByIdRequest request);
     
     ItemResponse ApplyAML(ApplyAmlRequest request);
     ItemResponse ApplySQL(ApplySqlRequest request);
+    ItemResponse ApplyMethod(ApplyMethodRequest request);
     
     AssertionResponse AssertItemExists(AssertExistsRequest request);
     AssertionResponse AssertItemNotExists(AssertExistsRequest request);

@@ -39,14 +39,28 @@ export default function TestTree({
     )
   }, [])
 
+  const [draggingType, setDraggingType] = React.useState(null)
+
+  const onDragStart = (start) => {
+    setDraggingType(start.type)
+  }
+
   const onDragEnd = (result) => {
+    setDraggingType(null)
     const { source, destination, type } = result;
 
     if (!destination) return;
 
+    // Handle drops on the header droppable (auto-expanded headers)
+    // Map them to the test's main list
+    let destDroppableId = destination.droppableId
+    if (destDroppableId.startsWith("toggle-droppable-")) {
+      destDroppableId = destDroppableId.replace("toggle-droppable-", "")
+    }
+
     // Dropped in same position
     if (
-      source.droppableId === destination.droppableId &&
+      source.droppableId === destDroppableId &&
       source.index === destination.index
     ) return;
 
@@ -56,7 +70,7 @@ export default function TestTree({
       onMoveAction(
         source.droppableId, // Source Test ID
         source.index,
-        destination.droppableId, // Dest Test ID
+        destDroppableId, // Dest Test ID (mapped)
         destination.index
       );
     }
@@ -96,7 +110,7 @@ export default function TestTree({
 
   return (
     <div className="space-y-2 p-2">
-      <DragDropContext onDragEnd={onDragEnd}>
+      <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
         <Droppable droppableId="test-list" type="TEST">
           {(provided) => (
             <div
@@ -129,6 +143,7 @@ export default function TestTree({
                     onRunAction={onRunAction}
                     onToggleEnabled={onToggleEnabled}
                     logs={logs} // Pass logs down
+                    draggingType={draggingType}
                   />
                 )
               })}

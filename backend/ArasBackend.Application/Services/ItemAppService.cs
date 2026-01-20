@@ -27,8 +27,13 @@ public class ItemAppService
     public ItemResponse PromoteItem(PromoteRequest request) => _gateway.PromoteItem(request);
     public ItemResponse GetCurrentState(GetByIdRequest request) => _gateway.GetCurrentState(request);
     
+    public ItemResponse AddRelationship(AddRelationshipRequest request) => _gateway.AddRelationship(request);
+    public ItemResponse GetRelationships(GetRelationshipsRequest request) => _gateway.GetRelationships(request);
+    public ItemResponse DeleteRelationship(DeleteRelationshipRequest request) => _gateway.DeleteRelationship(request);
+    
     public ItemResponse ApplyAML(ApplyAmlRequest request) => _gateway.ApplyAML(request);
     public ItemResponse ApplySQL(ApplySqlRequest request) => _gateway.ApplySQL(request);
+    public ItemResponse ApplyMethod(ApplyMethodRequest request) => _gateway.ApplyMethod(request);
     
     public AssertionResponse AssertItemExists(AssertExistsRequest request) => _gateway.AssertItemExists(request);
     public AssertionResponse AssertItemNotExists(AssertExistsRequest request) => _gateway.AssertItemNotExists(request);

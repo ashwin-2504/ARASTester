@@ -45,6 +45,7 @@ namespace ArasBackend.Core.Models
     {
         public required string ItemType { get; set; }
         public required string Id { get; set; }
+        public string? Select { get; set; }
     }
 
     public class GetByKeyedNameRequest
@@ -96,6 +97,12 @@ namespace ArasBackend.Core.Models
         public required string Sql { get; set; }
     }
 
+    public class ApplyMethodRequest
+    {
+        public required string MethodName { get; set; }
+        public string? Body { get; set; }
+    }
+
     public class AssertExistsRequest
     {
         public required string ItemType { get; set; }
@@ -108,6 +115,29 @@ namespace ArasBackend.Core.Models
         public required string Id { get; set; }
         public required string Property { get; set; }
         public string? Expected { get; set; }
+    }
+
+    public class AddRelationshipRequest
+    {
+         public required string ParentType { get; set; }
+         public required string ParentId { get; set; }
+         public required string RelationshipType { get; set; }
+         public required string RelatedId { get; set; }
+         public Dictionary<string, string>? Properties { get; set; }
+    }
+
+    public class GetRelationshipsRequest
+    {
+        public required string ItemType { get; set; }
+        public required string Id { get; set; }
+        public required string RelationshipType { get; set; }
+        public string? Select { get; set; }
+    }
+
+    public class DeleteRelationshipRequest
+    {
+        public required string RelationshipType { get; set; }
+        public required string RelationshipId { get; set; }
     }
 
     public class AssertStateRequest

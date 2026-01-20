@@ -51,11 +51,23 @@ public class ItemController : ControllerBase
     [HttpPost("get-state")]
     public ActionResult<ItemResponse> GetState(GetByIdRequest request) => Ok(_itemService.GetCurrentState(request));
 
+    [HttpPost("add-relationship")]
+    public ActionResult<ItemResponse> AddRelationship(AddRelationshipRequest request) => Ok(_itemService.AddRelationship(request));
+
+    [HttpPost("get-relationships")]
+    public ActionResult<ItemResponse> GetRelationships(GetRelationshipsRequest request) => Ok(_itemService.GetRelationships(request));
+
+    [HttpPost("delete-relationship")]
+    public ActionResult<ItemResponse> DeleteRelationship(DeleteRelationshipRequest request) => Ok(_itemService.DeleteRelationship(request));
+
     [HttpPost("apply-aml")]
     public ActionResult<ItemResponse> ApplyAml(ApplyAmlRequest request) => Ok(_itemService.ApplyAML(request));
 
     [HttpPost("apply-sql")]
     public ActionResult<ItemResponse> ApplySql(ApplySqlRequest request) => Ok(_itemService.ApplySQL(request));
+
+    [HttpPost("apply-method")]
+    public ActionResult<ItemResponse> ApplyMethod(ApplyMethodRequest request) => Ok(_itemService.ApplyMethod(request));
 
     // Assertions
     [HttpPost("assert-exists")]

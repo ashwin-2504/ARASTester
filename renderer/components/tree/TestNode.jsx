@@ -20,7 +20,8 @@ const TestNode = React.memo(function TestNode({
   onRunTest,
   onRunAction,
   onToggleEnabled,
-  logs = {} // Add logs prop
+  logs = {},
+  draggingType // Received prop
 }) {
   const isSelected = selectedItem?.testID === test.testID
   const isChildSelected = test.testActions?.some(a => a?.actionID === selectedItem?.actionID)
@@ -123,44 +124,66 @@ const TestNode = React.memo(function TestNode({
             </div>
           </div>
 
-          {/* Expanded Actions List */}
-          {isExpanded && (
-            <Droppable droppableId={test.testID} type="ACTION">
-              {(provided) => (
-                <div
-                  ref={provided.innerRef}
-                  {...provided.droppableProps}
-                  className={cn(
-                    "min-h-[10px] pl-4 pr-1 pb-1 mt-1 rounded-b-lg ml-4 border-l-2 transition-colors duration-300",
-                    isActiveContext ? "border-emerald-500/30 bg-emerald-950/10" : "border-border/30"
-                  )}
-                >
-                  <div className="pt-2 space-y-1">
-                    {test.testActions && test.testActions.map((action, idx) => (
-                      <ActionNode
-                        key={action.actionID}
-                        action={{ ...action, status: logs[action.actionID]?.status }} // Pass status
-                        index={idx}
-                        selectedItem={selectedItem}
-                        onRunAction={onRunAction}
-                        onSelect={onSelect}
-                        onEdit={onEdit}
-                        onDeleteAction={onDeleteAction}
-                        onToggleEnabled={onToggleEnabled}
-                      />
-                    ))}
-                    {provided.placeholder}
-                    {(!test.testActions || test.testActions.length === 0) && (
-                      <div className="text-xs text-muted-foreground italic py-1 pl-2">No actions (drag detailed action to add)</div>
-                    )}
-                  </div>
+          {/* Actions List Area */}
+          <Droppable droppableId={test.testID} type="ACTION">
+            {(provided, snapshot) => (
+              <div
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                className={cn(
+                  "pl-4 pr-1 ml-4 border-l-2 transition-all duration-300 ease-in-out",
+                  isActiveContext ? "border-emerald-500/30 bg-emerald-950/10" : "border-border/30",
+                  // New Logic:
+                  // If expanded: Show full list (normal styles)
+                  // If collapsed BUT dragging action: Show small drop hint (h-10)
+                  // If collapsed and NOT dragging: Hide (h-0, overflow-hidden)
+                  isExpanded
+                    ? "min-h-[10px] pb-1 mt-1 rounded-b-lg opacity-100"
+                    : (draggingType === 'ACTION' && snapshot.isDraggingOver)
+                      ? "h-12 border-2 border-dashed border-emerald-500/50 mt-1 rounded opacity-100 bg-emerald-500/10"
+                      : (draggingType === 'ACTION')
+                        ? "h-2 mt-0.5 border-none opacity-50 bg-emerald-500/20" // Thin landing strip hint
+                        : "h-0 py-0 mt-0 border-0 opacity-0 overflow-hidden"
+                )}
+              >
+                {/* Render content only if expanded OR if we need structure for the drop */}
+                {/* Actually, react-beautiful-dnd needs the placeholders. */}
+                {/* We should just toggle visibility of the list items */}
+
+                <div className={cn("pt-2 space-y-1", !isExpanded && "hidden")}>
+                  {test.testActions && test.testActions.map((action, idx) => (
+                    <ActionNode
+                      key={action.actionID}
+                      action={{ ...action, status: logs[action.actionID]?.status }}
+                      index={idx}
+                      selectedItem={selectedItem}
+                      onRunAction={onRunAction}
+                      onSelect={onSelect}
+                      onEdit={onEdit}
+                      onDeleteAction={onDeleteAction}
+                      onToggleEnabled={onToggleEnabled}
+                    />
+                  ))}
                 </div>
-              )}
-            </Droppable>
-          )}
+
+                {provided.placeholder}
+
+                {/* Empty state or Drop Hint */}
+                {isExpanded && (!test.testActions || test.testActions.length === 0) && (
+                  <div className="text-xs text-muted-foreground italic py-1 pl-2">No actions (drag detailed action to add)</div>
+                )}
+                {!isExpanded && draggingType === 'ACTION' && snapshot.isDraggingOver && (
+                  <div className="flex items-center justify-center h-full text-xs text-emerald-500 font-medium">
+                    Drop to Add
+                  </div>
+                )}
+              </div>
+            )}
+          </Droppable>
         </div>
-      )}
-    </Draggable>
+      )
+      }
+    </Draggable >
   )
 })
 

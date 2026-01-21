@@ -39,4 +39,27 @@ public class ItemAppService
     public AssertionResponse AssertItemNotExists(AssertExistsRequest request) => _gateway.AssertItemNotExists(request);
     public AssertionResponse AssertPropertyValue(AssertPropertyRequest request) => _gateway.AssertPropertyValue(request);
     public AssertionResponse AssertState(AssertStateRequest request) => _gateway.AssertState(request);
+    
+    // Workflow Operations
+    public ItemResponse StartWorkflow(StartWorkflowRequest request) => _gateway.StartWorkflow(request);
+    public ItemResponse GetAssignedActivities() => _gateway.GetAssignedActivities();
+    public ItemResponse CompleteActivity(CompleteActivityRequest request) => _gateway.CompleteActivity(request);
+    
+    // Additional Assertions
+    public AssertionResponse AssertPropertyContains(AssertPropertyContainsRequest request) => _gateway.AssertPropertyContains(request);
+    public AssertionResponse AssertCount(AssertCountRequest request) => _gateway.AssertCount(request);
+    public AssertionResponse AssertLocked(LockRequest request) => _gateway.AssertLocked(request);
+    public AssertionResponse AssertUnlocked(LockRequest request) => _gateway.AssertUnlocked(request);
+    
+    // File Operations
+    public ItemResponse UploadFile(UploadFileRequest request) => _gateway.UploadFile(request);
+    public ItemResponse DownloadFile(DownloadFileRequest request) => _gateway.DownloadFile(request);
+    public AssertionResponse VerifyFileExists(VerifyFileExistsRequest request) => _gateway.VerifyFileExists(request);
+    
+    // Utility Operations
+    public ItemResponse GenerateID() => _gateway.GenerateID();
+    public ItemResponse GetNextSequence(GetNextSequenceRequest request) => _gateway.GetNextSequence(request);
+    public ItemResponse Wait(WaitRequest request) => _gateway.Wait(request);
+    public ItemResponse SetVariable(SetVariableRequest request) => _gateway.SetVariable(request);
+    public ItemResponse LogMessage(LogMessageRequest request) => _gateway.LogMessage(request);
 }

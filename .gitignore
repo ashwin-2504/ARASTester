@@ -55,3 +55,9 @@ lib/
 
 .agent
 .gemini
+
+# Build/Lint output files
+errors.txt
+lint_output*.txt
+tsc_output*.txt
+tsc_errors*.txt

@@ -6,7 +6,7 @@ using System.IO;
 
 namespace ArasBackend.Infrastructure.Gateways;
 
-using Services; // Access ArasSessionManager
+using ArasBackend.Infrastructure.Services;
 
 public class ArasGateway : IArasGateway
 {
@@ -375,10 +375,10 @@ public class ArasGateway : IArasGateway
     {
         return ExecuteIom(inn =>
         {
-            var identityList = inn.getIdentityList();
+            // Get current user's ID for filtering activities
+            var userId = inn.getUserID();
             var q = inn.newItem("Activity Assignment", "get");
-            q.setProperty("related_id", identityList);
-            q.setPropertyCondition("related_id", "in");
+            q.setProperty("related_id", userId);
             q.setProperty("is_current", "1");
             return q.apply();
         }, "Assigned activities retrieved");

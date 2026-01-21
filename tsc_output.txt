@@ -1,2 +1,0 @@
-renderer/core/registries/ActionRegistry.ts(3,36): error TS7016: Could not find a declaration file for module '@/components/schema'. 'C:/Projects/ARASTester/renderer/components/schema/index.js' implicitly has an 'any' type.
-renderer/core/services/ActionExecutor.ts(70,43): error TS6133: 'plugin' is declared but its value is never read.

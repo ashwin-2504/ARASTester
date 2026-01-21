@@ -74,10 +74,13 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
       isEnabled: true,
       testActions: [],
     };
-    const newPlan = { ...plan };
-    if (!newPlan.testPlan) newPlan.testPlan = [];
-    newPlan.testPlan.push(newTest);
-    setPlan(newPlan);
+    
+    setPlan((prev) => 
+      produce(prev, (draft) => {
+        if (!draft.testPlan) draft.testPlan = [];
+        draft.testPlan.push(newTest);
+      })
+    );
     setIsDirty(true);
     setSelectedItem(newTest);
   };
@@ -93,16 +96,16 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
       params: plugin ? JSON.parse(JSON.stringify(plugin.defaultParams)) : {},
     };
 
-    // Find test index to update
-    const testIndex = plan.testPlan.findIndex((t) => t.testID === test.testID);
-    if (testIndex === -1) return;
+    const testId = test.testID;
 
-    const newPlan = { ...plan };
-    if (!newPlan.testPlan[testIndex].testActions)
-      newPlan.testPlan[testIndex].testActions = [];
-    newPlan.testPlan[testIndex].testActions.push(newAction);
-
-    setPlan(newPlan);
+    setPlan((prev) =>
+      produce(prev, (draft) => {
+        const targetTest = draft.testPlan.find((t) => t.testID === testId);
+        if (!targetTest) return;
+        if (!targetTest.testActions) targetTest.testActions = [];
+        targetTest.testActions.push(newAction);
+      })
+    );
     setIsDirty(true);
     setSelectedItem(newAction);
   };
@@ -244,82 +247,139 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
   const updateSelectedItem = (updates: Partial<Test> | Partial<Action>) => {
     if (!selectedItem) return;
 
-    let newItemReference: Test | Action | null = null;
+    // Determine the ID to find the item after state update
+    const isAction = "actionID" in selectedItem;
+    const itemId = isAction
+      ? (selectedItem as Action).actionID
+      : (selectedItem as Test).testID;
 
-    setPlan(
-      produce((draft) => {
-        // Check if updating a test (no actionID) or an action
-        if (!("actionID" in selectedItem)) {
+    // We'll capture the updated item here
+    let updatedItemCopy: Test | Action | null = null;
+
+    setPlan((prevPlan) => {
+      // Use produce to update the plan immutably
+      const newPlan = produce(prevPlan, (draft) => {
+        if (!isAction) {
           // Updating a Test
           const test = draft.testPlan.find(
-            (t: Test) => t.testID === (selectedItem as Test).testID,
+            (t: Test) => t.testID === itemId,
           );
           if (test) {
             Object.assign(test, updates);
-            newItemReference = { ...test };
           }
         } else {
           // Updating an Action
           for (const test of draft.testPlan) {
             if (!test.testActions) continue;
             const action = test.testActions.find(
-              (a: Action) => a.actionID === (selectedItem as Action).actionID,
+              (a: Action) => a.actionID === itemId,
             );
             if (action) {
               Object.assign(action, updates);
-              newItemReference = { ...action };
               break;
             }
           }
         }
-      }),
-    );
+      });
 
-    if (newItemReference) {
-      setSelectedItem(newItemReference);
-      setIsDirty(true);
+      // After produce, find the updated item from the NEW (non-proxy) state
+      let updatedItem: Test | Action | null = null;
+      if (!isAction) {
+        updatedItem = newPlan.testPlan.find((t) => t.testID === itemId) || null;
+      } else {
+        for (const test of newPlan.testPlan) {
+          if (!test.testActions) continue;
+          const action = test.testActions.find((a) => a.actionID === itemId);
+          if (action) {
+            updatedItem = action;
+            break;
+          }
+        }
+      }
+
+      // Create a plain copy to ensure no proxy references
+      if (updatedItem) {
+        updatedItemCopy = JSON.parse(JSON.stringify(updatedItem));
+      }
+
+      return newPlan;
+    });
+
+    // Update selectedItem synchronously after setPlan
+    if (updatedItemCopy) {
+      setSelectedItem(updatedItemCopy);
     }
+    setIsDirty(true);
   };
 
   const handleToggleEnabled = (item: Test | Action) => {
-    let updatedItem: Test | Action | null = null;
+    const isAction = "actionID" in item;
+    const itemId = isAction
+      ? (item as Action).actionID
+      : (item as Test).testID;
 
-    setPlan(
-      produce((draft) => {
-        if (!("actionID" in item)) {
+    // Capture updated item outside setPlan
+    let updatedItemCopy: Test | Action | null = null;
+    let shouldUpdateSelected = false;
+
+    setPlan((prevPlan) => {
+      const newPlan = produce(prevPlan, (draft) => {
+        if (!isAction) {
           // Toggle Test
-          const test = draft.testPlan.find((t: Test) => t.testID === (item as Test).testID);
+          const test = draft.testPlan.find((t: Test) => t.testID === itemId);
           if (test) {
             test.isEnabled = test.isEnabled === false ? true : false;
-            updatedItem = { ...test };
           }
         } else {
           // Toggle Action
           for (const test of draft.testPlan) {
             if (!test.testActions) continue;
             const action = test.testActions.find(
-              (a: Action) => a.actionID === (item as Action).actionID,
+              (a: Action) => a.actionID === itemId,
             );
             if (action) {
               action.isEnabled = action.isEnabled === false ? true : false;
-              updatedItem = { ...action };
               break;
             }
           }
         }
-      }),
-    );
+      });
 
-    setIsDirty(true);
-
-    // Update selectedItem if it matches the toggled item
-    if (updatedItem) {
-      if (!("actionID" in item) && (selectedItem as Test)?.testID === (item as Test).testID) {
-        setSelectedItem(updatedItem);
-      } else if (("actionID" in item) && (selectedItem as Action)?.actionID === (item as Action).actionID) {
-        setSelectedItem(updatedItem);
+      // Find the updated item from the NEW (non-proxy) state
+      let updatedItem: Test | Action | null = null;
+      if (!isAction) {
+        updatedItem = newPlan.testPlan.find((t) => t.testID === itemId) || null;
+      } else {
+        for (const test of newPlan.testPlan) {
+          if (!test.testActions) continue;
+          const action = test.testActions.find((a) => a.actionID === itemId);
+          if (action) {
+            updatedItem = action;
+            break;
+          }
+        }
       }
+
+      // Check if we should update selectedItem
+      if (updatedItem) {
+        shouldUpdateSelected = !isAction
+          ? (selectedItem as Test)?.testID === itemId
+          : (selectedItem as Action)?.actionID === itemId;
+
+        if (shouldUpdateSelected) {
+          // Create a plain copy to ensure no proxy references
+          updatedItemCopy = JSON.parse(JSON.stringify(updatedItem));
+        }
+      }
+
+      return newPlan;
+    });
+
+    // Update selectedItem synchronously after setPlan
+    if (shouldUpdateSelected && updatedItemCopy) {
+      setSelectedItem(updatedItemCopy);
     }
+    setIsDirty(true);
   };
 
   return {

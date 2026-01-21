@@ -15,7 +15,11 @@ export const StatusIndicator = ({ status, onRun, className, iconClassName }) => 
 
   if (isRunning) {
     return (
-      <div className={cn("flex items-center justify-center p-2", className)}>
+      <div
+        className={cn("flex items-center justify-center p-2", className)}
+        role="status"
+        aria-label="Running..."
+      >
         <Loader2 className={cn("animate-spin text-blue-500", iconClassName)} />
       </div>
     )
@@ -41,6 +45,7 @@ export const StatusIndicator = ({ status, onRun, className, iconClassName }) => 
           isHovered ? "opacity-100" : (status ? "opacity-100 hover:bg-transparent" : "opacity-100")
         )}
         title={isHovered ? "Run" : (status || "Run")}
+        aria-label={status ? `Run (Status: ${status})` : "Run"}
       >
         {isHovered ? (
           <Play className={cn("fill-current text-white", iconClassName)} />

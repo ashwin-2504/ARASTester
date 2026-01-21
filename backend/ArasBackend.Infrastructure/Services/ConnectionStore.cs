@@ -11,6 +11,8 @@ public class SessionContext
     public required ServerInfo ServerInfo { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime LastAccessedAt { get; set; } = DateTime.UtcNow;
+    public Dictionary<string, object> Variables { get; } = new();
+    public List<string> TestLogs { get; } = new();
 }
 
 public interface IConnectionStore

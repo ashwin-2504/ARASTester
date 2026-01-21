@@ -2,10 +2,11 @@ using Aras.IOM;
 using ArasBackend.Core.Interfaces;
 using ArasBackend.Core.Models;
 using ArasBackend.Core.Exceptions;
+using System.IO;
 
 namespace ArasBackend.Infrastructure.Gateways;
 
-using Services; // Access ArasSessionManager
+using ArasBackend.Infrastructure.Services;
 
 public class ArasGateway : IArasGateway
 {
@@ -353,5 +354,225 @@ public class ArasGateway : IArasGateway
                 ActualValue = actual, ExpectedValue = request.ExpectedState
             };
         });
+    }
+
+    public ItemResponse StartWorkflow(StartWorkflowRequest request)
+    {
+        return ExecuteIom(inn =>
+        {
+            if (!string.IsNullOrEmpty(request.WorkflowMap))
+            {
+                return inn.newError("Specifying WorkflowMap is not yet supported. Please omit it to start the default workflow.");
+            }
+
+            var item = inn.newItem(request.ItemType, "startWorkflow");
+            item.setID(request.Id);
+            return item.apply();
+        }, "Workflow started");
+    }
+
+    public ItemResponse GetAssignedActivities()
+    {
+        return ExecuteIom(inn =>
+        {
+            // Get current user's ID for filtering activities
+            var userId = inn.getUserID();
+            var q = inn.newItem("Activity Assignment", "get");
+            q.setProperty("related_id", userId);
+            q.setProperty("is_current", "1");
+            return q.apply();
+        }, "Assigned activities retrieved");
+    }
+
+    public ItemResponse CompleteActivity(CompleteActivityRequest request)
+    {
+        return ExecuteIom(inn =>
+        {
+            var userId = inn.getUserID();
+            var findAssign = inn.newItem("Activity Assignment", "get");
+            findAssign.setProperty("source_id", request.ActivityId);
+            findAssign.setProperty("related_id", userId);
+            findAssign.setProperty("is_current", "1");
+            var assignResult = findAssign.apply();
+
+            if (assignResult.isError())
+                return inn.newError($"No active assignment found for activity {request.ActivityId}");
+
+            var assignmentId = assignResult.getID();
+
+            var complete = inn.newItem("Activity Assignment", "EvaluateActivity");
+            complete.setID(assignmentId);
+            complete.setProperty("path", request.Path);
+            if (!string.IsNullOrEmpty(request.Comments))
+                complete.setProperty("comments", request.Comments);
+            complete.setProperty("complete", "1");
+
+            return complete.apply();
+        }, "Activity completed");
+    }
+
+    public AssertionResponse AssertPropertyContains(AssertPropertyContainsRequest request)
+    {
+        return ExecuteAssertion(inn =>
+        {
+            var item = inn.getItemById(request.ItemType, request.Id);
+            if (item.isError()) return new AssertionResponse { Success = false, Passed = false, Message = item.getErrorString() };
+
+            var actual = item.getProperty(request.Property, "");
+            var passed = actual.Contains(request.Contains);
+            return new AssertionResponse
+            {
+                Success = true, Passed = passed,
+                Message = passed ? "Property contains expected text" : $"Expected to contain '{request.Contains}' but got '{actual}'",
+                ActualValue = actual, ExpectedValue = $"Contains '{request.Contains}'"
+            };
+        });
+    }
+
+    public AssertionResponse AssertCount(AssertCountRequest request)
+    {
+        return ExecuteAssertion(inn =>
+        {
+            var item = inn.newItem(request.ItemType, "get");
+            foreach (var kvp in request.Criteria)
+                item.setProperty(kvp.Key, kvp.Value);
+
+            var result = item.apply();
+            var count = result.isError() ? 0 : result.getItemCount();
+            var passed = count == request.ExpectedCount;
+            return new AssertionResponse
+            {
+                Success = true, Passed = passed,
+                Message = passed ? "Count matches" : $"Expected {request.ExpectedCount} items, found {count}",
+                ActualValue = count.ToString(), ExpectedValue = request.ExpectedCount.ToString()
+            };
+        });
+    }
+
+    public AssertionResponse AssertLocked(LockRequest request)
+    {
+        return ExecuteAssertion(inn =>
+        {
+            var item = inn.getItemById(request.ItemType, request.Id);
+            if (item.isError()) return new AssertionResponse { Success = false, Passed = false, Message = item.getErrorString() };
+
+            var lockedBy = item.getProperty("locked_by_id");
+            var passed = !string.IsNullOrEmpty(lockedBy);
+            return new AssertionResponse
+            {
+                Success = true, Passed = passed,
+                Message = passed ? "Item is locked" : "Item is not locked",
+                ActualValue = passed ? "Locked" : "Unlocked", ExpectedValue = "Locked"
+            };
+        });
+    }
+
+    public AssertionResponse AssertUnlocked(LockRequest request)
+    {
+        return ExecuteAssertion(inn =>
+        {
+            var item = inn.getItemById(request.ItemType, request.Id);
+            if (item.isError()) return new AssertionResponse { Success = false, Passed = false, Message = item.getErrorString() };
+
+            var lockedBy = item.getProperty("locked_by_id");
+            var passed = string.IsNullOrEmpty(lockedBy);
+            return new AssertionResponse
+            {
+                Success = true, Passed = passed,
+                Message = passed ? "Item is unlocked" : $"Item is locked by {lockedBy}",
+                ActualValue = passed ? "Unlocked" : "Locked", ExpectedValue = "Unlocked"
+            };
+        });
+    }
+
+    public ItemResponse UploadFile(UploadFileRequest request)
+    {
+        return ExecuteIom(inn =>
+        {
+            var item = inn.newItem(request.ItemType, "edit");
+            item.setID(request.Id);
+            item.setFileProperty(request.PropertyName, request.FilePath);
+            return item.apply();
+        }, "File uploaded");
+    }
+
+    public ItemResponse DownloadFile(DownloadFileRequest request)
+    {
+        return ExecuteIom(inn =>
+        {
+            var item = inn.getItemById(request.ItemType, request.Id);
+            if (item.isError()) return item;
+
+            var fileId = item.getProperty(request.PropertyName);
+            if (string.IsNullOrEmpty(fileId))
+                return inn.newError("File property is empty");
+
+            var fileItem = inn.getItemById("File", fileId);
+            if (fileItem.isError()) return fileItem;
+
+            var dir = Path.GetDirectoryName(request.SavePath);
+            if (string.IsNullOrEmpty(dir)) dir = request.SavePath; // Fallback if no dir component
+
+            return fileItem.checkout(dir);
+        }, "File downloaded");
+    }
+
+    public AssertionResponse VerifyFileExists(VerifyFileExistsRequest request)
+    {
+        return ExecuteAssertion(inn =>
+        {
+            var item = inn.getItemById(request.ItemType, request.Id);
+            if (item.isError()) return new AssertionResponse { Success = false, Passed = false, Message = item.getErrorString() };
+
+            var fileId = item.getProperty(request.PropertyName);
+            var passed = !string.IsNullOrEmpty(fileId);
+
+            return new AssertionResponse
+            {
+                Success = true, Passed = passed,
+                Message = passed ? "File property is set" : "File property is empty",
+                ActualValue = fileId, ExpectedValue = "Valid File ID"
+            };
+        });
+    }
+
+    public ItemResponse GenerateID()
+    {
+        return ExecuteIom(inn =>
+        {
+             var id = inn.getNewID();
+             var res = inn.newItem("Result");
+             res.setProperty("id", id);
+             return res;
+        }, "ID Generated");
+    }
+
+    public ItemResponse GetNextSequence(GetNextSequenceRequest request)
+    {
+        return ExecuteIom(inn =>
+        {
+            var seq = inn.getNextSequence(request.SequenceName);
+            var res = inn.newItem("Result");
+            res.setProperty("sequence", seq);
+            return res;
+        }, "Sequence retrieved");
+    }
+
+    public ItemResponse Wait(WaitRequest request)
+    {
+        Thread.Sleep(request.Duration);
+        return new ItemResponse { Success = true, Message = $"Waited {request.Duration}ms" };
+    }
+
+    public ItemResponse SetVariable(SetVariableRequest request)
+    {
+        _sessionManager.SetSessionVariable(request.VariableName, request.Value);
+        return new ItemResponse { Success = true, Message = $"Variable '{request.VariableName}' set" };
+    }
+
+    public ItemResponse LogMessage(LogMessageRequest request)
+    {
+        _sessionManager.AddSessionLog(request.Message);
+        return new ItemResponse { Success = true, Message = "Message logged" };
     }
 }

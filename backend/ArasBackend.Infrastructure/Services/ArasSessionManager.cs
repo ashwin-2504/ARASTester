@@ -195,5 +195,28 @@ public class ArasSessionManager : IArasSessionManager
             }
         }
     }
+
+    internal void SetSessionVariable(string name, object? value)
+    {
+        var session = GetCurrentSession();
+        if (session == null) throw new ArasAuthException("Session is not active.");
+        lock (session.Lock)
+        {
+            if (value == null) session.Variables.Remove(name);
+            else session.Variables[name] = value;
+        }
+    }
+
+    internal void AddSessionLog(string message)
+    {
+        var session = GetCurrentSession();
+        if (session != null)
+        {
+            lock (session.Lock)
+            {
+                session.TestLogs.Add($"[{DateTime.UtcNow:O}] {message}");
+            }
+        }
+    }
 }
 

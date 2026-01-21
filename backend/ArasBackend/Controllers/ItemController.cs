@@ -81,4 +81,53 @@ public class ItemController : ControllerBase
 
     [HttpPost("assert-state")]
     public ActionResult<AssertionResponse> AssertState(AssertStateRequest request) => Ok(_itemService.AssertState(request));
+
+    // Workflow Operations
+    [HttpPost("start-workflow")]
+    public ActionResult<ItemResponse> StartWorkflow(StartWorkflowRequest request) => Ok(_itemService.StartWorkflow(request));
+
+    [HttpGet("assigned-activities")]
+    public ActionResult<ItemResponse> GetAssignedActivities() => Ok(_itemService.GetAssignedActivities());
+
+    [HttpPost("complete-activity")]
+    public ActionResult<ItemResponse> CompleteActivity(CompleteActivityRequest request) => Ok(_itemService.CompleteActivity(request));
+
+    // Additional Assertions
+    [HttpPost("assert-property-contains")]
+    public ActionResult<AssertionResponse> AssertPropertyContains(AssertPropertyContainsRequest request) => Ok(_itemService.AssertPropertyContains(request));
+
+    [HttpPost("assert-count")]
+    public ActionResult<AssertionResponse> AssertCount(AssertCountRequest request) => Ok(_itemService.AssertCount(request));
+
+    [HttpPost("assert-locked")]
+    public ActionResult<AssertionResponse> AssertLocked(LockRequest request) => Ok(_itemService.AssertLocked(request));
+
+    [HttpPost("assert-unlocked")]
+    public ActionResult<AssertionResponse> AssertUnlocked(LockRequest request) => Ok(_itemService.AssertUnlocked(request));
+
+    // File Operations
+    [HttpPost("upload-file")]
+    public ActionResult<ItemResponse> UploadFile(UploadFileRequest request) => Ok(_itemService.UploadFile(request));
+
+    [HttpPost("download-file")]
+    public ActionResult<ItemResponse> DownloadFile(DownloadFileRequest request) => Ok(_itemService.DownloadFile(request));
+
+    [HttpPost("verify-file-exists")]
+    public ActionResult<AssertionResponse> VerifyFileExists(VerifyFileExistsRequest request) => Ok(_itemService.VerifyFileExists(request));
+
+    // Utility Operations
+    [HttpPost("generate-id")]
+    public ActionResult<ItemResponse> GenerateId() => Ok(_itemService.GenerateID());
+
+    [HttpPost("get-next-sequence")]
+    public ActionResult<ItemResponse> GetNextSequence(GetNextSequenceRequest request) => Ok(_itemService.GetNextSequence(request));
+
+    [HttpPost("wait")]
+    public ActionResult<ItemResponse> Wait(WaitRequest request) => Ok(_itemService.Wait(request));
+
+    [HttpPost("set-variable")]
+    public ActionResult<ItemResponse> SetVariable(SetVariableRequest request) => Ok(_itemService.SetVariable(request));
+
+    [HttpPost("log-message")]
+    public ActionResult<ItemResponse> LogMessage(LogMessageRequest request) => Ok(_itemService.LogMessage(request));
 }

@@ -192,6 +192,104 @@ namespace ArasBackend.Core.Models
         public required string ExpectedState { get; set; }
     }
 
+    public class StartWorkflowRequest
+    {
+        [Required, MinLength(1)]
+        public required string ItemType { get; set; }
+        [Required, MinLength(1)]
+        public required string Id { get; set; }
+        public string? WorkflowMap { get; set; }
+    }
+
+    public class CompleteActivityRequest
+    {
+        [Required, MinLength(1)]
+        public required string ActivityId { get; set; }
+        [Required, MinLength(1)]
+        public required string Path { get; set; }
+        public string? Comments { get; set; }
+    }
+
+    public class AssertPropertyContainsRequest
+    {
+        [Required, MinLength(1)]
+        public required string ItemType { get; set; }
+        [Required, MinLength(1)]
+        public required string Id { get; set; }
+        [Required, MinLength(1)]
+        public required string Property { get; set; }
+        [Required]
+        public required string Contains { get; set; }
+    }
+
+    public class AssertCountRequest
+    {
+        [Required, MinLength(1)]
+        public required string ItemType { get; set; }
+        [Required]
+        public required Dictionary<string, string> Criteria { get; set; }
+        public int ExpectedCount { get; set; }
+    }
+
+    public class UploadFileRequest
+    {
+        [Required, MinLength(1)]
+        public required string ItemType { get; set; }
+        [Required, MinLength(1)]
+        public required string Id { get; set; }
+        [Required, MinLength(1)]
+        public required string PropertyName { get; set; }
+        [Required, MinLength(1)]
+        public required string FilePath { get; set; }
+    }
+
+    public class DownloadFileRequest
+    {
+        [Required, MinLength(1)]
+        public required string ItemType { get; set; }
+        [Required, MinLength(1)]
+        public required string Id { get; set; }
+        [Required, MinLength(1)]
+        public required string PropertyName { get; set; }
+        [Required, MinLength(1)]
+        public required string SavePath { get; set; }
+    }
+
+    public class VerifyFileExistsRequest
+    {
+        [Required, MinLength(1)]
+        public required string ItemType { get; set; }
+        [Required, MinLength(1)]
+        public required string Id { get; set; }
+        [Required, MinLength(1)]
+        public required string PropertyName { get; set; }
+    }
+
+    public class GetNextSequenceRequest
+    {
+        [Required, MinLength(1)]
+        public required string SequenceName { get; set; }
+    }
+
+    public class SetVariableRequest
+    {
+        [Required, MinLength(1)]
+        public required string VariableName { get; set; }
+        public object? Value { get; set; }
+    }
+
+    public class LogMessageRequest
+    {
+        [Required]
+        public required string Message { get; set; }
+    }
+
+    public class WaitRequest
+    {
+        [Range(0, int.MaxValue)]
+        public int Duration { get; set; }
+    }
+
     public class ItemResponse
     {
         public bool Success { get; set; }

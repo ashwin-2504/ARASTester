@@ -85,6 +85,7 @@ const TestNode = React.memo<TestNodeProps>(function TestNode({
             <button
               onClick={(e: React.MouseEvent) => { e.stopPropagation(); onToggleExpand(test.testID); }}
               className="mr-2 p-0.5 rounded-sm hover:bg-muted/50 text-muted-foreground"
+              aria-label={isExpanded ? "Collapse Test" : "Expand Test"}
             >
               {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
             </button>
@@ -101,6 +102,7 @@ const TestNode = React.memo<TestNodeProps>(function TestNode({
                 e.stopPropagation();
                 onToggleEnabled(test);
               }}
+              title={test.isEnabled !== false ? "Disable Test" : "Enable Test"}
             >
               {test.isEnabled !== false && <Check className="h-3 w-3 stroke-[3]" />}
             </div>
@@ -125,6 +127,7 @@ const TestNode = React.memo<TestNodeProps>(function TestNode({
                 className="h-7 w-7"
                 onClick={handleAddActionClick}
                 title="Add Action"
+                aria-label="Add Action"
               >
                 <Plus className="h-4 w-4" />
               </Button>
@@ -137,6 +140,7 @@ const TestNode = React.memo<TestNodeProps>(function TestNode({
                   onDeleteTest(test.testID)
                 }}
                 title="Delete Test"
+                aria-label="Delete Test"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>

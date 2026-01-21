@@ -71,6 +71,7 @@ const ActionNode = React.memo<ActionNodeProps>(function ActionNode({
               e.stopPropagation();
               onToggleEnabled(action);
             }}
+            title={action.isEnabled !== false ? "Disable Action" : "Enable Action"}
           >
             {action.isEnabled !== false && <Check className="h-2.5 w-2.5 stroke-[3]" />}
           </div>
@@ -97,6 +98,7 @@ const ActionNode = React.memo<ActionNodeProps>(function ActionNode({
                 onDeleteAction(action.actionID)
               }}
               title="Delete Action"
+              aria-label="Delete Action"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </Button>

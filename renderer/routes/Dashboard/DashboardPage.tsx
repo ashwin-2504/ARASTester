@@ -1,19 +1,19 @@
 import React, { useState } from 'react'
-import { Plus, FolderOpen, Search, MoreVertical, Trash, FileText, Settings as SettingsIcon, Loader2, Play } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card'
+import { Plus, FolderOpen, Search, MoreVertical, Trash, FileText, Settings as SettingsIcon, Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button.jsx'
+import { Input } from '@/components/ui/input.jsx'
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card.jsx'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu.jsx"
 import { useDashboard } from './useDashboard'
-import PlanModal from '@/components/PlanModal'
-import { BackendStatus } from '@/components/BackendStatus'
-
+import PlanModal from '@/components/PlanModal.jsx'
+import { BackendStatus } from '@/components/BackendStatus.jsx'
 import { useNavigate } from 'react-router-dom'
+import type { TestPlan } from "@/types/plan"
 
 export default function DashboardPage() {
   const {
@@ -32,20 +32,20 @@ export default function DashboardPage() {
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingPlan, setEditingPlan] = useState(null)
+  const [editingPlan, setEditingPlan] = useState<TestPlan | null>(null)
 
   const openCreateModal = () => {
     setEditingPlan(null)
     setIsModalOpen(true)
   }
 
-  const openEditModal = (plan) => {
+  const openEditModal = (plan: TestPlan) => {
     setEditingPlan(plan)
     setIsModalOpen(true)
   }
 
-  const handleModalSave = async ({ title, description }) => {
-    if (editingPlan) {
+  const handleModalSave = async ({ title, description }: { title: string; description: string }) => {
+    if (editingPlan && editingPlan.__filename) {
       // Edit existing plan
       await handleEditPlan(editingPlan.__filename, { title, description })
     } else {
@@ -71,7 +71,7 @@ export default function DashboardPage() {
                 placeholder="Search plans..."
                 className="pl-9 bg-[#1c1c1f] border-zinc-800 text-sm h-10 focus-visible:ring-indigo-500"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
               />
             </div>
 
@@ -112,23 +112,23 @@ export default function DashboardPage() {
               <Card
                 key={plan.__filename}
                 className="group relative bg-[#1c1c1f] border-zinc-800/50 hover:border-indigo-500/50 cursor-pointer transition-all duration-300 hover:shadow-[0_0_20px_rgba(79,70,229,0.1)] hover:-translate-y-1"
-                onClick={() => handleOpenPlan(plan.__filename)}
+                onClick={() => handleOpenPlan(plan.__filename || "")}
               >
                 <CardHeader className="flex flex-row items-start justify-between p-5 space-y-0">
                   <CardTitle className="text-base font-semibold text-zinc-100 truncate pr-4 leading-tight">
                     {plan.title}
                   </CardTitle>
                   <DropdownMenu>
-                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenuTrigger asChild onClick={(e: any) => e.stopPropagation()}>
                       <Button variant="ghost" className="h-6 w-6 p-0 text-zinc-500 hover:text-white hover:bg-transparent -mt-1 -mr-2">
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="bg-[#1c1c1f] border-zinc-800 text-zinc-300">
-                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditModal(plan) }} className="focus:bg-zinc-800 focus:text-white cursor-pointer">
+                      <DropdownMenuItem onClick={(e: any) => { e.stopPropagation(); openEditModal(plan) }} className="focus:bg-zinc-800 focus:text-white cursor-pointer">
                         <FileText className="mr-2 h-4 w-4" /> Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="text-red-400 focus:bg-red-900/10 focus:text-red-400 cursor-pointer" onClick={(e) => { e.stopPropagation(); handleDeletePlan(plan.__filename) }}>
+                      <DropdownMenuItem className="text-red-400 focus:bg-red-900/10 focus:text-red-400 cursor-pointer" onClick={(e: any) => { e.stopPropagation(); handleDeletePlan(plan.__filename || "") }}>
                         <Trash className="mr-2 h-4 w-4" /> Delete
                       </DropdownMenuItem>
                     </DropdownMenuContent>

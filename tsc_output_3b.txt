@@ -1,0 +1,3 @@
+renderer/components/TestTree.tsx(6,15): error TS6196: 'TestPlan' is declared but never used.
+renderer/components/tree/ActionNode.tsx(95,25): error TS7006: Parameter 'e' implicitly has an 'any' type.
+renderer/components/tree/TestNode.tsx(135,27): error TS7006: Parameter 'e' implicitly has an 'any' type.

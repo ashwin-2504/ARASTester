@@ -1,8 +1,26 @@
 import React from 'react'
 import { Plus } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { DragDropContext, Droppable } from '@hello-pangea/dnd'
+import { Button } from '@/components/ui/button.jsx' // Explicit extension for non-migrated component
+import { DragDropContext, Droppable, DropResult, DragStart } from '@hello-pangea/dnd'
 import TestNode from './tree/TestNode'
+import type { Test, Action } from '@/types/plan'
+
+interface TestTreeProps {
+  testPlan: Test[];
+  selectedItem: Test | Action | null;
+  onSelect: (item: Test | Action) => void;
+  onEdit?: (item: Test | Action) => void;
+  onAddTest: () => void;
+  onAddAction: (test: Test) => void;
+  onMoveTest: (fromIndex: number, toIndex: number) => void;
+  onMoveAction: (sourceTestId: string, fromIndex: number, destTestId: string, toIndex: number) => void;
+  onDeleteTest: (id: string) => void;
+  onDeleteAction: (id: string) => void;
+  onRunTest: (test: Test) => void;
+  onRunAction: (action: Action) => void;
+  onToggleEnabled: (item: Test | Action) => void;
+  logs?: Record<string, any>;
+}
 
 export default function TestTree({
   testPlan,
@@ -19,11 +37,10 @@ export default function TestTree({
   onRunAction,
   onToggleEnabled,
   logs = {} // Add logs prop
-}) {
-  const [expandedTestIds, setExpandedTestIds] = React.useState([])
-  const knownIds = React.useRef(new Set())
-
+}: TestTreeProps) {
+  const [expandedTestIds, setExpandedTestIds] = React.useState<string[]>([])
   const hasInitialized = React.useRef(false)
+
   React.useEffect(() => {
     if (testPlan && testPlan.length > 0 && !hasInitialized.current) {
       setExpandedTestIds(testPlan.map(t => t.testID))
@@ -31,7 +48,7 @@ export default function TestTree({
     }
   }, [testPlan])
 
-  const handleToggleExpand = React.useCallback((testID) => {
+  const handleToggleExpand = React.useCallback((testID: string) => {
     setExpandedTestIds(prev =>
       prev.includes(testID)
         ? prev.filter(id => id !== testID)
@@ -39,13 +56,26 @@ export default function TestTree({
     )
   }, [])
 
-  const [draggingType, setDraggingType] = React.useState(null)
+  const [draggingType, setDraggingType] = React.useState<string | null>(null)
 
-  const onDragStart = (start) => {
+  // Auto-expand/collapse based on drag type
+  React.useEffect(() => {
+    if (!testPlan) return;
+    
+    if (draggingType === 'ACTION') {
+      // Expand all when dragging actions to allow dropping anywhere
+      setExpandedTestIds(testPlan.map(t => t.testID));
+    } else if (draggingType === 'TEST') {
+      // Collapse all when dragging tests to make reordering easier
+      setExpandedTestIds([]);
+    }
+  }, [draggingType, testPlan]);
+
+  const onDragStart = (start: DragStart) => {
     setDraggingType(start.type)
   }
 
-  const onDragEnd = (result) => {
+  const onDragEnd = (result: DropResult) => {
     setDraggingType(null)
     const { source, destination, type } = result;
 
@@ -77,7 +107,7 @@ export default function TestTree({
   }
 
   // Helper to compute test status
-  const getTestStatus = (test) => {
+  const getTestStatus = (test: Test): string | null => {
     const actions = test.testActions || []
     if (actions.length === 0) return null
 
@@ -119,17 +149,10 @@ export default function TestTree({
               className="space-y-2"
             >
               {testPlan.map((test, index) => {
-                // Prepare action statuses for this test's children
-                // Actually TestNode doesn't pass status array, it renders ActionNodes itself.
-                // But wait, TestNode renders ActionNodes. So we need to modify TestNode to accept 'logs' or 'actionStatuses' too.
-                // Let's modify TestNode to accept 'logs' directly to avoid prop drilling complexity or just pass the full logs object.
-                // The TestTree passes 'test' which contains actions.
-                // So we can pass 'logs' to TestNode.
-
                 return (
                   <TestNode
                     key={test.testID || index}
-                    test={{ ...test, status: getTestStatus(test) }} // Pass computed status
+                    test={{ ...test, status: getTestStatus(test) || undefined }} // Pass computed status
                     index={index}
                     isExpanded={expandedTestIds.includes(test.testID)}
                     onToggleExpand={handleToggleExpand}

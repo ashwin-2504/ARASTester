@@ -1,16 +1,28 @@
 import React from 'react'
-import { GripVertical, Play, Trash2, Check } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { StatusIndicator } from '@/components/ui/StatusIndicator'
+import { GripVertical, Trash2, Check } from 'lucide-react'
+import { Button } from '@/components/ui/button.jsx'
+import { StatusIndicator } from '@/components/ui/StatusIndicator.jsx'
 import { Draggable } from '@hello-pangea/dnd'
 import { cn } from '@/lib/utils'
+import type { Action } from '@/types/plan'
 
-const ActionNode = React.memo(function ActionNode({
+interface ActionNodeProps {
+  action: Action & { status?: string };
+  index: number;
+  selectedItem: any; // Type for selectedItem not fully defined yet, can imply { actionID?: string }
+  onSelect: (item: any) => void;
+  onEdit?: (item: any) => void;
+  onDeleteAction: (id: string) => void;
+  onRunAction?: (action: Action) => void;
+  onToggleEnabled: (item: any) => void;
+}
+
+const ActionNode = React.memo<ActionNodeProps>(function ActionNode({
   action,
   index,
   selectedItem,
   onSelect,
-  onEdit,
+  // onEdit, // unused
   onDeleteAction,
   onRunAction,
   onToggleEnabled
@@ -42,7 +54,7 @@ const ActionNode = React.memo(function ActionNode({
           <div
             {...provided.dragHandleProps}
             className="mr-2 cursor-grab text-muted-foreground/50 hover:text-foreground outline-none"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e: React.MouseEvent) => e.stopPropagation()}
           >
             <GripVertical className="h-4 w-4" />
           </div>
@@ -55,7 +67,7 @@ const ActionNode = React.memo(function ActionNode({
                 ? "bg-blue-500 border-blue-500 text-white"
                 : "border-muted-foreground/50 bg-transparent"
             )}
-            onClick={(e) => {
+            onClick={(e: React.MouseEvent) => {
               e.stopPropagation();
               onToggleEnabled(action);
             }}
@@ -65,7 +77,7 @@ const ActionNode = React.memo(function ActionNode({
 
           <span
             className="text-sm truncate flex-1 text-foreground/90 select-none"
-            onClick={(e) => { e.stopPropagation(); onSelect(action); }}
+            onClick={(e: React.MouseEvent) => { e.stopPropagation(); onSelect(action); }}
           >
             {action.actionTitle}
           </span>
@@ -80,7 +92,7 @@ const ActionNode = React.memo(function ActionNode({
               variant="ghost"
               size="icon"
               className="h-6 w-6 text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
-              onClick={(e) => {
+              onClick={(e: React.MouseEvent) => {
                 e.stopPropagation()
                 onDeleteAction(action.actionID)
               }}

@@ -1,21 +1,37 @@
 import React from 'react';
-import { Input } from '@/components/ui/input';
-import { Plus, Trash2 } from 'lucide-react';
+import { Input } from '@/components/ui/input.jsx';
+// @ts-ignore
 import KeyValueEditor from './KeyValueEditor';
+import type { ActionSchemaField } from '@/types/plan';
+
+interface FieldRendererProps {
+  field: ActionSchemaField;
+  value: any;
+  onChange: (value: any) => void;
+  error?: string;
+}
 
 /**
  * Renders a single form field based on its schema definition.
  * Supports: text, number, password, textarea, select, checkbox, keyvalue, json
  */
-const FieldRenderer = ({ field, value, onChange }) => {
-  const handleChange = (newValue) => {
+const FieldRenderer: React.FC<FieldRendererProps> = ({ field, value, onChange, error }) => {
+  const handleChange = (newValue: any) => {
     onChange(newValue);
   };
 
   const baseInputClass = "bg-muted/30";
+  const errorInputClass = error ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "";
 
-  // Render help text if present
+  // Render help text or error
   const renderHelpText = () => {
+    if (error) {
+      return (
+        <p className="text-xs text-red-500 mt-1">
+          {error}
+        </p>
+      );
+    }
     if (!field.helpText) return null;
     return (
       <p className="text-xs text-muted-foreground mt-1">
@@ -39,9 +55,9 @@ const FieldRenderer = ({ field, value, onChange }) => {
           {renderLabel()}
           <Input
             value={value ?? field.default ?? ''}
-            onChange={(e) => handleChange(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(e.target.value)}
             placeholder={field.placeholder}
-            className={baseInputClass}
+            className={`${baseInputClass} ${errorInputClass}`}
           />
           {renderHelpText()}
         </div>
@@ -54,9 +70,9 @@ const FieldRenderer = ({ field, value, onChange }) => {
           <Input
             type="number"
             value={value ?? field.default ?? ''}
-            onChange={(e) => handleChange(e.target.value ? parseInt(e.target.value, 10) : '')}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(e.target.value ? parseInt(e.target.value, 10) : '')}
             placeholder={field.placeholder}
-            className={baseInputClass}
+            className={`${baseInputClass} ${errorInputClass}`}
           />
           {renderHelpText()}
         </div>
@@ -69,9 +85,9 @@ const FieldRenderer = ({ field, value, onChange }) => {
           <Input
             type="password"
             value={value ?? field.default ?? ''}
-            onChange={(e) => handleChange(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(e.target.value)}
             placeholder={field.placeholder || '••••••••'}
-            className={baseInputClass}
+            className={`${baseInputClass} ${errorInputClass}`}
           />
           {renderHelpText()}
         </div>
@@ -84,7 +100,7 @@ const FieldRenderer = ({ field, value, onChange }) => {
           {field.prefix && <div className="text-xs font-mono text-muted-foreground font-bold">{field.prefix}</div>}
           <textarea
             value={value ?? field.default ?? ''}
-            onChange={(e) => handleChange(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleChange(e.target.value)}
             placeholder={field.placeholder}
             className={`w-full min-h-[120px] rounded-md border border-input px-3 py-2 text-sm font-mono focus:border-primary focus:ring-1 focus:ring-primary ${baseInputClass}`}
           />
@@ -99,7 +115,7 @@ const FieldRenderer = ({ field, value, onChange }) => {
           {renderLabel()}
           <select
             value={value ?? field.default ?? ''}
-            onChange={(e) => handleChange(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleChange(e.target.value)}
             className={`w-full appearance-none rounded-md border border-input px-4 py-2.5 text-sm focus:border-primary focus:ring-primary ${baseInputClass}`}
           >
             {field.options?.map((opt) => (
@@ -118,7 +134,7 @@ const FieldRenderer = ({ field, value, onChange }) => {
           <input
             type="checkbox"
             checked={value ?? field.default ?? false}
-            onChange={(e) => handleChange(e.target.checked)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(e.target.checked)}
             className="rounded border-border text-primary focus:ring-primary h-4 w-4"
           />
           <label className="text-sm font-medium">{field.label}</label>
@@ -145,7 +161,7 @@ const FieldRenderer = ({ field, value, onChange }) => {
           {renderLabel()}
           <textarea
             value={typeof value === 'object' ? JSON.stringify(value, null, 2) : (value ?? '')}
-            onChange={(e) => {
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
               try {
                 const parsed = JSON.parse(e.target.value);
                 handleChange(parsed);
@@ -168,7 +184,7 @@ const FieldRenderer = ({ field, value, onChange }) => {
           {renderLabel()}
           <Input
             value={value ?? field.default ?? ''}
-            onChange={(e) => handleChange(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(e.target.value)}
             placeholder={field.placeholder}
             className={baseInputClass}
           />
@@ -179,4 +195,3 @@ const FieldRenderer = ({ field, value, onChange }) => {
 };
 
 export default FieldRenderer;
-

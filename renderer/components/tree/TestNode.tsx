@@ -1,19 +1,38 @@
 import React from 'react'
-import { GripVertical, ChevronRight, ChevronDown, Play, Plus, Trash2, Check } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { StatusIndicator } from '@/components/ui/StatusIndicator'
+import { GripVertical, ChevronRight, ChevronDown, Plus, Trash2, Check } from 'lucide-react'
+import { Button } from '@/components/ui/button.jsx'
+import { StatusIndicator } from '@/components/ui/StatusIndicator.jsx'
 import { Draggable, Droppable } from '@hello-pangea/dnd'
 import { cn } from '@/lib/utils'
 import ActionNode from './ActionNode'
+import type { Test, Action } from '@/types/plan'
 
-const TestNode = React.memo(function TestNode({
+interface TestNodeProps {
+  test: Test & { status?: string };
+  index: number;
+  isExpanded: boolean;
+  onToggleExpand: (id: string) => void;
+  selectedItem: any;
+  onSelect: (item: any) => void;
+  onEdit?: (item: any) => void;
+  onAddAction: (test: Test) => void;
+  onDeleteTest: (id: string) => void;
+  onDeleteAction: (id: string) => void;
+  onRunTest: (test: Test) => void;
+  onRunAction: (action: Action) => void;
+  onToggleEnabled: (item: any) => void;
+  logs?: Record<string, any>;
+  draggingType?: string | null;
+}
+
+const TestNode = React.memo<TestNodeProps>(function TestNode({
   test,
   index,
   isExpanded,
   onToggleExpand,
   selectedItem,
   onSelect,
-  onEdit,
+  // onEdit, // unused
   onAddAction,
   onDeleteTest,
   onDeleteAction,
@@ -27,7 +46,7 @@ const TestNode = React.memo(function TestNode({
   const isChildSelected = test.testActions?.some(a => a?.actionID === selectedItem?.actionID)
   const isActiveContext = isSelected || isChildSelected
 
-  const handleAddActionClick = (e) => {
+  const handleAddActionClick = (e: React.MouseEvent) => {
     e.stopPropagation()
     onAddAction(test)
   }
@@ -49,7 +68,7 @@ const TestNode = React.memo(function TestNode({
                 ? "bg-emerald-950/40 border-emerald-500/50"
                 : "bg-card/50 border-transparent hover:bg-emerald-950/20 hover:border-emerald-500/20"
             )}
-            onClick={(e) => {
+            onClick={(_e: React.MouseEvent) => {
               if (!isExpanded) onToggleExpand(test.testID)
               onSelect(test)
             }}
@@ -58,13 +77,13 @@ const TestNode = React.memo(function TestNode({
             <div
               {...provided.dragHandleProps}
               className="mr-2 cursor-grab text-muted-foreground/50 hover:text-foreground outline-none"
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e: React.MouseEvent) => e.stopPropagation()}
             >
               <GripVertical className="h-4 w-4" />
             </div>
 
             <button
-              onClick={(e) => { e.stopPropagation(); onToggleExpand(test.testID); }}
+              onClick={(e: React.MouseEvent) => { e.stopPropagation(); onToggleExpand(test.testID); }}
               className="mr-2 p-0.5 rounded-sm hover:bg-muted/50 text-muted-foreground"
             >
               {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
@@ -78,7 +97,7 @@ const TestNode = React.memo(function TestNode({
                   ? "bg-blue-500 border-blue-500 text-white"
                   : "border-muted-foreground/50 bg-transparent"
               )}
-              onClick={(e) => {
+              onClick={(e: React.MouseEvent) => {
                 e.stopPropagation();
                 onToggleEnabled(test);
               }}
@@ -88,7 +107,7 @@ const TestNode = React.memo(function TestNode({
 
             <span
               className="font-medium text-sm truncate flex-1 text-foreground/90 select-none"
-              onClick={(e) => { e.stopPropagation(); onSelect(test); }}
+              onClick={(e: React.MouseEvent) => { e.stopPropagation(); onSelect(test); }}
             >
               {test.testTitle}
             </span>
@@ -113,7 +132,7 @@ const TestNode = React.memo(function TestNode({
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                onClick={(e) => {
+                onClick={(e: React.MouseEvent) => {
                   e.stopPropagation()
                   onDeleteTest(test.testID)
                 }}
@@ -159,7 +178,7 @@ const TestNode = React.memo(function TestNode({
                       selectedItem={selectedItem}
                       onRunAction={onRunAction}
                       onSelect={onSelect}
-                      onEdit={onEdit}
+                      // onEdit={onEdit}
                       onDeleteAction={onDeleteAction}
                       onToggleEnabled={onToggleEnabled}
                     />

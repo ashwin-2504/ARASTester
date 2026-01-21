@@ -1,24 +1,33 @@
-// renderer/core/adapters/TestPlanAdapter.js
-import * as StorageService from "./StorageService.js";
-import { getTestPlansFldrPath } from "../ipc/appSettings.js";
+// renderer/core/adapters/TestPlanAdapter.ts
+import * as StorageService from "./StorageService";
+import { getTestPlansFldrPath } from "../ipc/appSettings";
 import { generateTestId, generateActionId } from "@/lib/idGenerator";
 import actionSchemas from "@/core/schemas/action-schemas.json";
+import type { TestPlan, Test, Action } from "@/types/plan";
 
-export async function getFolderPath() {
+export async function getFolderPath(): Promise<string | null> {
   return await getTestPlansFldrPath();
 }
 
-export async function getPlans() {
+export async function getPlans(): Promise<TestPlan[]> {
   const folder = await getFolderPath();
   if (!folder) return [];
 
   try {
     const files = await StorageService.listJsonFiles(folder);
-    const plans = [];
+    const plans: TestPlan[] = [];
     for (const f of files) {
       try {
         const raw = await StorageService.readFile(f);
-        const json = JSON.parse(raw);
+        let json: any;
+        try {
+          json = JSON.parse(raw);
+        } catch (parseError: any) {
+          console.warn(
+            `Skipping invalid JSON file: ${f} - ${parseError.message}`,
+          );
+          continue;
+        }
         const filename = f.replace(/\\/g, "/").split("/").pop();
         plans.push({ ...json, __id: f, __filename: filename });
       } catch (err) {
@@ -37,7 +46,7 @@ export async function getPlans() {
   }
 }
 
-export async function createPlan(title, description) {
+export async function createPlan(title: string, description: string): Promise<TestPlan> {
   const folder = await getFolderPath();
   if (!folder) throw new Error("No test plan folder set.");
 
@@ -55,12 +64,12 @@ export async function createPlan(title, description) {
     (a) => a.type === "ArasConnect",
   );
   const defaultConnectParams =
-    connectSchema?.fields?.reduce((acc, field) => {
+    connectSchema?.fields?.reduce((acc: any, field: any) => {
       if (field.default !== undefined) acc[field.name] = field.default;
       return acc;
     }, {}) || {};
 
-  const payload = {
+  const payload: TestPlan = {
     title: title || "New Test Plan",
     description: description || "",
     created: new Date().toISOString(),
@@ -77,9 +86,9 @@ export async function createPlan(title, description) {
             actionType: "ArasConnect",
             isEnabled: true,
             params: defaultConnectParams,
-          },
+          } as Action,
         ],
-      },
+      } as Test,
     ],
   };
 
@@ -87,23 +96,35 @@ export async function createPlan(title, description) {
   return { ...payload, __id: filePath, __filename: fileName };
 }
 
-export async function getPlan(filename) {
+export async function getPlan(filename: string): Promise<TestPlan> {
   const folder = await getFolderPath();
   if (!folder) throw new Error("No folder set");
 
   const filePath = `${folder}/${filename}`;
   const raw = await StorageService.readFile(filePath);
-  const data = JSON.parse(raw);
+
+  let data: any;
+  try {
+    data = JSON.parse(raw);
+  } catch (error: any) {
+    if (error instanceof SyntaxError) {
+      throw new Error(
+        `Invalid JSON in test plan "${filename}": ${error.message}`,
+      );
+    }
+    throw error;
+  }
+
   return { ...data, __id: filePath, __filename: filename };
 }
 
-export async function updatePlan(filename, data) {
+export async function updatePlan(filename: string, data: Partial<TestPlan>): Promise<TestPlan> {
   const folder = await getFolderPath();
   const filePath = `${folder}/${filename}`;
 
   const current = await getPlan(filename);
 
-  const merged = {
+  const merged: TestPlan = {
     ...current,
     ...data,
     updated: new Date().toISOString(),
@@ -116,7 +137,7 @@ export async function updatePlan(filename, data) {
   return { ...merged, __id: filePath, __filename: filename };
 }
 
-export async function deletePlan(filename) {
+export async function deletePlan(filename: string): Promise<void> {
   const folder = await getFolderPath();
   const filePath = `${folder}/${filename}`;
   await StorageService.deleteFile(filePath);

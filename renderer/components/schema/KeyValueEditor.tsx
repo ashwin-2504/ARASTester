@@ -1,21 +1,33 @@
 import React, { useMemo } from 'react';
-import { Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/input.jsx';
 import { Plus, Trash2 } from 'lucide-react';
+import type { ActionSchemaField } from '@/types/plan';
+
+interface KeyValueEditorProps {
+  field: ActionSchemaField;
+  value: Record<string, string> | undefined;
+  onChange: (value: Record<string, string> | undefined) => void;
+}
+
+interface KeyValuePair {
+  key: string;
+  value: string;
+}
 
 /**
  * Key-Value pair editor for criteria and properties fields
  */
-const KeyValueEditor = ({ field, value, onChange }) => {
+const KeyValueEditor: React.FC<KeyValueEditorProps> = ({ field, value, onChange }) => {
   // Convert object to array of pairs for editing
-  const pairs = useMemo(() => {
+  const pairs = useMemo<KeyValuePair[]>(() => {
     if (!value || typeof value !== 'object') return [{ key: '', value: '' }];
     const entries = Object.entries(value);
-    return entries.length > 0 ? entries.map(([k, v]) => ({ key: k, value: v })) : [{ key: '', value: '' }];
+    return entries.length > 0 ? entries.map(([k, v]) => ({ key: k, value: String(v) })) : [{ key: '', value: '' }];
   }, [value]);
 
-  const updatePairs = (newPairs) => {
+  const updatePairs = (newPairs: KeyValuePair[]) => {
     // Convert array back to object, filtering empty keys
-    const obj = {};
+    const obj: Record<string, string> = {};
     newPairs.forEach(pair => {
       if (pair.key.trim()) {
         obj[pair.key.trim()] = pair.value;
@@ -24,7 +36,7 @@ const KeyValueEditor = ({ field, value, onChange }) => {
     onChange(Object.keys(obj).length > 0 ? obj : undefined);
   };
 
-  const handlePairChange = (index, key, val) => {
+  const handlePairChange = (index: number, key: string, val: string) => {
     const newPairs = [...pairs];
     newPairs[index] = { key, value: val };
     updatePairs(newPairs);
@@ -34,7 +46,7 @@ const KeyValueEditor = ({ field, value, onChange }) => {
     updatePairs([...pairs, { key: '', value: '' }]);
   };
 
-  const removePair = (index) => {
+  const removePair = (index: number) => {
     if (pairs.length === 1) {
       // Clear the only pair instead of removing
       updatePairs([{ key: '', value: '' }]);
@@ -55,14 +67,14 @@ const KeyValueEditor = ({ field, value, onChange }) => {
           <div key={index} className="flex gap-2 items-center">
             <Input
               value={pair.key}
-              onChange={(e) => handlePairChange(index, e.target.value, pair.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handlePairChange(index, e.target.value, pair.value)}
               placeholder="Property name"
               className="flex-1 bg-background"
             />
             <span className="text-muted-foreground">=</span>
             <Input
               value={pair.value}
-              onChange={(e) => handlePairChange(index, pair.key, e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handlePairChange(index, pair.key, e.target.value)}
               placeholder="Value"
               className="flex-1 bg-background"
             />

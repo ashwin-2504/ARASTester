@@ -1,4 +1,4 @@
-// routes/Dashboard/useDashboard.js
+// routes/Dashboard/useDashboard.ts
 // Dashboard business logic hook (View-Controller pattern per ADR)
 
 import { useState, useEffect, useCallback } from "react";
@@ -7,6 +7,7 @@ import { usePlanCacheStore } from "@/stores/usePlanCacheStore";
 import * as TestPlanAdapter from "@/core/adapters/TestPlanAdapter";
 import { setTestPlansFldrPath } from "@/core/ipc/appSettings";
 import { confirm } from "@/lib/hooks/useConfirmDialog";
+
 
 export function useDashboard() {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ export function useDashboard() {
       const folder = await TestPlanAdapter.getFolderPath();
       if (folder) {
         const p = await TestPlanAdapter.getPlans();
+        // Ensure the adapter returns compatible TestPlan objects
         setPlans(p);
       }
     } catch (error) {
@@ -42,14 +44,14 @@ export function useDashboard() {
   }, [loadPlans]);
 
   const handleOpenPlan = useCallback(
-    (filename) => {
+    (filename: string) => {
       navigate(`/plan/${encodeURIComponent(filename)}`);
     },
     [navigate],
   );
 
   const handleDeletePlan = useCallback(
-    async (filename) => {
+    async (filename: string) => {
       const confirmed = await confirm({
         title: "Delete Test Plan",
         description: "Are you sure you want to delete this test plan?",
@@ -69,14 +71,16 @@ export function useDashboard() {
   );
 
   const handleCreatePlan = useCallback(
-    async (title, description) => {
+    async (title: string, description: string) => {
       try {
         const newPlan = await TestPlanAdapter.createPlan(
           title || "New Test Plan",
           description || "",
         );
         loadPlans(); // Reload to show new plan
-        navigate(`/plan/${encodeURIComponent(newPlan.__filename)}`); // Open the new plan
+        if (newPlan && newPlan.__filename) {
+          navigate(`/plan/${encodeURIComponent(newPlan.__filename)}`); // Open the new plan
+        }
       } catch (error) {
         console.error("Failed to create plan:", error);
       }
@@ -85,7 +89,7 @@ export function useDashboard() {
   );
 
   const handleEditPlan = useCallback(
-    async (filename, { title, description }) => {
+    async (filename: string, { title, description }: { title: string; description: string }) => {
       try {
         await TestPlanAdapter.updatePlan(filename, { title, description });
         loadPlans(); // Reload to show updated plan

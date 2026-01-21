@@ -1,12 +1,21 @@
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
+export interface ApiOptions {
+  requestId?: string;
+  signal?: AbortSignal;
+}
+
+interface ApiResponse {
+  [key: string]: any;
+}
+
 /**
  * Normalize response from PascalCase (backend) to camelCase (frontend)
  */
-function normalizeResponse(data) {
+function normalizeResponse(data: any): any {
   if (!data || typeof data !== "object") return data;
 
-  const normalized = {};
+  const normalized: ApiResponse = {};
   for (const [key, value] of Object.entries(data)) {
     // Convert first letter to lowercase
     const camelKey = key.charAt(0).toLowerCase() + key.slice(1);
@@ -15,17 +24,29 @@ function normalizeResponse(data) {
   return normalized;
 }
 
+export class ApiError extends Error {
+  status?: number;
+  response?: any;
+
+  constructor(message: string, status?: number, response?: any) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.response = response;
+  }
+}
+
 /**
  * Core API Client for communicating with the backend
  */
 export const apiClient = {
   // Store active abort controllers for cancellation
-  _activeRequests: new Map(),
+  _activeRequests: new Map<string, AbortController>(),
 
   /**
    * Cancel all active requests
    */
-  cancelAll() {
+  cancelAll(): void {
     for (const [, controller] of this._activeRequests) {
       controller.abort();
     }
@@ -34,9 +55,9 @@ export const apiClient = {
 
   /**
    * Cancel a specific request by ID
-   * @param {string} requestId - Request identifier
+   * @param requestId - Request identifier
    */
-  cancel(requestId) {
+  cancel(requestId: string): void {
     const controller = this._activeRequests.get(requestId);
     if (controller) {
       controller.abort();
@@ -46,12 +67,11 @@ export const apiClient = {
 
   /**
    * Perform a POST request
-   * @param {string} endpoint - API Endpoint (e.g. /api/aras/connect)
-   * @param {Object} data - Payload data
-   * @param {Object} options - Optional settings { requestId, signal }
-   * @returns {Promise<any>}
+   * @param endpoint - API Endpoint (e.g. /api/aras/connect)
+   * @param data - Payload data
+   * @param options - Optional settings { requestId, signal }
    */
-  async post(endpoint, data, options = {}) {
+  async post<T = any>(endpoint: string, data: any, options: ApiOptions = {}): Promise<T> {
     const controller = new AbortController();
     const requestId = options.requestId || `post-${endpoint}-${Date.now()}`;
 
@@ -75,15 +95,14 @@ export const apiClient = {
 
       // Check for HTTP errors
       if (!response.ok) {
-        const error = new Error(
+        throw new ApiError(
           result.message || result.Message || `HTTP ${response.status}`,
+          response.status,
+          result
         );
-        error.status = response.status;
-        error.response = result;
-        throw error;
       }
 
-      return normalizeResponse(result);
+      return normalizeResponse(result) as T;
     } finally {
       this._activeRequests.delete(requestId);
     }
@@ -91,11 +110,10 @@ export const apiClient = {
 
   /**
    * Perform a GET request
-   * @param {string} endpoint - API Endpoint
-   * @param {Object} options - Optional settings { requestId, signal }
-   * @returns {Promise<any>}
+   * @param endpoint - API Endpoint
+   * @param options - Optional settings { requestId, signal }
    */
-  async get(endpoint, options = {}) {
+  async get<T = any>(endpoint: string, options: ApiOptions = {}): Promise<T> {
     const controller = new AbortController();
     const requestId = options.requestId || `get-${endpoint}-${Date.now()}`;
 
@@ -114,15 +132,14 @@ export const apiClient = {
       const result = await response.json();
 
       if (!response.ok) {
-        const error = new Error(
+        throw new ApiError(
           result.message || result.Message || `HTTP ${response.status}`,
+          response.status,
+          result
         );
-        error.status = response.status;
-        error.response = result;
-        throw error;
       }
 
-      return normalizeResponse(result);
+      return normalizeResponse(result) as T;
     } finally {
       this._activeRequests.delete(requestId);
     }

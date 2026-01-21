@@ -1,17 +1,40 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import FieldRenderer from './FieldRenderer';
+import type { ActionSchema } from '@/types/plan';
+
+interface SchemaFormRendererProps {
+  schema: ActionSchema;
+  params: Record<string, any>;
+  onChange: (params: Record<string, any>) => void;
+  showValidation?: boolean;
+}
 
 /**
  * SchemaFormRenderer - Renders an entire action form from its schema definition.
  * 
  * This component takes an action schema and renders all its fields dynamically,
  * eliminating the need for per-action Editor components.
- * 
- * @param {Object} schema - The action schema from action-schemas.json
- * @param {Object} params - Current parameter values
- * @param {Function} onChange - Callback when any parameter changes
  */
-const SchemaFormRenderer = ({ schema, params = {}, onChange }) => {
+const SchemaFormRenderer: React.FC<SchemaFormRendererProps> = ({ schema, params = {}, onChange, showValidation = false }) => {
+  // Calculate validation errors for required fields
+  const validationErrors = useMemo<Record<string, string>>(() => {
+    if (!schema?.fields) return {};
+
+    const errors: Record<string, string> = {};
+    schema.fields.forEach(field => {
+      if (field.required) {
+        const value = params[field.name];
+        const isEmpty = value === undefined || value === null || value === '';
+        if (isEmpty) {
+          errors[field.name] = `${field.label || field.name} is required`;
+        }
+      }
+    });
+    return errors;
+  }, [schema?.fields, params, schema]);
+
+
+
   if (!schema || !schema.fields) {
     return (
       <div className="p-4 text-muted-foreground text-center">
@@ -36,16 +59,11 @@ const SchemaFormRenderer = ({ schema, params = {}, onChange }) => {
     );
   }
 
-  const handleFieldChange = (fieldName, value) => {
+  const handleFieldChange = (fieldName: string, value: any) => {
     const newParams = {
       ...params,
       [fieldName]: value
     };
-
-    // Automatically cleanup legacy "undefined" key caused by previous bug
-    if (Object.prototype.hasOwnProperty.call(newParams, 'undefined')) {
-      delete newParams['undefined'];
-    }
 
     onChange(newParams);
   };
@@ -68,7 +86,8 @@ const SchemaFormRenderer = ({ schema, params = {}, onChange }) => {
               key={field.name || `simple-${index}`}
               field={field}
               value={params[field.name]}
-              onChange={(value) => handleFieldChange(field.name, value)}
+              onChange={(value: any) => handleFieldChange(field.name, value)}
+              error={showValidation ? validationErrors[field.name] : undefined}
             />
           ))}
         </div>
@@ -82,7 +101,8 @@ const SchemaFormRenderer = ({ schema, params = {}, onChange }) => {
               key={field.name || `complex-${index}`}
               field={field}
               value={params[field.name]}
-              onChange={(value) => handleFieldChange(field.name, value)}
+              onChange={(value: any) => handleFieldChange(field.name, value)}
+              error={showValidation ? validationErrors[field.name] : undefined}
             />
           ))}
         </div>

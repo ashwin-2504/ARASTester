@@ -8,14 +8,14 @@ export default function SettingsPage() {
   const [folderPath, setFolderPath] = useState('')
   const navigate = useNavigate()
 
-  useEffect(() => {
-    loadSettings()
-  }, [])
-
   const loadSettings = async () => {
     const f = await getTestPlansFldrPath()
     setFolderPath(f || 'Not set')
   }
+
+  useEffect(() => {
+    loadSettings()
+  }, [])
 
   const handlePickFolder = async () => {
     const res = await window.api.pickFolder()

@@ -1,5 +1,12 @@
 import { apiClient } from "@/core/api/client";
 import { actionRegistry } from "@/core/registries/ActionRegistry";
+import type { Action, ActionPlugin } from "@/types/plan";
+
+export interface ActionResult {
+  success: boolean;
+  message?: string;
+  [key: string]: any;
+}
 
 /**
  * Service to execute actions (both client-side and server-side)
@@ -7,10 +14,10 @@ import { actionRegistry } from "@/core/registries/ActionRegistry";
 export const ActionExecutor = {
   /**
    * Execute a single action
-   * @param {Object} action - The action object from the test plan
-   * @returns {Promise<Object>} - Result object { success: boolean, ...details }
+   * @param action - The action object from the test plan
+   * @returns Result object { success: boolean, ...details }
    */
-  async execute(action) {
+  async execute(action: Action): Promise<ActionResult> {
     try {
       const plugin = actionRegistry.get(action.actionType);
 
@@ -29,7 +36,7 @@ export const ActionExecutor = {
         success: false,
         message: `No handler for action type: ${action.actionType}`,
       };
-    } catch (err) {
+    } catch (err: any) {
       console.error("Action Execution Error:", err);
       return {
         success: false,
@@ -38,20 +45,20 @@ export const ActionExecutor = {
     }
   },
 
-  async executeServerSide(action, plugin) {
+  async executeServerSide(action: Action, plugin: ActionPlugin): Promise<ActionResult> {
     try {
-      let data;
+      let data: any;
       if (plugin.apiMethod === "GET") {
-        data = await apiClient.get(plugin.apiEndpoint);
+        data = await apiClient.get(plugin.apiEndpoint!);
       } else {
-        data = await apiClient.post(plugin.apiEndpoint, action.params || {});
+        data = await apiClient.post(plugin.apiEndpoint!, action.params || {});
       }
       // Response is already normalized by apiClient
       return {
         success: data.success ?? true,
         ...data,
       };
-    } catch (err) {
+    } catch (err: any) {
       // Handle AbortError gracefully
       if (err.name === "AbortError") {
         return { success: false, message: "Request was cancelled" };
@@ -60,12 +67,13 @@ export const ActionExecutor = {
     }
   },
 
-  async executeClientSide(action, plugin) {
+  async executeClientSide(action: Action, _plugin: ActionPlugin): Promise<ActionResult> {
     switch (action.actionType) {
-      case "Wait":
-        const duration = action.params?.duration || 1000;
+      case "Wait": {
+        const duration = Number(action.params?.duration) || 1000;
         await new Promise((r) => setTimeout(r, duration));
         return { success: true, message: `Waited ${duration}ms` };
+      }
 
       case "LogMessage":
         console.log(
@@ -84,13 +92,6 @@ export const ActionExecutor = {
           variableName: action.params?.variableName,
           value: action.params?.value,
         };
-
-      case "Custom":
-        console.log(
-          "Custom script execution not fully implemented:",
-          action.params?.code,
-        );
-        return { success: true, message: "Custom script executed (mock)" };
 
       default:
         return { success: true, message: "Client-side action completed" };

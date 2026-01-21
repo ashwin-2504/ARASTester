@@ -1,8 +1,20 @@
 import { create } from "zustand";
+import type { TestPlan } from "@/types/plan";
 
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-export const usePlanCacheStore = create((set, get) => ({
+interface PlanCacheState {
+  plans: TestPlan[];
+  lastFetchedAt: number | null;
+  setPlans: (plans: TestPlan[]) => void;
+  clearPlans: () => void;
+  isStale: () => boolean;
+  invalidate: () => void;
+  updatePlan: (filename: string, updates: Partial<TestPlan>) => void;
+  removePlan: (filename: string) => void;
+}
+
+export const usePlanCacheStore = create<PlanCacheState>((set, get) => ({
   plans: [],
   lastFetchedAt: null,
 

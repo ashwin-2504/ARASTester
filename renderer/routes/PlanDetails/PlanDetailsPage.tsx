@@ -5,20 +5,26 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { ScrollArea } from '@/components/ui/scroll-area'
+} from '@/components/ui/dropdown-menu.jsx'
+import { Button } from '@/components/ui/button.jsx'
+import { Input } from '@/components/ui/input.jsx'
+import { ScrollArea } from '@/components/ui/scroll-area.jsx'
 import TestTree from '@/components/TestTree'
-import JsonViewer from '@/components/JsonViewer'
+// @ts-ignore
+import JsonViewer from '@/components/JsonViewer.jsx'
 import { usePlanDetails } from './usePlanDetails'
 import { actionRegistry } from '@/core/registries/ActionRegistry'
 import actionSchemas from '@/core/schemas/action-schemas.json'
 import { useEscapeKey } from '@/lib/hooks/useEscapeKey'
+import type { Test, Action } from '@/types/plan'
 
-export default function PlanDetailsPage({ filename, onNavigate, onBack }) {
+interface PlanDetailsPageProps {
+  filename: string;
+  onNavigate?: (path: string) => void;
+  onBack?: () => void;
+}
+
+export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDetailsPageProps) {
   const {
     plan, loading, error, isDirty, saveStatus, logs, selectedItem,
     setSelectedItem,
@@ -46,7 +52,7 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }) {
   })
 
   // Helper to determine if selected item is a test
-  const isTest = (item) => item?.hasOwnProperty('testID') && !item.hasOwnProperty('actionID')
+  const isTest = (item: any): item is Test => item?.hasOwnProperty('testID') && !item.hasOwnProperty('actionID')
 
   if (loading) return <div className="flex h-full items-center justify-center text-muted-foreground">Loading...</div>
   if (error) return <div className="flex h-full items-center justify-center text-red-500">{error}</div>
@@ -125,7 +131,7 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }) {
                 <Button
                   variant="outline"
                   className="text-emerald-500 border-emerald-500 hover:bg-emerald-500/10"
-                  onClick={() => isTest(selectedItem) ? handleRunTest(selectedItem) : handleRunAction(selectedItem)}
+                  onClick={() => isTest(selectedItem) ? handleRunTest(selectedItem as Test) : handleRunAction(selectedItem as Action)}
                 >
                   <Play className="h-4 w-4 mr-2 fill-current" /> Run {isTest(selectedItem) ? 'Test' : 'Action'}
                 </Button>
@@ -138,16 +144,16 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }) {
                     <div className="space-y-2">
                       <label className="block text-sm font-medium">Test Title</label>
                       <Input
-                        value={selectedItem.testTitle}
-                        onChange={(e) => updateSelectedItem({ testTitle: e.target.value })}
+                        value={(selectedItem as Test).testTitle}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSelectedItem({ testTitle: e.target.value })}
                       />
                     </div>
                     <div className="flex items-center gap-2">
                       <input
                         type="checkbox"
                         id="testEnabled"
-                        checked={selectedItem.isEnabled !== false}
-                        onChange={(e) => updateSelectedItem({ isEnabled: e.target.checked })}
+                        checked={(selectedItem as Test).isEnabled !== false}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSelectedItem({ isEnabled: e.target.checked })}
                         className="rounded border-border text-primary focus:ring-primary h-4 w-4"
                       />
                       <label htmlFor="testEnabled" className="text-sm font-medium">Enabled</label>
@@ -158,8 +164,8 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }) {
                     <div className="space-y-2">
                       <label className="block text-sm font-medium">Action Title</label>
                       <Input
-                        value={selectedItem.actionTitle}
-                        onChange={(e) => updateSelectedItem({ actionTitle: e.target.value })}
+                        value={(selectedItem as Action).actionTitle}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSelectedItem({ actionTitle: e.target.value })}
                       />
                     </div>
 
@@ -169,9 +175,9 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }) {
                         {/* Action Type Selector Logic needs to be robust */}
                         {/* Custom Dropdown Selectors */}
                         {(() => {
-                          const currentCatId = actionSchemas.actions.find(a => a.type === selectedItem.actionType)?.category || actionSchemas.categories[0].id
+                          const currentCatId = actionSchemas.actions.find(a => a.type === (selectedItem as Action).actionType)?.category || actionSchemas.categories[0].id
                           const currentCategory = actionSchemas.categories.find(c => c.id === currentCatId) || actionSchemas.categories[0]
-                          const currentAction = actionSchemas.actions.find(a => a.type === selectedItem.actionType)
+                          const currentAction = actionSchemas.actions.find(a => a.type === (selectedItem as Action).actionType)
 
                           return (
                             <>
@@ -237,7 +243,7 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }) {
                                             }}
                                           >
                                             {a.label}
-                                            {selectedItem.actionType === a.type && <Check className="ml-auto h-4 w-4" />}
+                                            {(selectedItem as Action).actionType === a.type && <Check className="ml-auto h-4 w-4" />}
                                           </DropdownMenuItem>
                                         ))}
                                     </ScrollArea>
@@ -252,14 +258,14 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }) {
 
                     {/* Dynamic Action Editor */}
                     {(() => {
-                      const plugin = actionRegistry.get(selectedItem.actionType)
+                      const plugin = actionRegistry.get((selectedItem as Action).actionType)
                       if (plugin?.Editor) {
                         const Editor = plugin.Editor
                         return (
                           <div className="mt-6 rounded-lg border bg-muted/20 p-5 space-y-5">
                             <Editor
-                              params={selectedItem.params || {}}
-                              onChange={(newParams) => updateSelectedItem({ params: newParams })}
+                              params={(selectedItem as Action).params || {}}
+                              onChange={(newParams: any) => updateSelectedItem({ params: newParams })}
                             />
                           </div>
                         )
@@ -270,25 +276,25 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }) {
                 )}
 
                 {/* Execution Log */}
-                {!isTest(selectedItem) && logs[selectedItem.actionID] && (
+                {!isTest(selectedItem) && (selectedItem as Action).actionID && logs[(selectedItem as Action).actionID] && (
                   <div className="pt-6 border-t mt-6">
                     <h3 className="text-sm font-semibold mb-3">Execution Log</h3>
                     <div className="bg-muted/30 p-4 rounded-md text-sm font-mono">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${logs[selectedItem.actionID].status === 'Success' ? 'bg-emerald-500/20 text-emerald-500' :
-                          ['Failed', 'Error'].includes(logs[selectedItem.actionID].status) ? 'bg-red-500/20 text-red-500' :
+                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${logs[(selectedItem as Action).actionID].status === 'Success' ? 'bg-emerald-500/20 text-emerald-500' :
+                          ['Failed', 'Error'].includes(logs[(selectedItem as Action).actionID].status) ? 'bg-red-500/20 text-red-500' :
                             'bg-blue-500/20 text-blue-500'
                           }`}>
-                          {logs[selectedItem.actionID].status}
+                          {logs[(selectedItem as Action).actionID].status}
                         </span>
                         <span className="text-xs text-muted-foreground">
                           {(() => {
-                            const d = new Date(logs[selectedItem.actionID].timestamp)
+                            const d = new Date(logs[(selectedItem as Action).actionID].timestamp)
                             return `${d.getDate().toString().padStart(2, '0')}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getFullYear()} ${d.toLocaleTimeString()}`
                           })()}
                         </span>
                       </div>
-                      <JsonViewer data={logs[selectedItem.actionID].details} />
+                      <JsonViewer data={logs[(selectedItem as Action).actionID].details} />
                     </div>
                   </div>
                 )}

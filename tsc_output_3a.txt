@@ -1,0 +1,6 @@
+renderer/components/schema/FieldRenderer.tsx(2,23): error TS7016: Could not find a declaration file for module '@/components/ui/input'. 'C:/Projects/ARASTester/renderer/components/ui/input.jsx' implicitly has an 'any' type.
+renderer/components/schema/FieldRenderer.tsx(57,24): error TS7006: Parameter 'e' implicitly has an 'any' type.
+renderer/components/schema/FieldRenderer.tsx(72,24): error TS7006: Parameter 'e' implicitly has an 'any' type.
+renderer/components/schema/FieldRenderer.tsx(87,24): error TS7006: Parameter 'e' implicitly has an 'any' type.
+renderer/components/schema/FieldRenderer.tsx(186,24): error TS7006: Parameter 'e' implicitly has an 'any' type.
+renderer/components/schema/KeyValueEditor.tsx(2,23): error TS7016: Could not find a declaration file for module '@/components/ui/input'. 'C:/Projects/ARASTester/renderer/components/ui/input.jsx' implicitly has an 'any' type.

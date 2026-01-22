@@ -1,7 +1,7 @@
-import React, { useMemo } from 'react';
-import { Input } from '@/components/ui/input.jsx';
-import { Plus, Trash2 } from 'lucide-react';
-import type { ActionSchemaField } from '@/types/plan';
+import React, { useState, useEffect, useCallback } from "react";
+import { Input } from "@/components/ui/input.jsx";
+import { Plus, Trash2 } from "lucide-react";
+import type { ActionSchemaField } from "@/types/plan";
 
 interface KeyValueEditorProps {
   field: ActionSchemaField;
@@ -10,49 +10,115 @@ interface KeyValueEditorProps {
 }
 
 interface KeyValuePair {
+  id: number; // Unique ID for stable React keys
   key: string;
   value: string;
 }
 
+let pairIdCounter = 0;
+const generatePairId = () => ++pairIdCounter;
+
 /**
- * Key-Value pair editor for criteria and properties fields
+ * Key-Value pair editor for criteria and properties fields.
+ * Uses local state to preserve empty rows until they are filled in.
  */
-const KeyValueEditor: React.FC<KeyValueEditorProps> = ({ field, value, onChange }) => {
-  // Convert object to array of pairs for editing
-  const pairs = useMemo<KeyValuePair[]>(() => {
-    if (!value || typeof value !== 'object') return [{ key: '', value: '' }];
-    const entries = Object.entries(value);
-    return entries.length > 0 ? entries.map(([k, v]) => ({ key: k, value: String(v) })) : [{ key: '', value: '' }];
+const KeyValueEditor: React.FC<KeyValueEditorProps> = ({
+  field,
+  value,
+  onChange,
+}) => {
+  // Local state for pairs - allows empty keys to exist in UI
+  const [pairs, setPairs] = useState<KeyValuePair[]>(() => {
+    if (
+      !value ||
+      typeof value !== "object" ||
+      Object.keys(value).length === 0
+    ) {
+      return [{ id: generatePairId(), key: "", value: "" }];
+    }
+    return Object.entries(value).map(([k, v]) => ({
+      id: generatePairId(),
+      key: k,
+      value: String(v),
+    }));
+  });
+
+  // Sync from external value when it changes (e.g., undo/redo, external updates)
+  useEffect(() => {
+    if (
+      !value ||
+      typeof value !== "object" ||
+      Object.keys(value).length === 0
+    ) {
+      // Only reset if we have no pairs or all pairs are empty
+      const hasContent = pairs.some((p) => p.key.trim() || p.value.trim());
+      if (!hasContent && pairs.length === 1) return; // Already have empty starter
+      if (Object.keys(value || {}).length === 0 && !hasContent) return;
+    }
+
+    // Check if external value differs from our current pairs
+    const currentObj: Record<string, string> = {};
+    pairs.forEach((p) => {
+      if (p.key.trim()) currentObj[p.key.trim()] = p.value;
+    });
+
+    const externalKeys = Object.keys(value || {}).sort();
+    const currentKeys = Object.keys(currentObj).sort();
+
+    if (JSON.stringify(externalKeys) !== JSON.stringify(currentKeys)) {
+      // External value changed, sync it
+      if (!value || Object.keys(value).length === 0) {
+        setPairs([{ id: generatePairId(), key: "", value: "" }]);
+      } else {
+        setPairs(
+          Object.entries(value).map(([k, v]) => ({
+            id: generatePairId(),
+            key: k,
+            value: String(v),
+          })),
+        );
+      }
+    }
   }, [value]);
 
-  const updatePairs = (newPairs: KeyValuePair[]) => {
-    // Convert array back to object, filtering empty keys
-    const obj: Record<string, string> = {};
-    newPairs.forEach(pair => {
-      if (pair.key.trim()) {
-        obj[pair.key.trim()] = pair.value;
-      }
-    });
-    onChange(Object.keys(obj).length > 0 ? obj : undefined);
-  };
+  // Propagate changes to parent (only non-empty keys)
+  const propagateChanges = useCallback(
+    (newPairs: KeyValuePair[]) => {
+      const obj: Record<string, string> = {};
+      newPairs.forEach((pair) => {
+        if (pair.key.trim()) {
+          obj[pair.key.trim()] = pair.value;
+        }
+      });
+      onChange(Object.keys(obj).length > 0 ? obj : undefined);
+    },
+    [onChange],
+  );
 
-  const handlePairChange = (index: number, key: string, val: string) => {
-    const newPairs = [...pairs];
-    newPairs[index] = { key, value: val };
-    updatePairs(newPairs);
+  const handlePairChange = (id: number, key: string, val: string) => {
+    const newPairs = pairs.map((p) =>
+      p.id === id ? { ...p, key, value: val } : p,
+    );
+    setPairs(newPairs);
+    propagateChanges(newPairs);
   };
 
   const addPair = () => {
-    updatePairs([...pairs, { key: '', value: '' }]);
+    const newPairs = [...pairs, { id: generatePairId(), key: "", value: "" }];
+    setPairs(newPairs);
+    // Don't propagate yet - empty pair won't affect parent
   };
 
-  const removePair = (index: number) => {
+  const removePair = (id: number) => {
+    let newPairs: KeyValuePair[];
     if (pairs.length === 1) {
       // Clear the only pair instead of removing
-      updatePairs([{ key: '', value: '' }]);
+      newPairs = [{ id: generatePairId(), key: "", value: "" }];
     } else {
-      updatePairs(pairs.filter((_, i) => i !== index));
+      newPairs = pairs.filter((p) => p.id !== id);
     }
+    setPairs(newPairs);
+    propagateChanges(newPairs);
   };
 
   return (
@@ -63,24 +129,28 @@ const KeyValueEditor: React.FC<KeyValueEditorProps> = ({ field, value, onChange 
       </label>
 
       <div className="space-y-2 p-3 bg-muted/20 rounded-lg border border-border/50">
-        {pairs.map((pair, index) => (
-          <div key={index} className="flex gap-2 items-center">
+        {pairs.map((pair) => (
+          <div key={pair.id} className="flex gap-2 items-center">
             <Input
               value={pair.key}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handlePairChange(index, e.target.value, pair.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                handlePairChange(pair.id, e.target.value, pair.value)
+              }
               placeholder="Property name"
               className="flex-1 bg-background"
             />
             <span className="text-muted-foreground">=</span>
             <Input
               value={pair.value}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handlePairChange(index, pair.key, e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                handlePairChange(pair.id, pair.key, e.target.value)
+              }
               placeholder="Value"
               className="flex-1 bg-background"
             />
             <button
               type="button"
-              onClick={() => removePair(index)}
+              onClick={() => removePair(pair.id)}
               className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded transition-colors"
             >
               <Trash2 className="h-4 w-4" />
@@ -99,9 +169,7 @@ const KeyValueEditor: React.FC<KeyValueEditorProps> = ({ field, value, onChange 
       </div>
 
       {field.helpText && (
-        <p className="text-xs text-muted-foreground">
-          {field.helpText}
-        </p>
+        <p className="text-xs text-muted-foreground">{field.helpText}</p>
       )}
     </div>
   );

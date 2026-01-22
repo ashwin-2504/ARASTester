@@ -123,7 +123,7 @@ public class ItemController : ControllerBase
     public ActionResult<ItemResponse> GetNextSequence(GetNextSequenceRequest request) => Ok(_itemService.GetNextSequence(request));
 
     [HttpPost("wait")]
-    public ActionResult<ItemResponse> Wait(WaitRequest request) => Ok(_itemService.Wait(request));
+    public async Task<ActionResult<ItemResponse>> Wait(WaitRequest request, CancellationToken cancellationToken) => Ok(await _itemService.Wait(request, cancellationToken));
 
     [HttpPost("set-variable")]
     public ActionResult<ItemResponse> SetVariable(SetVariableRequest request) => Ok(_itemService.SetVariable(request));

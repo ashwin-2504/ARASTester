@@ -59,7 +59,7 @@ public class ItemAppService
     // Utility Operations
     public ItemResponse GenerateID() => _gateway.GenerateID();
     public ItemResponse GetNextSequence(GetNextSequenceRequest request) => _gateway.GetNextSequence(request);
-    public ItemResponse Wait(WaitRequest request) => _gateway.Wait(request);
+    public async Task<ItemResponse> Wait(WaitRequest request, CancellationToken cancellationToken = default) => await _gateway.Wait(request, cancellationToken);
     public ItemResponse SetVariable(SetVariableRequest request) => _gateway.SetVariable(request);
     public ItemResponse LogMessage(LogMessageRequest request) => _gateway.LogMessage(request);
 }

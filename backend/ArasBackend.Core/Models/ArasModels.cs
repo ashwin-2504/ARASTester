@@ -21,6 +21,7 @@ namespace ArasBackend.Core.Models
         public required string Username { get; set; }
         [Required]
         public required string Password { get; set; }
+        public string? SessionName { get; set; }
     }
 
     public class ConnectionResponse
@@ -28,6 +29,7 @@ namespace ArasBackend.Core.Models
         public bool Success { get; set; }
         public string? Message { get; set; }
         public ServerInfo? ServerInfo { get; set; }
+        public string? SessionName { get; set; }
     }
 
     public class ConnectionStatusResponse
@@ -44,6 +46,7 @@ namespace ArasBackend.Core.Models
         public string? Select { get; set; }
         [Range(1, int.MaxValue)]
         public int Page { get; set; } = 1;
+
         [Range(1, 1000)]
         public int PageSize { get; set; } = 100;
         public Dictionary<string, string>? Criteria { get; set; }
@@ -305,5 +308,18 @@ namespace ArasBackend.Core.Models
         public string? Message { get; set; }
         public string? ActualValue { get; set; }
         public string? ExpectedValue { get; set; }
+    }
+
+    public class SessionInfo
+    {
+        public required string Name { get; set; }
+        public required ServerInfo ServerInfo { get; set; }
+        public bool IsCurrent { get; set; }
+    }
+
+    public class AllSessionsResponse
+    {
+        public List<SessionInfo> Sessions { get; set; } = new();
+        public required string CurrentSession { get; set; }
     }
 }

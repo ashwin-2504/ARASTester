@@ -17,7 +17,10 @@ public class SessionContext
 
 public interface IConnectionStore
 {
+    void AddSession(string name, SessionContext session);
+    [Obsolete("Use AddSession(string name, SessionContext session) instead")]
     string AddSession(SessionContext session);
-    SessionContext? GetSession(string sessionId);
-    void RemoveSession(string sessionId);
+    SessionContext? GetSession(string name);
+    void RemoveSession(string name);
+    List<SessionInfo> GetAllSessions();
 }

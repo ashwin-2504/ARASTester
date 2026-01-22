@@ -558,9 +558,9 @@ public class ArasGateway : IArasGateway
         }, "Sequence retrieved");
     }
 
-    public ItemResponse Wait(WaitRequest request)
+    public async Task<ItemResponse> Wait(WaitRequest request, CancellationToken cancellationToken = default)
     {
-        Thread.Sleep(request.Duration);
+        await Task.Delay(request.Duration, cancellationToken);
         return new ItemResponse { Success = true, Message = $"Waited {request.Duration}ms" };
     }
 

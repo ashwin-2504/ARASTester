@@ -1,34 +1,43 @@
 using System.Collections.Concurrent;
+using ArasBackend.Core.Models;
 
 namespace ArasBackend.Infrastructure.Services;
 
 public class ConnectionStore : IConnectionStore
 {
+    // Key is session name (e.g., "default", "admin-session")
     private readonly ConcurrentDictionary<string, SessionContext> _sessions = new();
     private readonly TimeSpan _sessionTimeout = TimeSpan.FromHours(4);
     private DateTime _lastCleanup = DateTime.UtcNow;
     private readonly TimeSpan _cleanupInterval = TimeSpan.FromMinutes(30);
 
-    public string AddSession(SessionContext session)
+    public void AddSession(string name, SessionContext session)
     {
         CleanupExpiredSessions();
-        var sessionId = Guid.NewGuid().ToString();
-        _sessions[sessionId] = session;
-        return sessionId;
+        _sessions[name] = session;
     }
 
-    public SessionContext? GetSession(string sessionId)
+    [Obsolete]
+    public string AddSession(SessionContext session)
     {
-        if (string.IsNullOrEmpty(sessionId)) return null;
+        // Legacy support - auto-generate name if not provided
+        var id = Guid.NewGuid().ToString();
+        AddSession(id, session);
+        return id;
+    }
+
+    public SessionContext? GetSession(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return null;
         
         CleanupExpiredSessions();
         
-        if (_sessions.TryGetValue(sessionId, out var session))
+        if (_sessions.TryGetValue(name, out var session))
         {
             // Check if session is expired
             if (DateTime.UtcNow - session.LastAccessedAt > _sessionTimeout)
             {
-                RemoveSession(sessionId);
+                RemoveSession(name);
                 return null;
             }
             // Update last accessed time
@@ -38,13 +47,24 @@ public class ConnectionStore : IConnectionStore
         return null;
     }
 
-    public void RemoveSession(string sessionId)
+    public void RemoveSession(string name)
     {
-        if (string.IsNullOrEmpty(sessionId)) return;
-        if (_sessions.TryRemove(sessionId, out var session))
+        if (string.IsNullOrEmpty(name)) return;
+        if (_sessions.TryRemove(name, out var session))
         {
             try { session.Connection.Logout(); } catch { }
         }
+    }
+
+    public List<SessionInfo> GetAllSessions()
+    {
+        CleanupExpiredSessions();
+        return _sessions.Select(kvp => new SessionInfo
+        {
+            Name = kvp.Key,
+            ServerInfo = kvp.Value.ServerInfo,
+            IsCurrent = false // Caller needs to determine current
+        }).ToList();
     }
 
     private void CleanupExpiredSessions()

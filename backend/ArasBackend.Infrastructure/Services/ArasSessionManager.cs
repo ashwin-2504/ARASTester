@@ -11,6 +11,7 @@ public class ArasSessionManager : IArasSessionManager
     private readonly IConnectionStore _connectionStore;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private const string CookieName = "ARAS_SESSION_ID";
+    private const string HeaderName = "X-Session-Name";
 
     public ArasSessionManager(IConnectionStore connectionStore, IHttpContextAccessor httpContextAccessor)
     {
@@ -20,11 +21,21 @@ public class ArasSessionManager : IArasSessionManager
 
     private string? GetSessionId()
     {
+        // 1. Check Header
+        if (_httpContextAccessor.HttpContext?.Request.Headers.TryGetValue(HeaderName, out var headerValues) == true)
+        {
+            var headerValue = headerValues.FirstOrDefault();
+            if (!string.IsNullOrEmpty(headerValue)) return headerValue;
+        }
+
+        // 2. Check Cookie (Legacy/Fallback)
         return _httpContextAccessor.HttpContext?.Request.Cookies[CookieName];
     }
 
     private void SetSessionId(string sessionId)
     {
+        // We still set cookie for browser-based stickiness if needed, 
+        // though the frontend now primarily uses the header.
         _httpContextAccessor.HttpContext?.Response.Cookies.Append(CookieName, sessionId, new CookieOptions
         {
             HttpOnly = true,
@@ -54,25 +65,19 @@ public class ArasSessionManager : IArasSessionManager
         }
     }
 
-    public ServerInfo? CurrentServerInfo
-    {
-        get
-        {
-            var session = GetCurrentSession();
-            return session?.ServerInfo;
-        }
-    }
+    public ServerInfo? CurrentServerInfo => GetCurrentSession()?.ServerInfo;
 
     public ConnectionResponse Connect(ConnectionRequest request)
     {
-        // No lock needed for Connect creation, only for checking existing?
-        // Actually, if we are creating a NEW session, we don't need to lock anything.
-        
         try
         {
-            // Disconnect existing if any
-            if (IsConnected) Disconnect();
+            // If request defines a specific session name, we use that. 
+            // Otherwise default key.
+            var sessionName = !string.IsNullOrEmpty(request.SessionName) 
+                ? request.SessionName 
+                : (GetSessionId() ?? "default");
 
+            // Create Connection
             var connection = IomFactory.CreateHttpServerConnection(
                 request.Url,
                 request.Database,
@@ -102,14 +107,16 @@ public class ArasSessionManager : IArasSessionManager
                 }
             };
 
-            var sessionId = _connectionStore.AddSession(session);
-            SetSessionId(sessionId);
+            // Store Session
+            _connectionStore.AddSession(sessionName, session);
+            SetSessionId(sessionName);
 
             return new ConnectionResponse
             {
                 Success = true,
                 Message = "Successfully connected",
-                ServerInfo = session.ServerInfo
+                ServerInfo = session.ServerInfo,
+                SessionName = sessionName
             };
         }
         catch (ArasException) { throw; }
@@ -121,25 +128,44 @@ public class ArasSessionManager : IArasSessionManager
 
     public ConnectionResponse Disconnect()
     {
+        // Disconnects current session context (from header)
         var sessionId = GetSessionId();
         if (string.IsNullOrEmpty(sessionId)) return new ConnectionResponse { Success = true, Message = "Already disconnected" };
 
-        var session = _connectionStore.GetSession(sessionId);
-        if (session != null)
-        {
-            lock (session.Lock)
-            {
-                try
-                {
-                    session.Connection.Logout();
-                }
-                catch { /* Ignore logout errors */ }
-            }
-            _connectionStore.RemoveSession(sessionId);
-        }
+        return DisconnectSession(sessionId);
+    }
+
+    public ConnectionResponse DisconnectSession(string sessionName)
+    {
+        _connectionStore.RemoveSession(sessionName);
         
-        ClearSessionId();
-        return new ConnectionResponse { Success = true, Message = "Disconnected" };
+        // If the disconnected session matches the current context cookie/header, clear cookie?
+        // It's stateless mostly but good practice.
+        var currentId = GetSessionId();
+        if (currentId == sessionName)
+        {
+            ClearSessionId();
+        }
+
+        return new ConnectionResponse { Success = true, Message = $"Session '{sessionName}' disconnected" };
+    }
+
+    public AllSessionsResponse GetAllSessions()
+    {
+        var allSessions = _connectionStore.GetAllSessions();
+        var currentSessionName = GetSessionId() ?? "";
+
+        // Mark the current one
+        foreach (var s in allSessions)
+        {
+            if (s.Name == currentSessionName) s.IsCurrent = true;
+        }
+
+        return new AllSessionsResponse
+        {
+             Sessions = allSessions,
+             CurrentSession = currentSessionName
+        };
     }
 
     public ConnectionStatusResponse GetStatus()
@@ -165,13 +191,14 @@ public class ArasSessionManager : IArasSessionManager
             
             if (userItem.isError())
                 throw new ArasAuthException($"Validation failed: {userItem.getErrorString()}");
-
-            var userName = userItem.getProperty("keyed_name", "Unknown");
+            
+            var userName = userItem.getProperty("keyed_name", "Unknown"); // Or login_name
             return new ConnectionResponse
             {
                 Success = true,
                 Message = $"Valid. User: {userName}",
-                ServerInfo = session.ServerInfo
+                ServerInfo = session.ServerInfo,
+                SessionName = GetSessionId()
             };
         });
     }
@@ -219,4 +246,3 @@ public class ArasSessionManager : IArasSessionManager
         }
     }
 }
-

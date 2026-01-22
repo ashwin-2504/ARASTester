@@ -29,6 +29,20 @@ public class ConnectionController : ControllerBase
         return Ok(response);
     }
 
+    [HttpPost("disconnect/{sessionName}")]
+    public ActionResult<ConnectionResponse> DisconnectSession(string sessionName)
+    {
+        var response = _connectionService.DisconnectSession(sessionName);
+        return Ok(response);
+    }
+
+    [HttpGet("sessions")]
+    public ActionResult<AllSessionsResponse> GetAllSessions()
+    {
+        var response = _connectionService.GetAllSessions();
+        return Ok(response);
+    }
+
     [HttpGet("connection-status")]
     public ActionResult<ConnectionStatusResponse> GetStatus()
     {

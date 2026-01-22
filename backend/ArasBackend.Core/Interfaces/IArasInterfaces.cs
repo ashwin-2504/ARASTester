@@ -6,6 +6,8 @@ public interface IArasSessionManager
 {
     ConnectionResponse Connect(ConnectionRequest request);
     ConnectionResponse Disconnect();
+    ConnectionResponse DisconnectSession(string sessionName);
+    AllSessionsResponse GetAllSessions();
     ConnectionResponse ValidateConnection();
     ConnectionStatusResponse GetStatus();
     bool IsConnected { get; }
@@ -55,7 +57,7 @@ public interface IArasGateway
 
     ItemResponse GenerateID();
     ItemResponse GetNextSequence(GetNextSequenceRequest request);
-    ItemResponse Wait(WaitRequest request);
+    Task<ItemResponse> Wait(WaitRequest request, CancellationToken cancellationToken = default);
     ItemResponse SetVariable(SetVariableRequest request);
     ItemResponse LogMessage(LogMessageRequest request);
 }

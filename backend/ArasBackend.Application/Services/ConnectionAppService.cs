@@ -14,6 +14,8 @@ public class ConnectionAppService
 
     public ConnectionResponse Connect(ConnectionRequest request) => _sessionManager.Connect(request);
     public ConnectionResponse Disconnect() => _sessionManager.Disconnect();
+    public ConnectionResponse DisconnectSession(string sessionName) => _sessionManager.DisconnectSession(sessionName);
+    public AllSessionsResponse GetAllSessions() => _sessionManager.GetAllSessions();
     public ConnectionStatusResponse GetStatus() => _sessionManager.GetStatus();
     public ConnectionResponse ValidateConnection() => _sessionManager.ValidateConnection();
 }

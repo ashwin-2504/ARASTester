@@ -8,11 +8,11 @@ import { Label } from "@/components/ui/label";
 interface ProfileFormProps {
   initialData?: SavedSession;
   onCancel: () => void;
-  onSave: () => void;
+  onSubmit: (data: any) => void;
+  isLoading?: boolean;
 }
 
-export function ProfileForm({ initialData, onCancel, onSave }: ProfileFormProps) {
-  const { addSavedSession, updateSavedSession, isLoading } = useSessionStore();
+export function ProfileForm({ initialData, onCancel, onSubmit, isLoading = false }: ProfileFormProps) {
   const [formData, setFormData] = useState({
     name: "",
     url: "http://localhost/InnovatorServer/Server/InnovatorServer.aspx",
@@ -42,18 +42,12 @@ export function ProfileForm({ initialData, onCancel, onSave }: ProfileFormProps)
     }
 
     try {
-        if (initialData) {
-            updateSavedSession(initialData.id, {
-                ...formData,
-                sessionName: formData.name // Keeping sessionName synced with display name for simplicty
-            });
-        } else {
-            addSavedSession({
-                ...formData,
-                sessionName: formData.name
-            });
-        }
-        onSave();
+        // Pass data up to parent
+        onSubmit({
+            ...formData,
+            sessionName: formData.name, // Format alignment
+            id: initialData?.id // Pass ID if editing
+        });
     } catch (err) {
         setError("Failed to save profile");
     }
@@ -137,7 +131,7 @@ export function ProfileForm({ initialData, onCancel, onSave }: ProfileFormProps)
 
         <div className="pt-4">
             <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white" disabled={isLoading}>
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Profile"}
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : (initialData ? "Update Profile" : "Create Profile")}
             </Button>
         </div>
       </form>

@@ -43,6 +43,7 @@ export interface SavedSession {
   database: string;
   username: string;
   password?: string;
+  lastAccessedAt?: string;
 }
 
 interface SessionState {
@@ -62,7 +63,7 @@ interface SessionState {
   login: (credentials: ConnectionRequest) => Promise<ConnectionResponse>;
   logout: (sessionName?: string) => Promise<void>;
   setCurrentSession: (name: string) => void;
-  
+
   // Saved Session Management
   addSavedSession: (session: Omit<SavedSession, "id">) => void;
   updateSavedSession: (id: string, updates: Partial<SavedSession>) => void;
@@ -87,23 +88,25 @@ export const useSessionStore = create<SessionState>()(
 
       get currentSession() {
         const { activeSessions, currentSessionName } = get();
-        return activeSessions.find((s) => s.name === currentSessionName) || null;
+        return (
+          activeSessions.find((s) => s.name === currentSessionName) || null
+        );
       },
 
       // Actions
       fetchSessions: async () => {
         set({ isLoading: true, error: null });
         try {
-          const response = await apiClient.get<AllSessionsResponse>(
-            "/api/aras/sessions",
-          );
+          const response =
+            await apiClient.get<AllSessionsResponse>("/api/aras/sessions");
           set({
             activeSessions: response.sessions || [],
             currentSessionName: response.currentSession || "default",
             isLoading: false,
           });
         } catch (err: unknown) {
-          const message = err instanceof Error ? err.message : "Failed to fetch sessions";
+          const message =
+            err instanceof Error ? err.message : "Failed to fetch sessions";
           console.error(message);
           set({ isLoading: false });
         }
@@ -119,6 +122,19 @@ export const useSessionStore = create<SessionState>()(
 
           if (response.success) {
             await get().fetchSessions();
+
+            // Update lastAccessedAt for the corresponding saved session
+            if (response.sessionName) {
+              set((state) => ({
+                savedSessions: state.savedSessions.map((s) =>
+                  s.sessionName === response.sessionName ||
+                  (credentials.sessionName &&
+                    s.sessionName === credentials.sessionName)
+                    ? { ...s, lastAccessedAt: new Date().toISOString() }
+                    : s,
+                ),
+              }));
+            }
           }
 
           set({ isLoading: false });
@@ -164,7 +180,7 @@ export const useSessionStore = create<SessionState>()(
       updateSavedSession: (id, updates) => {
         set((state) => ({
           savedSessions: state.savedSessions.map((s) =>
-            s.id === id ? { ...s, ...updates } : s
+            s.id === id ? { ...s, ...updates } : s,
           ),
         }));
       },
@@ -178,6 +194,6 @@ export const useSessionStore = create<SessionState>()(
     {
       name: "aras-session-store", // unique name
       partialize: (state) => ({ savedSessions: state.savedSessions }), // only persist savedSessions
-    }
-  )
+    },
+  ),
 );

@@ -59,16 +59,6 @@ export async function createPlan(title: string, description: string): Promise<Te
   const fileName = `${randomStr}.json`;
   const filePath = `${folder}/${fileName}`;
 
-  // Get default params for ArasConnect from schema
-  const connectSchema = actionSchemas.actions?.find(
-    (a) => a.type === "ArasConnect",
-  );
-  const defaultConnectParams =
-    connectSchema?.fields?.reduce((acc: any, field: any) => {
-      if (field.default !== undefined) acc[field.name] = field.default;
-      return acc;
-    }, {}) || {};
-
   const payload: TestPlan = {
     title: title || "New Test Plan",
     description: description || "",
@@ -79,17 +69,10 @@ export async function createPlan(title: string, description: string): Promise<Te
         testID: generateTestId(),
         testTitle: "Setup",
         isEnabled: true,
-        testActions: [
-          {
-            actionID: generateActionId(),
-            actionTitle: "Connect to ARAS",
-            actionType: "ArasConnect",
-            isEnabled: true,
-            params: defaultConnectParams,
-          } as Action,
-        ],
+        testActions: [],
       } as Test,
     ],
+    profiles: [],
   };
 
   await StorageService.writeFile(filePath, payload);

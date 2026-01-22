@@ -3,6 +3,7 @@ const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 export interface ApiOptions {
   requestId?: string;
   signal?: AbortSignal;
+  sessionName?: string;
 }
 
 interface ApiResponse {
@@ -85,7 +86,10 @@ export const apiClient = {
     try {
       const response = await fetch(`${API_BASE}${endpoint}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(options.sessionName ? { "X-Session-Name": options.sessionName } : {}),
+        },
         body: JSON.stringify(data),
         credentials: "include",
         signal: controller.signal,
@@ -125,6 +129,9 @@ export const apiClient = {
 
     try {
       const response = await fetch(`${API_BASE}${endpoint}`, {
+        headers: {
+          ...(options.sessionName ? { "X-Session-Name": options.sessionName } : {}),
+        },
         credentials: "include",
         signal: controller.signal,
       });

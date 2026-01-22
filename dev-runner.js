@@ -111,9 +111,37 @@ setTimeout(() => {
 
   // Run: path/to/electron.exe . --dev
   electronProcess = spawn(electronPath, [".", "--dev"], {
-    stdio: "inherit",
+    stdio: ["inherit", "pipe", "pipe"],
     shell: false,
     cwd: __dirname,
+    env: { ...process.env, ELECTRON_ENABLE_LOGGING: "true" },
+  });
+
+  electronProcess.stdout.on("data", (data) => {
+    // Pass through Electron/Backend logs directly
+    process.stdout.write(data);
+  });
+
+  let stderrBuffer = "";
+
+  electronProcess.stderr.on("data", (data) => {
+    stderrBuffer += data.toString();
+
+    // Process line by line
+    let newlineIndex;
+    while ((newlineIndex = stderrBuffer.indexOf("\n")) !== -1) {
+      const line = stderrBuffer.slice(0, newlineIndex + 1); // keep newline
+      stderrBuffer = stderrBuffer.slice(newlineIndex + 1);
+
+      // Filter out harmless DevTools errors
+      if (
+        !line.includes("Request Autofill.enable failed") &&
+        !line.includes("Request Autofill.setAddresses failed") &&
+        !line.includes("DevTools listening on")
+      ) {
+        process.stderr.write(line);
+      }
+    }
   });
 
   electronProcess.on("close", (code) => {

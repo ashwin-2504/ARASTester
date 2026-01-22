@@ -28,6 +28,7 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
         });
       }
     });
+    if (!data.profiles) data.profiles = [];
     return data;
   };
 
@@ -209,7 +210,7 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
     }
   };
 
-  const handleRunAction = async (action: Action) => {
+  const handleRunAction = async (action: Action, sessionName?: string) => {
     setLogs((prev) => ({
       ...prev,
       [action.actionID]: {
@@ -218,7 +219,7 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
       },
     }));
 
-    const result = await ActionExecutor.execute(action);
+    const result = await ActionExecutor.execute(action, sessionName);
 
     setLogs((prev) => ({
       ...prev,
@@ -230,10 +231,89 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
     }));
   };
 
+  // Profile Management
+  const handleAddProfile = (profile: any) => {
+    setPlan((prev) =>
+      produce(prev, (draft) => {
+        if (!draft.profiles) draft.profiles = [];
+        draft.profiles.push(profile);
+      })
+    );
+    setIsDirty(true);
+  };
+
+  const handleUpdateProfile = (id: string, updates: any) => {
+    setPlan((prev) =>
+      produce(prev, (draft) => {
+        const profile = draft.profiles?.find((p) => p.id === id);
+        if (profile) Object.assign(profile, updates);
+      })
+    );
+    setIsDirty(true);
+  };
+
+  const handleDeleteProfile = (id: string) => {
+    setPlan((prev) =>
+      produce(prev, (draft) => {
+        if (draft.profiles) {
+          draft.profiles = draft.profiles.filter((p) => p.id !== id);
+        }
+      })
+    );
+    setIsDirty(true);
+  };
+
+  const ensureSession = async (profileId: string): Promise<string | undefined> => {
+    const profile = plan.profiles?.find((p) => p.id === profileId);
+    if (!profile) return undefined;
+
+    const { useSessionStore } = await import("@/stores/useSessionStore");
+    const store = useSessionStore.getState();
+    
+    // Check if session with this name exists
+    const existing = store.activeSessions.find((s) => s.name === profile.name);
+    if (existing) return existing.name;
+
+    // Not active, try to login
+    console.log(`🔌 Auto-connecting session: ${profile.name}`);
+    if (!profile.password) {
+      console.warn("Cannot auto-connect: Password missing in profile");
+      return undefined; // Fallback to prompt or fail?
+    }
+
+    try {
+      const result = await store.login({
+        url: profile.url,
+        database: profile.database,
+        username: profile.username,
+        password: profile.password,
+        sessionName: profile.name,
+      });
+
+      if (result.success) {
+        return result.sessionName || profile.name;
+      } else {
+        console.error("Auto-connect failed:", result.message);
+        return undefined;
+      }
+    } catch (err) {
+      console.error("Auto-connect error:", err);
+      return undefined;
+    }
+  };
+
   const handleRunTest = async (test: Test) => {
-    console.log(`▶️ Running: ${test.testTitle}`);
+    let sessionName: string | undefined = undefined;
+    
+    // Resolve session if profile ID is present
+    if (test.sessionProfileId) {
+        sessionName = await ensureSession(test.sessionProfileId);
+    }
+
+    console.log(`▶️ Running: ${test.testTitle} [Session: ${sessionName || "Default"}]`);
+    
     for (const action of test.testActions || []) {
-      if (action.isEnabled !== false) await handleRunAction(action);
+      if (action.isEnabled !== false) await handleRunAction(action, sessionName);
     }
   };
 
@@ -404,5 +484,8 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
     handleRunAction,
     updateSelectedItem,
     handleToggleEnabled,
+    handleAddProfile,
+    handleUpdateProfile,
+    handleDeleteProfile,
   };
 }

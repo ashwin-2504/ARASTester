@@ -14,9 +14,10 @@ import { cn } from "@/lib/utils";
 interface ProfileCardProps {
   session: SavedSession;
   onEdit: (session: SavedSession) => void;
+  onDelete?: (session: SavedSession) => void;
 }
 
-export function ProfileCard({ session, onEdit }: ProfileCardProps) {
+export function ProfileCard({ session, onEdit, onDelete }: ProfileCardProps) {
   const {
     activeSessions,
     login,
@@ -33,13 +34,33 @@ export function ProfileCard({ session, onEdit }: ProfileCardProps) {
     (s) => s.name === session.sessionName
   );
   const isConnected = !!activeSession;
-  const isExpired = false; // TODO: Implement expiry check based on LastAccessedAt
+  
+  // Staleness Heuristic
+  const STALE_THRESHOLD_MS = 45 * 60 * 1000; // 45 minutes
+  let isStale = false;
+  let timeAgo = "";
+
+  if (!isConnected && session.lastAccessedAt) {
+      const last = new Date(session.lastAccessedAt).getTime();
+      const now = new Date().getTime();
+      const diff = now - last;
+      
+      if (diff > STALE_THRESHOLD_MS) {
+          isStale = true;
+      }
+      
+      // Simple time ago formatter
+      const mins = Math.floor(diff / 60000);
+      if (mins < 60) timeAgo = `${mins}m ago`;
+      else if (mins < 1440) timeAgo = `${Math.floor(mins / 60)}h ago`;
+      else timeAgo = `${Math.floor(mins / 1440)}d ago`;
+  }
   
   // Status config
   const statusConfig = isConnected
     ? { label: "Connected", color: "text-emerald-500", dot: "bg-emerald-500" }
-    : isExpired
-    ? { label: "Expired", color: "text-red-500", dot: "bg-red-500" }
+    : isStale
+    ? { label: "Stale", color: "text-amber-500", dot: "bg-amber-500" } // Changed to amber for warning
     : { label: "Offline", color: "text-zinc-500", dot: "bg-zinc-500" };
 
   const handleConnect = async (e: React.MouseEvent) => {
@@ -94,8 +115,8 @@ export function ProfileCard({ session, onEdit }: ProfileCardProps) {
               <div
                 className={cn("h-1.5 w-1.5 rounded-full", statusConfig.dot)}
               />
-              <span className={cn("text-xs font-medium", statusConfig.color)}>
-                {statusConfig.label}
+              <span className={cn("text-xs font-medium", statusConfig.color)} title={!isConnected && session.lastAccessedAt ? `Last used ${timeAgo}` : undefined}>
+                {statusConfig.label} {isStale && `(${timeAgo})`}
               </span>
             </div>
           </div>
@@ -110,7 +131,8 @@ export function ProfileCard({ session, onEdit }: ProfileCardProps) {
                 variant="outline"
                 className="h-8 px-3 text-xs bg-zinc-800 border-zinc-700 hover:bg-zinc-700 hover:text-white"
                 onClick={handleConnect}
-                disabled={isLoading}
+                disabled={isLoading || !session.password}
+                title={!session.password ? "Password required" : "Connect to session"}
               >
                 Connect
               </Button>
@@ -168,9 +190,14 @@ export function ProfileCard({ session, onEdit }: ProfileCardProps) {
               <Input
                 readOnly
                 type={showPassword ? "text" : "password"}
-                value={session.password || "••••••••"}
-                className="bg-zinc-950 border-zinc-800 text-zinc-300 pr-8 h-9 text-sm font-mono"
+                value={session.password || ""}
+                placeholder={session.password ? "" : "No password saved"}
+                className={cn(
+                  "bg-zinc-950 border-zinc-800 text-zinc-300 pr-8 h-9 text-sm font-mono",
+                  !session.password && "text-zinc-500 italic"
+                )}
               />
+              {session.password && (
               <button
                 className="absolute right-2 top-7 text-zinc-500 hover:text-zinc-300"
                 onClick={(e) => {
@@ -184,6 +211,7 @@ export function ProfileCard({ session, onEdit }: ProfileCardProps) {
                   <Eye className="h-3.5 w-3.5" />
                 )}
               </button>
+              )}
             </div>
           </div>
 
@@ -205,7 +233,10 @@ export function ProfileCard({ session, onEdit }: ProfileCardProps) {
                     className="flex-1 text-red-400 hover:text-red-300 hover:bg-red-500/10"
                     onClick={(e) => {
                         e.stopPropagation();
-                        if(confirm(`Delete profile ${session.name}?`)) deleteSavedSession(session.id);
+                        if(confirm(`Delete profile ${session.name}?`)) {
+                            if (onDelete) onDelete(session);
+                            else deleteSavedSession(session.id);
+                        }
                     }}
                  >
                     Delete

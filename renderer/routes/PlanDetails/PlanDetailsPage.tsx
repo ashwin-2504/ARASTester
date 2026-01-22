@@ -22,6 +22,8 @@ import type { Test, Action } from '@/types/plan'
 import { ActivityBar } from '@/components/layout/ActivityBar'
 import { SidebarPanel } from '@/components/layout/SidebarPanel'
 import { SessionManager } from '@/components/session/SessionManager'
+import { useSessionStore } from '@/stores/useSessionStore'
+import { Database } from 'lucide-react'
 
 interface PlanDetailsPageProps {
   filename: string;
@@ -40,7 +42,8 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDe
     handleMoveTest, handleMoveAction,
     handleRunAll, handleRunTest, handleRunAction,
     updateSelectedItem,
-    handleToggleEnabled
+    handleToggleEnabled,
+    handleAddProfile, handleUpdateProfile, handleDeleteProfile
   } = usePlanDetails(filename)
 
   const [activeView, setActiveView] = useState<"sessions" | "tests">("tests");
@@ -89,7 +92,12 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDe
               />
         </SidebarPanel>
       ) : (
-        <SessionManager />
+        <SessionManager 
+            profiles={plan.profiles}
+            onAdd={handleAddProfile}
+            onUpdate={handleUpdateProfile}
+            onDelete={handleDeleteProfile}
+        />
       )}
 
       {/* 3. Main Content (Right) */}
@@ -155,12 +163,36 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDe
                   <div className="space-y-6">
                     {isTest(selectedItem) ? (
                       <>
-                        <div className="space-y-2">
+						<div className="space-y-2">
                           <label className="block text-sm font-medium">Test Title</label>
                           <Input
                             value={(selectedItem as Test).testTitle}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSelectedItem({ testTitle: e.target.value })}
                           />
+                        </div>
+                        
+                        <div className="space-y-2">
+                           <label className="block text-sm font-medium">Session Profile</label>
+                           <div className="flex gap-2">
+                               <select 
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    value={(selectedItem as Test).sessionProfileId || ""}
+                                    onChange={(e) => updateSelectedItem({ sessionProfileId: e.target.value || undefined })}
+                               >
+                                    <option value="">Default (Active Session)</option>
+                                    {plan.profiles?.map(p => (
+                                        <option key={p.id} value={p.id}>{p.name} ({p.url})</option>
+                                    ))}
+                               </select>
+                               <Button 
+                                    variant="outline" 
+                                    size="icon" 
+                                    title="Manage Profiles"
+                                    onClick={() => setActiveView("sessions")}
+                               >
+                                    <Database className="h-4 w-4" />
+                               </Button>
+                           </div>
                         </div>
                         <div className="flex items-center gap-2">
                           <input

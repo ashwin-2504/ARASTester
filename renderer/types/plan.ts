@@ -14,7 +14,17 @@ export interface Test {
   testID: string;
   testTitle: string;
   isEnabled?: boolean;
+  sessionProfileId?: string; // Changed from sessionProfile (name) to ID reference
   testActions: Action[];
+}
+
+export interface PlanProfile {
+  id: string;
+  name: string;
+  url: string;
+  database: string;
+  username: string;
+  password?: string;
 }
 
 export interface TestPlan {
@@ -22,6 +32,7 @@ export interface TestPlan {
   description?: string;
   created: string;
   updated: string;
+  profiles?: PlanProfile[];
   testPlan: Test[];
   __id?: string;
   __filename?: string;

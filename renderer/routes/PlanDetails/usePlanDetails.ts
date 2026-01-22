@@ -137,15 +137,15 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
     });
     if (!confirmed) return;
 
-    setPlan((prev) => {
-      const newPlan = { ...prev };
-      newPlan.testPlan.forEach((t) => {
-        if (t.testActions) {
-          t.testActions = t.testActions.filter((a) => a.actionID !== actionId);
-        }
-      });
-      return newPlan;
-    });
+    setPlan((prev) =>
+      produce(prev, (draft) => {
+        draft.testPlan.forEach((t) => {
+          if (t.testActions) {
+            t.testActions = t.testActions.filter((a) => a.actionID !== actionId);
+          }
+        });
+      })
+    );
     // @ts-ignore - Check if selected item is the deleted action
     if (selectedItem?.actionID === actionId) setSelectedItem(null);
     setIsDirty(true);

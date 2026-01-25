@@ -92,10 +92,10 @@ export function ProfileForm({ initialData, onCancel, onSubmit, isLoading = false
           <Label htmlFor="password" className="text-zinc-400">Password</Label>
           <Input
             id="password"
-            type="password"
+            type="text"
             value={formData.password}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, password: e.target.value })}
-            placeholder="••••••••"
+            placeholder="Password"
             className="bg-zinc-900/50 border-zinc-800"
           />
         </div>

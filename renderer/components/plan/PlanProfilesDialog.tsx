@@ -59,7 +59,7 @@ export function PlanProfilesDialog({
       url: "http://localhost/InnovatorServer",
       database: "InnovatorSolutions",
       username: "admin",
-      password: "",
+      password: "password",
     };
     onAdd(newProfile);
     handleStartEdit(newProfile);
@@ -108,7 +108,7 @@ export function PlanProfilesDialog({
                            </div>
                            <div className="grid grid-cols-2 gap-2">
                                <Input placeholder="Username" value={editForm.username} onChange={e => setEditForm({...editForm, username: e.target.value})} />
-                               <Input type="password" placeholder="Password" value={editForm.password} onChange={e => setEditForm({...editForm, password: e.target.value})} />
+                               <Input type="text" placeholder="Password" value={editForm.password} onChange={e => setEditForm({...editForm, password: e.target.value})} />
                            </div>
                            <div className="flex justify-end gap-2 mt-2">
                                <Button size="sm" variant="ghost" onClick={handleStopEdit}><X className="h-4 w-4 mr-1"/> Cancel</Button>

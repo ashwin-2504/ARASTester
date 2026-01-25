@@ -1,6 +1,7 @@
 <div align="center">
 
 # ARASTester
+
 ### The Modern, Automated Functional Testing Suite for ARAS Innovator
 
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
@@ -27,18 +28,23 @@ Designed specifically for **ARAS PLM Testers** and **Configuration Developers**,
 ## ✨ Key Features
 
 ### 🖱️ Visual Test Builder
+
 Forget complex scripting. Build your test plans using a modern, intuitive **drag-and-drop interface**. Reorder tests, group actions, and modify parameters visually.
 
 ### 📂 Hierarchical Organization
+
 Manage hundreds of test cases with ease. Our **nested test tree** allows you to structure your validation logic logically, just like your PLM data model.
 
 ### ⚡ Native Performance
+
 Built on **Electron** and **React**, ARASTester delivers a native desktop experience. It's fast, responsive, and integrates seamlessly with your Windows environment.
 
 ### 🔒 Privacy First & Local Storage
+
 Your data is yours. ARASTester stores all test plans as local **JSON files**. No cloud uploads, no external servers. You have full control over your testing IP.
 
 ### 🛠️ Extensible Action Registry
+
 Need to click a button? Verify a field? Run a server method? Our **Action Registry** comes pre-loaded with essential ARAS interactions, and it's designed to grow with your needs.
 
 ## 🎯 Built for ARAS Professionals
@@ -49,6 +55,7 @@ Need to click a button? Verify a field? Run a server method? Our **Action Regist
 ## 🏁 Getting Started
 
 ### Prerequisites
+
 - Windows 10/11
 - Node.js (for development)
 
@@ -67,12 +74,38 @@ Need to click a button? Verify a field? Run a server method? Our **Action Regist
     npm start
     ```
 
+### Development Workflow
+
+**Frontend Dev (Fast)**
+
+- Uses Bun for faster builds and hot reload
+
+```bash
+bun run bun:dev:renderer
+```
+
+**Electron Dev**
+
+- Uses Node.js for main process
+
+```bash
+npm run dev:electron
+```
+
+**Full App Dev**
+
+- Starts both Backend and Electronics
+
+```bash
+npm run dev
+```
+
 ## 💻 Technology Stack
 
--   **Frontend**: React, Vite, Tailwind CSS, Radix UI
--   **Backend**: ASP.NET Core (.NET 8), Aras.IOM SDK
--   **Desktop**: Electron
--   **State Management**: Zustand, Local JSON Storage
+- **Frontend**: React, Vite, Tailwind CSS, Radix UI
+- **Backend**: ASP.NET Core (.NET 8), Aras.IOM SDK
+- **Desktop**: Electron
+- **State Management**: Zustand, Local JSON Storage
 
 ---
 
@@ -90,6 +123,7 @@ For detailed technical documentation, see the [documentation](documentation/01_S
 - [API Reference](documentation/API_REFERENCE.md) - request/response examples
 
 ### ARAS IOM Reference
+
 - [ARAS IOM Operations Reference](docs/ARAS_IOM_OPERATIONS.md) - Implementation status and IOM patterns
 - [Aras IOM SDK - Programmer's Guide](docs/Aras%20IOM%20SDK%20-%20Programmer's%20Guide.txt) - Official SDK documentation
 

@@ -128,11 +128,12 @@ function createWindow() {
   const isDev = process.argv.includes("--dev");
 
   if (isDev) {
+    const port = process.env.VITE_PORT || "5173";
     logFrontend(
       "info",
-      "Running in development mode: Loading http://localhost:5173",
+      `Running in development mode: Loading http://localhost:${port}`,
     );
-    win.loadURL("http://localhost:5173");
+    win.loadURL(`http://localhost:${port}`);
     // Open the DevTools by default in dev mode if desired
     win.webContents.openDevTools();
   } else {
@@ -185,8 +186,9 @@ function startBackend() {
     return;
   }
 
-  logFrontend("info", `Starting backend from: ${exePath}`);
-  backendProcess = spawn(exePath, ["--urls", "http://localhost:5000"]);
+  const port = process.env.BACKEND_PORT || "5000";
+  logFrontend("info", `Starting backend from: ${exePath} on port ${port}`);
+  backendProcess = spawn(exePath, ["--urls", `http://localhost:${port}`]);
 
   backendProcess.stdout.on("data", (data) => {
     formatBackendLog(data, false);

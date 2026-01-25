@@ -34,7 +34,7 @@
     --ring: 232 100% 74%; /* #7B8CFF */
 
     --radius: 0.5rem;
-    
+
     /* Custom variables for direct usage if needed */
     --bg-elevated: 228 5% 17%;
     --accent-hover: 233 100% 78%; /* #8F9CFF */
@@ -44,8 +44,6 @@
   }
 }
 
-
-
 @layer base {
   * {
     @apply border-border;
@@ -53,9 +51,11 @@
   body {
     @apply bg-background text-foreground select-none;
   }
-  
+
   /* Ensure cards and modals have the correct background and border */
-  .card, .modal, .popover {
+  .card,
+  .modal,
+  .popover {
     @apply bg-card border border-border;
   }
 }

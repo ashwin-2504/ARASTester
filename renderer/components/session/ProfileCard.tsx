@@ -2,8 +2,6 @@ import React, { useState } from "react";
 import {
   MoreVertical,
   Copy,
-  Eye,
-  EyeOff,
   Wifi,
 } from "lucide-react";
 import { SavedSession, useSessionStore } from "@/stores/useSessionStore";
@@ -26,8 +24,8 @@ export function ProfileCard({ session, onEdit, onDelete }: ProfileCardProps) {
     deleteSavedSession,
   } = useSessionStore();
   
+  
   const [expanded, setExpanded] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
   // Determine status
   const activeSession = activeSessions.find(
@@ -189,29 +187,14 @@ export function ProfileCard({ session, onEdit, onDelete }: ProfileCardProps) {
               <label className="text-xs text-zinc-500 mb-1 block">Password</label>
               <Input
                 readOnly
-                type={showPassword ? "text" : "password"}
+                type="text"
                 value={session.password || ""}
-                placeholder={session.password ? "" : "No password saved"}
+                placeholder="Password"
                 className={cn(
                   "bg-zinc-950 border-zinc-800 text-zinc-300 pr-8 h-9 text-sm font-mono",
                   !session.password && "text-zinc-500 italic"
                 )}
               />
-              {session.password && (
-              <button
-                className="absolute right-2 top-7 text-zinc-500 hover:text-zinc-300"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowPassword(!showPassword);
-                }}
-              >
-                {showPassword ? (
-                  <EyeOff className="h-3.5 w-3.5" />
-                ) : (
-                  <Eye className="h-3.5 w-3.5" />
-                )}
-              </button>
-              )}
             </div>
           </div>
 

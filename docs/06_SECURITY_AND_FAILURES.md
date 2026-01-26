@@ -95,7 +95,7 @@ No role-based access control (RBAC), policy-based authorization, or endpoint-lev
 
 ### 5.1 Global Exception Middleware
 
-**File**: [ExceptionHandlingMiddleware.cs](file:///c:/Projects/ARASTester/backend/ArasBackend/Middleware/ExceptionHandlingMiddleware.cs)
+**File**: [ExceptionHandlingMiddleware.cs](../backend/ArasBackend/Middleware/ExceptionHandlingMiddleware.cs)
 
 The middleware catches all unhandled exceptions and returns structured JSON responses.
 
@@ -124,7 +124,7 @@ The middleware catches all unhandled exceptions and returns structured JSON resp
 ```csharp
 response.Message = "An internal server error occurred.";
 // In production, don't expose stack trace/details
-// response.Detail = exception.Message; 
+// response.Detail = exception.Message;
 ```
 ✅ Generic message returned for unknown exceptions (stack traces hidden)
 

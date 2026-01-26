@@ -12,8 +12,6 @@
 
 ## 1. Features Referenced but Not Implemented
 
-**Source**: [ARAS_IOM_OPERATIONS.md](file:///c:/Projects/ARASTester/docs/ARAS_IOM_OPERATIONS.md)
-
 ### Workflow Operations (⬜ Pending)
 | Action | IOM Method | Status |
 |--------|------------|--------|
@@ -63,7 +61,6 @@
 
 | Item | Discrepancy |
 |------|-------------|
-| README Tech Stack | States "Backend: Electron, Node.js" but actual backend is ASP.NET Core |
 | Frontend Schema vs Backend | Some schema actions (File Vault, Workflow) have no backend endpoints |
 
 ---
@@ -86,7 +83,7 @@
 ### Q2: Workflow Endpoints
 **Question**: Are StartWorkflow, GetAssignedActivities, CompleteActivity planned or deprecated?
 
-**Answer** (from `ARAS_IOM_OPERATIONS.md`):
+**Answer**:
 - **Status**: ⬜ Pending (Phase 3: Advanced - "Nice to Have")
 - **Priority**: Lower priority per implementation roadmap
 - **Schema Exists**: Yes, defined in `action-schemas.json` (Lines 562-631)
@@ -97,7 +94,7 @@
 ### Q3: File Vault
 **Question**: Is file upload/download functionality planned?
 
-**Answer** (from `ARAS_IOM_OPERATIONS.md`):
+**Answer**:
 - **Status**: ⬜ Pending (Phase 3: Advanced)
 - **IOM Methods Available**: `item.setFileProperty()`, `item.fetchFileProperty()`
 - **Schema Exists**: Yes, category "file" in `action-schemas.json`
@@ -114,7 +111,7 @@ policy.WithOrigins("http://localhost:3000", "http://localhost:5173")
       .SetIsOriginAllowed(origin => new Uri(origin).Host == "localhost")
 ```
 - **Current**: Only localhost allowed
-- **Production Recommendation**: 
+- **Production Recommendation**:
   - Remove localhost-only restriction
   - Add production domain(s) explicitly
   - Consider environment-based configuration
@@ -131,7 +128,7 @@ throw new ArasAuthException(loginResult.getErrorString());  // SessionManager
 ```
 - **Current**: Raw ARAS error strings are returned
 - **Risk**: May expose internal system details
-- **Recommendation**: 
+- **Recommendation**:
   - Log full errors server-side
   - Return sanitized messages to frontend (e.g., "Operation failed")
   - Consider error codes for debugging

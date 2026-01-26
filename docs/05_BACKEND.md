@@ -139,8 +139,6 @@ _(Full list in FACT_DOMAIN_TERMS.md)_
 
 ## 6. IOM SDK Alignment
 
-**Reference**: [Aras IOM SDK - Programmer's Guide](file:///c:/Projects/ARASTester/docs/Aras%20IOM%20SDK%20-%20Programmer's%20Guide.txt)
-
 ### 6.1 Connection Pattern (Verified)
 
 Per SDK Section 1.2, the correct connection pattern is:
@@ -162,7 +160,7 @@ var innovator = IomFactory.CreateInnovator(conn);
 | Use pagination for large queries     | 4.2         | ✅ QueryRequest has Page/PageSize               |
 | Check for errors after apply()       | 5.4         | ✅ All gateway methods check `result.isError()` |
 
-### 6.3 Implementation Status (from ARAS_IOM_OPERATIONS.md)
+### 6.3 Implementation Status
 
 | Category                    | Implemented | Pending |
 | --------------------------- | ----------- | ------- |

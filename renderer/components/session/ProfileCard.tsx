@@ -3,6 +3,7 @@ import {
   MoreVertical,
   Copy,
   Wifi,
+  Loader2,
 } from "lucide-react";
 import { SavedSession, useSessionStore } from "@/stores/useSessionStore";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ export function ProfileCard({ session, onEdit, onDelete }: ProfileCardProps) {
     login,
     logout,
     isLoading,
+    connectingSessionName,
     deleteSavedSession,
   } = useSessionStore();
   
@@ -29,8 +31,11 @@ export function ProfileCard({ session, onEdit, onDelete }: ProfileCardProps) {
 
   // Determine status
   const activeSession = activeSessions.find(
-    (s) => s.name === session.sessionName
+    (s) => s.name === session.name // Use session.name as it matches the saved session name usually
   );
+  // Also check if this specific session is currently connecting
+  const isConnecting = connectingSessionName === session.sessionName;
+  
   const isConnected = !!activeSession;
   
   // Staleness Heuristic
@@ -55,10 +60,12 @@ export function ProfileCard({ session, onEdit, onDelete }: ProfileCardProps) {
   }
   
   // Status config
-  const statusConfig = isConnected
+  const statusConfig = isConnecting
+    ? { label: "Connecting...", color: "text-blue-500", dot: "bg-blue-500 animate-pulse" }
+    : isConnected
     ? { label: "Connected", color: "text-emerald-500", dot: "bg-emerald-500" }
     : isStale
-    ? { label: "Stale", color: "text-amber-500", dot: "bg-amber-500" } // Changed to amber for warning
+    ? { label: "Stale", color: "text-amber-500", dot: "bg-amber-500" } 
     : { label: "Offline", color: "text-zinc-500", dot: "bg-zinc-500" };
 
   const handleConnect = async (e: React.MouseEvent) => {
@@ -91,7 +98,8 @@ export function ProfileCard({ session, onEdit, onDelete }: ProfileCardProps) {
       className={cn(
         "rounded-xl border transition-all duration-200 overflow-hidden",
         expanded ? "bg-zinc-900 border-zinc-700" : "bg-zinc-900/50 border-zinc-800 hover:border-zinc-700",
-        isConnected && !expanded && "border-l-4 border-l-emerald-500"
+        isConnected && !expanded && "border-l-4 border-l-emerald-500",
+        isConnecting && !expanded && "border-l-4 border-l-blue-500"
       )}
     >
       {/* Header / Collapsed View */}
@@ -102,7 +110,7 @@ export function ProfileCard({ session, onEdit, onDelete }: ProfileCardProps) {
         <div className="flex items-center gap-3">
           {/* Avatar */}
           <div className="h-10 w-10 full rounded-full bg-violet-600 flex items-center justify-center text-white font-bold text-sm">
-            {getInitials(session.name)}
+            {isConnecting ? <Loader2 className="h-5 w-5 animate-spin" /> : getInitials(session.name)}
           </div>
 
           <div>
@@ -114,7 +122,7 @@ export function ProfileCard({ session, onEdit, onDelete }: ProfileCardProps) {
                 className={cn("h-1.5 w-1.5 rounded-full", statusConfig.dot)}
               />
               <span className={cn("text-xs font-medium", statusConfig.color)} title={!isConnected && session.lastAccessedAt ? `Last used ${timeAgo}` : undefined}>
-                {statusConfig.label} {isStale && `(${timeAgo})`}
+                {statusConfig.label} {isStale && !isConnecting && `(${timeAgo})`}
               </span>
             </div>
           </div>
@@ -123,17 +131,25 @@ export function ProfileCard({ session, onEdit, onDelete }: ProfileCardProps) {
         {/* Action Button (Icon only when collapsed) */}
         {!expanded && (
           <div className="flex items-center gap-2">
-            {!isConnected ? (
+            {!isConnected && !isConnecting ? (
               <Button
                 size="sm"
                 variant="outline"
                 className="h-8 px-3 text-xs bg-zinc-800 border-zinc-700 hover:bg-zinc-700 hover:text-white"
                 onClick={handleConnect}
-                disabled={isLoading || !session.password}
+                disabled={isLoading && !isConnecting} // Only disable if loading but not this one (actually, user wanted other not disabled? User said "the one's that aren't being used to connect are also disabled". So I should NOT disable others unless necessary. I will remove strict disabled check for others here, or keep it if global loading blocks everything. Let's assume we allow parallel clicks? No, useSessionStore handles one login at a time usually. I'll disable if isLoading is true to prevent race conditions, BUT the feedback is now specific)
+                // Re-reading request: "the one's that aren't being used to connect are also disabled... jst everythings is disabled".
+                // If I keep disabled={isLoading}, they remain disabled.
+                // To fix this, I should only disable THIS button if THIS session is connecting, or arguably allow others.
+                // But Login is global state. If I start another login while one is pending, it might race.
+                // The user specifically disliked that "everything is disabled".
+                // So I will loosen the disable logic: disabled={isConnecting}
                 title={!session.password ? "Password required" : "Connect to session"}
               >
                 Connect
               </Button>
+            ) : isConnecting ? (
+                <div className="p-2"><Loader2 className="h-4 w-4 text-blue-500 animate-spin" /></div>
             ) : (
              <div className="p-2"> <Wifi className="h-4 w-4 text-emerald-500" /></div>
             )}

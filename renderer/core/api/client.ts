@@ -67,6 +67,37 @@ export const apiClient = {
   },
 
   /**
+   * Helper: Wait for a specified duration (ms)
+   */
+  async _wait(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  },
+
+  /**
+   * Helper: Fetch with retry logic for network errors
+   */
+  async _fetchWithRetry(url: string, options: RequestInit, retries = 5, backoff = 200): Promise<Response> {
+    try {
+      const response = await fetch(url, options);
+
+      // Retry on 503 Service Unavailable (often means backend is starting)
+      if (response.status === 503 && retries > 0) {
+        await this._wait(backoff);
+        return this._fetchWithRetry(url, options, retries - 1, backoff * 2);
+      }
+
+      return response;
+    } catch (error: any) {
+      // Retry on network errors (fetch failed completely)
+      if (retries > 0 && (error.message.includes("Failed to fetch") || error.name === "TypeError")) {
+        await this._wait(backoff);
+        return this._fetchWithRetry(url, options, retries - 1, backoff * 2);
+      }
+      throw error;
+    }
+  },
+
+  /**
    * Perform a POST request
    * @param endpoint - API Endpoint (e.g. /api/aras/connect)
    * @param data - Payload data
@@ -84,16 +115,19 @@ export const apiClient = {
     this._activeRequests.set(requestId, controller);
 
     try {
-      const response = await fetch(`${API_BASE}${endpoint}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(options.sessionName ? { "X-Session-Name": options.sessionName } : {}),
-        },
-        body: JSON.stringify(data),
-        credentials: "include",
-        signal: controller.signal,
-      });
+      const response = await this._fetchWithRetry(
+        `${API_BASE}${endpoint}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(options.sessionName ? { "X-Session-Name": options.sessionName } : {}),
+          },
+          body: JSON.stringify(data),
+          credentials: "include",
+          signal: controller.signal,
+        }
+      );
 
       const result = await response.json();
 
@@ -128,13 +162,16 @@ export const apiClient = {
     this._activeRequests.set(requestId, controller);
 
     try {
-      const response = await fetch(`${API_BASE}${endpoint}`, {
-        headers: {
-          ...(options.sessionName ? { "X-Session-Name": options.sessionName } : {}),
-        },
-        credentials: "include",
-        signal: controller.signal,
-      });
+      const response = await this._fetchWithRetry(
+        `${API_BASE}${endpoint}`,
+        {
+          headers: {
+            ...(options.sessionName ? { "X-Session-Name": options.sessionName } : {}),
+          },
+          credentials: "include",
+          signal: controller.signal,
+        }
+      );
 
       const result = await response.json();
 

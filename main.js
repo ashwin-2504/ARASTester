@@ -210,14 +210,12 @@ function startBackend() {
 
 app.whenReady().then(() => {
   // Show UI immediately
-  createWindow();
+  // Start backend immediately (parallel to UI)
+  console.log("Starting backend...");
+  startBackend();
 
-  // Pre-warm: Start backend after UI is visible (1.5s delay)
-  // This ensures user sees the app immediately while backend starts in background
-  setTimeout(() => {
-    console.log("Pre-warming backend...");
-    startBackend();
-  }, 1500);
+  // Show UI immediately
+  createWindow();
 });
 
 app.on("will-quit", () => {

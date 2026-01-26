@@ -20,6 +20,7 @@ interface TestTreeProps {
   onRunAction: (action: Action) => void;
   onToggleEnabled: (item: Test | Action) => void;
   logs?: Record<string, any>;
+  initializingTestId?: string | null;
 }
 
 export default function TestTree({
@@ -36,7 +37,8 @@ export default function TestTree({
   onRunTest,
   onRunAction,
   onToggleEnabled,
-  logs = {} // Add logs prop
+  logs = {}, // Add logs prop
+  initializingTestId
 }: TestTreeProps) {
   const [expandedTestIds, setExpandedTestIds] = React.useState<string[]>([])
   const hasInitialized = React.useRef(false)
@@ -108,6 +110,9 @@ export default function TestTree({
 
   // Helper to compute test status
   const getTestStatus = (test: Test): string | null => {
+    // Check if initializing
+    if (initializingTestId === test.testID) return 'Initializing...'
+
     const actions = test.testActions || []
     if (actions.length === 0) return null
 

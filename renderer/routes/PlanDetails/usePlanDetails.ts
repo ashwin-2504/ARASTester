@@ -6,6 +6,7 @@ import { actionRegistry } from "@/core/registries/ActionRegistry";
 import { apiClient } from "@/core/api/client";
 import { generateTestId, generateActionId } from "@/lib/idGenerator";
 import { confirm } from "@/lib/hooks/useConfirmDialog";
+import { useSessionStore } from "@/stores/useSessionStore";
 import type { TestPlan, Test, Action } from "@/types/plan";
 
 export function usePlanDetails(filename: string, _onNavigate?: (path: string) => void) {
@@ -16,6 +17,7 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
   const [isDirty, setIsDirty] = useState(false);
   const [logs, setLogs] = useState<Record<string, { status: string; timestamp: string; details?: any }>>({});
   const [saveStatus, setSaveStatus] = useState("");
+  const [initializingTestId, setInitializingTestId] = useState<string | null>(null);
 
   // Ensure unique IDs for all items (backfill for legacy data)
   const ensureIds = (data: TestPlan): TestPlan => {
@@ -267,7 +269,7 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
     const profile = plan.profiles?.find((p) => p.id === profileId);
     if (!profile) return undefined;
 
-    const { useSessionStore } = await import("@/stores/useSessionStore");
+    // Check if session with this name exists
     const store = useSessionStore.getState();
     
     // Check if session with this name exists
@@ -307,7 +309,12 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
     
     // Resolve session if profile ID is present
     if (test.sessionProfileId) {
-        sessionName = await ensureSession(test.sessionProfileId);
+        setInitializingTestId(test.testID);
+        try {
+            sessionName = await ensureSession(test.sessionProfileId);
+        } finally {
+            setInitializingTestId(null);
+        }
     }
 
     console.log(`▶️ Running: ${test.testTitle} [Session: ${sessionName || "Default"}]`);
@@ -470,6 +477,7 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
     saveStatus,
     logs,
     selectedItem,
+    initializingTestId,
     setSelectedItem,
     loadPlan,
     handleSave,

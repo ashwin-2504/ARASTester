@@ -51,6 +51,7 @@ interface SessionState {
   activeSessions: SessionInfo[];
   savedSessions: SavedSession[];
   currentSessionName: string;
+  connectingSessionName: string | null;
   isLoading: boolean;
   error: string | null;
 
@@ -77,6 +78,7 @@ export const useSessionStore = create<SessionState>()(
       activeSessions: [],
       savedSessions: [],
       currentSessionName: "default",
+      connectingSessionName: null,
       isLoading: false,
       error: null,
 
@@ -113,7 +115,9 @@ export const useSessionStore = create<SessionState>()(
       },
 
       login: async (credentials: ConnectionRequest) => {
-        set({ isLoading: true, error: null });
+        const targetName = credentials.sessionName || "default";
+        set({ isLoading: true, connectingSessionName: targetName, error: null });
+        
         try {
           const response = await apiClient.post<ConnectionResponse>(
             "/api/aras/connect",
@@ -137,11 +141,11 @@ export const useSessionStore = create<SessionState>()(
             }
           }
 
-          set({ isLoading: false });
+          set({ isLoading: false, connectingSessionName: null });
           return response;
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : "Login failed";
-          set({ error: message, isLoading: false });
+          set({ error: message, isLoading: false, connectingSessionName: null });
           return { success: false, message };
         }
       },

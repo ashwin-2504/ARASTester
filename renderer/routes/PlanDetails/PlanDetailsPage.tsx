@@ -22,7 +22,6 @@ import type { Test, Action } from '@/types/plan'
 import { ActivityBar } from '@/components/layout/ActivityBar'
 import { SidebarPanel } from '@/components/layout/SidebarPanel'
 import { SessionManager } from '@/components/session/SessionManager'
-import { useSessionStore } from '@/stores/useSessionStore'
 import { Database } from 'lucide-react'
 
 interface PlanDetailsPageProps {
@@ -33,7 +32,7 @@ interface PlanDetailsPageProps {
 
 export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDetailsPageProps) {
   const {
-    plan, loading, error, isDirty, saveStatus, logs, selectedItem,
+    plan, loading, error, isDirty, saveStatus, logs, selectedItem, initializingTestId,
     setSelectedItem,
     loadPlan,
     handleSave,
@@ -89,6 +88,7 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDe
                 onRunAction={handleRunAction}
                 onToggleEnabled={handleToggleEnabled}
                 logs={logs}
+                initializingTestId={initializingTestId}
               />
         </SidebarPanel>
       ) : (
@@ -174,16 +174,43 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDe
                         <div className="space-y-2">
                            <label className="block text-sm font-medium">Session Profile</label>
                            <div className="flex gap-2">
-                               <select 
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                    value={(selectedItem as Test).sessionProfileId || ""}
-                                    onChange={(e) => updateSelectedItem({ sessionProfileId: e.target.value || undefined })}
-                               >
-                                    <option value="">Default (Active Session)</option>
-                                    {plan.profiles?.map(p => (
-                                        <option key={p.id} value={p.id}>{p.name} ({p.url})</option>
-                                    ))}
-                               </select>
+                               {/* Replaced native select with DropdownMenu for better control */}
+                               <div className="flex-1 relative">
+                                 <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <button className="w-full flex items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                                            <span className="truncate">
+                                                {(() => {
+                                                    const pid = (selectedItem as Test).sessionProfileId;
+                                                    if (!pid) return "Default (Active Session)";
+                                                    const p = plan.profiles?.find(p => p.id === pid);
+                                                    return p ? p.name : "Unknown Profile";
+                                                })()}
+                                            </span>
+                                            <ChevronDown className="h-4 w-4 opacity-50" />
+                                        </button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent className="min-w-[200px] w-[var(--radix-dropdown-menu-trigger-width)]" align="start">
+                                        <DropdownMenuItem 
+                                            onSelect={() => updateSelectedItem({ sessionProfileId: undefined })}
+                                            className="cursor-pointer"
+                                        >
+                                            Default (Active Session)
+                                            {!(selectedItem as Test).sessionProfileId && <Check className="ml-auto h-4 w-4" />}
+                                        </DropdownMenuItem>
+                                        {plan.profiles?.map(p => (
+                                            <DropdownMenuItem 
+                                                key={p.id} 
+                                                onSelect={() => updateSelectedItem({ sessionProfileId: p.id })}
+                                                className="cursor-pointer"
+                                            >
+                                                {p.name}
+                                                {(selectedItem as Test).sessionProfileId === p.id && <Check className="ml-auto h-4 w-4" />}
+                                            </DropdownMenuItem>
+                                        ))}
+                                    </DropdownMenuContent>
+                                 </DropdownMenu>
+                               </div>
                                <Button 
                                     variant="outline" 
                                     size="icon" 

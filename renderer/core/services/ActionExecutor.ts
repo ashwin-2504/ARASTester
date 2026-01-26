@@ -60,11 +60,21 @@ export const ActionExecutor = {
         data = await apiClient.post(plugin.apiEndpoint!, action.params || {}, options);
       }
       
+      
       // Response is already normalized by apiClient
-      return {
+      const result = {
         success: data.success ?? true,
         ...data,
       };
+
+      // Auto-refresh session state for connection actions
+      if (result.success && ['ArasConnect', 'ArasDisconnect'].includes(action.actionType)) {
+          // Fire and forget - or await if we want to ensure UI update before proceeding
+          // Awaiting is safer to prevent race conditions in subsequent steps
+          useSessionStore.getState().fetchSessions().catch(console.error);
+      }
+
+      return result;
     } catch (err: any) {
       // Handle AbortError gracefully
       if (err.name === "AbortError") {

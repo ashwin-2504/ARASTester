@@ -58,6 +58,8 @@ Need to click a button? Verify a field? Run a server method? Our **Action Regist
 
 - Windows 10/11
 - Node.js (for development)
+  > [!NOTE]
+  > This project uses Node.js only. Bun is no longer required or supported.
 
 ### Installation
 
@@ -71,17 +73,17 @@ Need to click a button? Verify a field? Run a server method? Our **Action Regist
     ```
 3.  **Run the application**
     ```bash
-    npm start
+    npm run dev
     ```
 
 ### Development Workflow
 
 **Frontend Dev (Fast)**
 
-- Uses Bun for faster builds and hot reload
+- Uses Vite for faster builds and hot reload
 
 ```bash
-bun run bun:dev:renderer
+npm run dev:server
 ```
 
 **Electron Dev**

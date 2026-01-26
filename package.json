@@ -10,8 +10,6 @@
     "build:backend": "cd backend/ArasBackend && dotnet build -c Debug",
     "build:backend:prod": "cd backend/ArasBackend && dotnet publish -c Release -o ../../dist-backend",
     "clean": "node -e \"const fs = require('fs'); ['dist', 'dist-backend', 'release', 'backend/ArasBackend/bin', 'backend/ArasBackend/obj'].forEach(dir => fs.rmSync(dir, { recursive: true, force: true })); console.log('Cleanup complete');\"",
-    "bun:dev:renderer": "bun run vite",
-    "bun:build:renderer": "bun run vite build",
     "predev": "npm run build:backend",
     "dev": "node dev-runner.js",
     "dev:server": "vite",

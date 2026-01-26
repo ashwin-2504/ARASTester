@@ -111,9 +111,6 @@ const electronPath = path.join(
   "electron.exe",
 );
 
-// Resolve Bun path (it's not in global PATH for spawn on Windows sometimes)
-const bunPath = path.join(process.env.USERPROFILE, ".bun", "bin", "bun.exe");
-
 // Variables to hold process references
 let viteProcess = null;
 let electronProcess = null;
@@ -234,15 +231,12 @@ function startElectron() {
 
     // 2. Start Vite (Frontend)
     // Pass VITE_API_URL so the frontend knows where to find the backend
-    log(
-      "RUNNER",
-      "info",
-      `Starting Vite dev server (via Bun at ${bunPath})...`,
-    );
+    log("RUNNER", "info", `Starting Vite dev server...`);
 
+    // Use npx to run vite, which handles finding the executable in node_modules
     viteProcess = spawn(
-      bunPath,
-      ["run", "vite", "--port", VITE_PORT.toString()],
+      "npx.cmd", // Use npx.cmd on Windows, npx on Linux/Mac (but user is on Windows)
+      ["vite", "--port", VITE_PORT.toString()],
       {
         stdio: "inherit",
         shell: true,

@@ -44,7 +44,7 @@ yarn-debug.log*
 yarn-error.log*
 
 # Internal documentation (not for customers)
-docs/
+documents/
 
 # Local library references
 lib/

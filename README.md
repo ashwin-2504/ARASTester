@@ -47,6 +47,11 @@ Your data is yours. ARASTester stores all test plans as local **JSON files**. No
 
 Need to click a button? Verify a field? Run a server method? Our **Action Registry** comes pre-loaded with essential ARAS interactions, and it's designed to grow with your needs.
 
+### 💾 Session Profiles (New!)
+
+Save and manage multiple ARAS connection profiles. Link specific profiles to individual tests to automatically switch sessions during execution, ensuring your tests run in the correct environment every time.
+_(Note: Profiles are saved configurations. They become active ONLY when you Connect or run a test using them.)_
+
 ## 🎯 Built for ARAS Professionals
 
 - **For QA Teams**: Reduce regression testing time from days to minutes. Ensure consistent validation across every release.

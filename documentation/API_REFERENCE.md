@@ -1,6 +1,7 @@
 # API_REFERENCE
 
 > ⚠ HUMAN REVIEW REQUIRED
+>
 > - Business logic interpretation
 > - Security implications
 > - Architectural intent
@@ -13,19 +14,28 @@
 ## Connection Endpoints
 
 ### POST /connect
+
 Establish connection to ARAS Innovator server.
 
+- **Side Effect**: Creates a process-scoped `HttpServerConnection`. Adds session to the active pool.
+- **Behavior**: Validates credentials immediately. Returns `ServerInfo` on success.
+
 **Request:**
+
 ```json
 {
   "url": "http://localhost/InnovatorServer/Server/InnovatorServer.aspx",
   "database": "InnovatorSolutions",
   "username": "admin",
-  "password": "innovator"
+  "password": "innovator",
+  "sessionName": "Primary_Session"
 }
 ```
 
+_(Note: `sessionName` is optional but recommended for multi-session support)_
+
 **Response (Success):**
+
 ```json
 {
   "Success": true,
@@ -35,11 +45,13 @@ Establish connection to ARAS Innovator server.
     "UserId": "30B991F927EB4F55B....",
     "UserName": "admin",
     "Url": "http://localhost/InnovatorServer/..."
-  }
+  },
+  "SessionName": "Primary_Session"
 }
 ```
 
 **Response (Error):**
+
 ```json
 {
   "Success": false,
@@ -50,12 +62,47 @@ Establish connection to ARAS Innovator server.
 
 ---
 
-### POST /disconnect
-Close session and release resources.
+### GET /sessions
 
-**Request:** (empty body)
+Retrieve list of all active sessions.
+
+- **Guarantee**: Returns the _current real-time_ state of the backend session pool. Frontend **MUST** use this to sync.
+- **Authorization Scope**: Global. Returns ALL sessions active on the backend process, regardless of who created them.
 
 **Response:**
+
+```json
+{
+  "sessions": [
+    {
+      "name": "Primary_Session",
+      "serverInfo": { ... },
+      "isCurrent": true
+    }
+  ],
+  "currentSession": "Primary_Session"
+}
+```
+
+---
+
+### POST /disconnect
+
+Close session and release resources.
+
+- **Idempotency**: Safe to call multiple times. Returns Success=True if session is already gone.
+- **Side Effect**: Invalidates IOM connection and removes from pool.
+
+**Request:**
+
+```json
+{
+  "sessionName": "Primary_Session" // Optional. If omitted, disconnects current.
+}
+```
+
+**Response:**
+
 ```json
 {
   "Success": true,
@@ -66,9 +113,11 @@ Close session and release resources.
 ---
 
 ### GET /validate
-Test if connection is still valid.
+
+(Legacy) Test if current default connection is valid.
 
 **Response:**
+
 ```json
 {
   "Success": true,
@@ -80,9 +129,11 @@ Test if connection is still valid.
 ---
 
 ### GET /connection-status
+
 Get current connection state.
 
 **Response:**
+
 ```json
 {
   "IsConnected": true,
@@ -96,9 +147,11 @@ Get current connection state.
 ## Item CRUD Endpoints
 
 ### POST /query
+
 Query items by criteria with pagination.
 
 **Request:**
+
 ```json
 {
   "itemType": "Part",
@@ -112,6 +165,7 @@ Query items by criteria with pagination.
 ```
 
 **Response:**
+
 ```json
 {
   "Success": true,
@@ -124,9 +178,11 @@ Query items by criteria with pagination.
 ---
 
 ### POST /get-by-id
+
 Get single item by ID.
 
 **Request:**
+
 ```json
 {
   "itemType": "Part",
@@ -138,9 +194,11 @@ Get single item by ID.
 ---
 
 ### POST /get-by-keyed-name
+
 Get item by its keyed name.
 
 **Request:**
+
 ```json
 {
   "itemType": "Part",
@@ -151,9 +209,11 @@ Get item by its keyed name.
 ---
 
 ### POST /create
+
 Create a new item.
 
 **Request:**
+
 ```json
 {
   "itemType": "Part",
@@ -166,6 +226,7 @@ Create a new item.
 ```
 
 **Response:**
+
 ```json
 {
   "Success": true,
@@ -178,9 +239,11 @@ Create a new item.
 ---
 
 ### POST /update
+
 Update an existing item.
 
 **Request:**
+
 ```json
 {
   "itemType": "Part",
@@ -195,9 +258,11 @@ Update an existing item.
 ---
 
 ### POST /delete
+
 Delete item (current version).
 
 **Request:**
+
 ```json
 {
   "itemType": "Part",
@@ -208,9 +273,11 @@ Delete item (current version).
 ---
 
 ### POST /purge
+
 Permanently remove all versions.
 
 **Request:**
+
 ```json
 {
   "itemType": "Part",
@@ -223,9 +290,11 @@ Permanently remove all versions.
 ## Lock Endpoints
 
 ### POST /lock
+
 Lock item for editing.
 
 **Request:**
+
 ```json
 {
   "itemType": "Part",
@@ -236,9 +305,11 @@ Lock item for editing.
 ---
 
 ### POST /unlock
+
 Release lock.
 
 **Request:**
+
 ```json
 {
   "itemType": "Part",
@@ -249,9 +320,11 @@ Release lock.
 ---
 
 ### POST /check-lock
+
 Check lock status.
 
 **Response:**
+
 ```json
 {
   "Success": true,
@@ -268,9 +341,11 @@ Check lock status.
 ## Lifecycle Endpoints
 
 ### POST /promote
+
 Promote item to new lifecycle state.
 
 **Request:**
+
 ```json
 {
   "itemType": "Part",
@@ -283,9 +358,11 @@ Promote item to new lifecycle state.
 ---
 
 ### POST /get-state
+
 Get current lifecycle state.
 
 **Response:**
+
 ```json
 {
   "Success": true,
@@ -301,9 +378,11 @@ Get current lifecycle state.
 ## Relationship Endpoints
 
 ### POST /add-relationship
+
 Create relationship between items.
 
 **Request:**
+
 ```json
 {
   "parentType": "Part",
@@ -319,9 +398,11 @@ Create relationship between items.
 ---
 
 ### POST /get-relationships
+
 Get relationships for an item.
 
 **Request:**
+
 ```json
 {
   "itemType": "Part",
@@ -334,9 +415,11 @@ Get relationships for an item.
 ---
 
 ### POST /delete-relationship
+
 Remove a relationship.
 
 **Request:**
+
 ```json
 {
   "relationshipType": "Part BOM",
@@ -349,9 +432,11 @@ Remove a relationship.
 ## AML & SQL Endpoints
 
 ### POST /apply-aml
+
 Execute raw AML query.
 
 **Request:**
+
 ```json
 {
   "aml": "<Item type='Part' action='get' select='item_number,name'><state>Released</state></Item>"
@@ -361,9 +446,11 @@ Execute raw AML query.
 ---
 
 ### POST /apply-sql
+
 Execute SQL query.
 
 **Request:**
+
 ```json
 {
   "sql": "SELECT id, item_number, name FROM innovator.PART WHERE state = 'Released'"
@@ -373,9 +460,11 @@ Execute SQL query.
 ---
 
 ### POST /apply-method
+
 Call server method.
 
 **Request:**
+
 ```json
 {
   "methodName": "MyServerMethod",
@@ -388,9 +477,11 @@ Call server method.
 ## Assertion Endpoints
 
 ### POST /assert-exists
+
 Verify item exists.
 
 **Request:**
+
 ```json
 {
   "itemType": "Part",
@@ -401,6 +492,7 @@ Verify item exists.
 ```
 
 **Response (Pass):**
+
 ```json
 {
   "Success": true,
@@ -414,9 +506,11 @@ Verify item exists.
 ---
 
 ### POST /assert-not-exists
+
 Verify item doesn't exist.
 
 **Request:**
+
 ```json
 {
   "itemType": "Part",
@@ -429,9 +523,11 @@ Verify item doesn't exist.
 ---
 
 ### POST /assert-property
+
 Check property equals expected value.
 
 **Request:**
+
 ```json
 {
   "itemType": "Part",
@@ -444,9 +540,11 @@ Check property equals expected value.
 ---
 
 ### POST /assert-state
+
 Verify lifecycle state.
 
 **Request:**
+
 ```json
 {
   "itemType": "Part",
@@ -456,6 +554,7 @@ Verify lifecycle state.
 ```
 
 **Response (Fail):**
+
 ```json
 {
   "Success": true,
@@ -481,10 +580,10 @@ All endpoints return errors in this format:
 }
 ```
 
-| HTTP Status | Meaning |
-|-------------|---------|
-| 401 | Authentication failed |
-| 400 | Validation error |
-| 404 | Item not found |
-| 502 | ARAS server error |
-| 500 | Internal server error |
+| HTTP Status | Meaning               |
+| ----------- | --------------------- |
+| 401         | Authentication failed |
+| 400         | Validation error      |
+| 404         | Item not found        |
+| 502         | ARAS server error     |
+| 500         | Internal server error |

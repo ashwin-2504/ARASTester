@@ -18,7 +18,7 @@ export async function getPlans(): Promise<TestPlan[]> {
     const plans: TestPlan[] = [];
     for (const f of files) {
       try {
-        const raw = await StorageService.readFile(f);
+        const raw = await StorageService.readFile(folder, f);
         let json: any;
         try {
           json = JSON.parse(raw);
@@ -57,7 +57,6 @@ export async function createPlan(title: string, description: string): Promise<Te
   }
 
   const fileName = `${randomStr}.json`;
-  const filePath = `${folder}/${fileName}`;
 
   const payload: TestPlan = {
     title: title || "New Test Plan",
@@ -75,16 +74,16 @@ export async function createPlan(title: string, description: string): Promise<Te
     profiles: [],
   };
 
-  await StorageService.writeFile(filePath, payload);
-  return { ...payload, __id: filePath, __filename: fileName };
+  await StorageService.writeFile(folder, fileName, payload);
+  return { ...payload, __id: fileName, __filename: fileName };
 }
 
 export async function getPlan(filename: string): Promise<TestPlan> {
   const folder = await getFolderPath();
   if (!folder) throw new Error("No folder set");
 
-  const filePath = `${folder}/${filename}`;
-  const raw = await StorageService.readFile(filePath);
+  const filePath = filename;
+  const raw = await StorageService.readFile(folder, filePath);
 
   let data: any;
   try {
@@ -103,7 +102,8 @@ export async function getPlan(filename: string): Promise<TestPlan> {
 
 export async function updatePlan(filename: string, data: Partial<TestPlan>): Promise<TestPlan> {
   const folder = await getFolderPath();
-  const filePath = `${folder}/${filename}`;
+  if (!folder) throw new Error("No folder set");
+  const filePath = filename;
 
   const current = await getPlan(filename);
 
@@ -116,12 +116,13 @@ export async function updatePlan(filename: string, data: Partial<TestPlan>): Pro
   delete merged.__id;
   delete merged.__filename;
 
-  await StorageService.writeFile(filePath, merged);
+  await StorageService.writeFile(folder, filePath, merged);
   return { ...merged, __id: filePath, __filename: filename };
 }
 
 export async function deletePlan(filename: string): Promise<void> {
   const folder = await getFolderPath();
-  const filePath = `${folder}/${filename}`;
-  await StorageService.deleteFile(filePath);
+  if (!folder) throw new Error("No folder set");
+  const filePath = filename;
+  await StorageService.deleteFile(folder, filePath);
 }

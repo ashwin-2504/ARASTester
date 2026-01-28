@@ -2,14 +2,16 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("api", {
   pickFolder: () => ipcRenderer.invoke("dialog:pickFolder"),
-  readFile: (filePath) => ipcRenderer.invoke("fs:readFile", filePath),
-  writeFile: (filePath, data) =>
-    ipcRenderer.invoke("fs:writeFile", filePath, data),
-  listJsonFiles: (folderPath) =>
-    ipcRenderer.invoke("fs:listJsonFiles", folderPath),
+  readFile: (baseDir, relativePath) =>
+    ipcRenderer.invoke("fs:readFile", baseDir, relativePath),
+  writeFile: (baseDir, relativePath, data) =>
+    ipcRenderer.invoke("fs:writeFile", baseDir, relativePath, data),
+  listJsonFiles: (baseDir, relativePath) =>
+    ipcRenderer.invoke("fs:listJsonFiles", baseDir, relativePath),
 
   // NEW: delete file (needed for deletePlan)
-  deleteFile: (filePath) => ipcRenderer.invoke("fs:deleteFile", filePath),
+  deleteFile: (baseDir, relativePath) =>
+    ipcRenderer.invoke("fs:deleteFile", baseDir, relativePath),
 
   // Settings API
   settings: {

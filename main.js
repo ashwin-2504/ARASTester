@@ -226,59 +226,146 @@ app.on("will-quit", () => {
 });
 
 // ------------------------------------------
-// DIALOG HANDLERS
+// SECURITY & FILESYSTEM UTILS
 // ------------------------------------------
-ipcMain.handle("dialog:pickFolder", () => {
-  return dialog.showOpenDialog({
-    properties: ["openDirectory"],
-  });
-});
+const authorizedDirs = new Set([path.resolve(app.getPath("userData"))]);
 
-// ------------------------------------------
-// FILESYSTEM UTILS
-// ------------------------------------------
 /**
- * Resolves and validates a path to prevent directory traversal.
- * Ensures the resolved path resides within the specified base directory.
+ * Normalizes and validates a path to prevent directory traversal.
+ * String-level rejection is an optimization; canonical containment is the authoritative security check.
  */
 function resolveSafePath(baseDir, relativePath) {
-  const resolvedBase = path.resolve(baseDir);
-  const resolvedPath = path.resolve(baseDir, relativePath);
-
-  if (!resolvedPath.startsWith(resolvedBase)) {
-    throw new Error(`Security Violation: Path traversal attempt detected`);
+  if (!baseDir || !relativePath) {
+    throw new Error("ERR_INVALID_ARGS");
   }
 
-  return resolvedPath;
+  // 1. Fast rejection of obviously malicious relative paths
+  const normalizedRelative = path.normalize(relativePath);
+  if (
+    path.isAbsolute(normalizedRelative) ||
+    normalizedRelative.includes("..")
+  ) {
+    console.error(`[SECURITY] Blocked fast-fail traversal: ${relativePath}`);
+    throw new Error("ERR_TRAVERSAL_DETECTED");
+  }
+
+  // 2. Resolve base directory and verify authorization
+  const resolvedBase = path.resolve(baseDir);
+  const canonicalBase = fs.existsSync(resolvedBase)
+    ? fs.realpathSync(resolvedBase)
+    : resolvedBase;
+
+  // Check if the base directory is authorized
+  let isAuthorized = false;
+  for (const authDir of authorizedDirs) {
+    if (canonicalBase.startsWith(authDir)) {
+      isAuthorized = true;
+      break;
+    }
+  }
+
+  if (!isAuthorized) {
+    console.error(`[SECURITY] Unauthorized base directory: ${canonicalBase}`);
+    throw new Error("ERR_UNAUTHORIZED_BASE");
+  }
+
+  // 3. Resolve target path and verify containment
+  const targetPath = path.resolve(canonicalBase, normalizedRelative);
+
+  // TOCTOU Mitigation: Use realpath if the file exists
+  let canonicalTarget;
+  try {
+    if (fs.existsSync(targetPath)) {
+      canonicalTarget = fs.realpathSync(targetPath);
+    } else {
+      // For new files, check the parent directory
+      const parentDir = path.dirname(targetPath);
+      if (fs.existsSync(parentDir)) {
+        canonicalTarget = path.join(
+          fs.realpathSync(parentDir),
+          path.basename(targetPath),
+        );
+      } else {
+        canonicalTarget = targetPath;
+      }
+    }
+  } catch (err) {
+    canonicalTarget = targetPath;
+  }
+
+  // 4. Final containment check (must start with base + separator)
+  const baseWithSep = canonicalBase.endsWith(path.sep)
+    ? canonicalBase
+    : canonicalBase + path.sep;
+  if (
+    !canonicalTarget.startsWith(baseWithSep) &&
+    canonicalTarget !== canonicalBase
+  ) {
+    console.error(
+      `[SECURITY] Traversal detected after canonicalization: ${canonicalTarget}`,
+    );
+    throw new Error("ERR_TRAVERSAL_DETECTED");
+  }
+
+  return canonicalTarget;
 }
+
+ipcMain.handle("dialog:pickFolder", async () => {
+  const result = await dialog.showOpenDialog({
+    properties: ["openDirectory"],
+  });
+  if (!result.canceled && result.filePaths.length > 0) {
+    const selectedPath = path.resolve(result.filePaths[0]);
+    authorizedDirs.add(selectedPath);
+  }
+  return result;
+});
 
 // ------------------------------------------
 // FILESYSTEM HANDLERS
 // ------------------------------------------
-ipcMain.handle("fs:readFile", (_, filePath) => {
-  // Use path.resolve to normalize and then ensure it's a valid string
-  const safePath = path.resolve(filePath);
-  return fs.promises.readFile(safePath, "utf-8");
+ipcMain.handle("fs:readFile", (_, baseDir, relativePath) => {
+  try {
+    const safePath = resolveSafePath(baseDir, relativePath);
+    return fs.promises.readFile(safePath, "utf-8");
+  } catch (err) {
+    console.error(`[FS] Error reading file: ${err.message}`);
+    throw err;
+  }
 });
 
-ipcMain.handle("fs:writeFile", (_, filePath, data) => {
-  const safePath = path.resolve(filePath);
-  return fs.promises.writeFile(safePath, JSON.stringify(data, null, 2));
+ipcMain.handle("fs:writeFile", (_, baseDir, relativePath, data) => {
+  try {
+    const safePath = resolveSafePath(baseDir, relativePath);
+    return fs.promises.writeFile(safePath, JSON.stringify(data, null, 2));
+  } catch (err) {
+    console.error(`[FS] Error writing file: ${err.message}`);
+    throw err;
+  }
 });
 
-// NEW — LIST JSON FILES IN A FOLDER
-ipcMain.handle("fs:listJsonFiles", async (_, folderPath) => {
-  const safeBase = path.resolve(folderPath);
-  const items = await fs.promises.readdir(safeBase);
+ipcMain.handle("fs:listJsonFiles", async (_, baseDir, relativePath = ".") => {
+  try {
+    const safeBase = resolveSafePath(baseDir, relativePath);
+    const items = await fs.promises.readdir(safeBase);
 
-  return items
-    .filter((f) => f.endsWith(".json"))
-    .map((f) => resolveSafePath(safeBase, f));
+    return items
+      .filter((f) => f.endsWith(".json"))
+      .map((f) => path.join(relativePath, f)); // Return relative paths to the frontend
+  } catch (err) {
+    console.error(`[FS] Error listing files: ${err.message}`);
+    throw err;
+  }
 });
 
-ipcMain.handle("fs:deleteFile", async (_, filePath) => {
-  const safePath = path.resolve(filePath);
-  return fs.promises.unlink(safePath);
+ipcMain.handle("fs:deleteFile", async (_, baseDir, relativePath) => {
+  try {
+    const safePath = resolveSafePath(baseDir, relativePath);
+    return fs.promises.unlink(safePath);
+  } catch (err) {
+    console.error(`[FS] Error deleting file: ${err.message}`);
+    throw err;
+  }
 });
 
 // ------------------------------------------
@@ -286,8 +373,8 @@ ipcMain.handle("fs:deleteFile", async (_, filePath) => {
 // ------------------------------------------
 ipcMain.handle("settings:read", async () => {
   const settingsDir = path.resolve(app.getPath("userData"), "Settings");
-  const settingsPath = resolveSafePath(settingsDir, "settings.json");
   try {
+    const settingsPath = resolveSafePath(settingsDir, "settings.json");
     const data = await fs.promises.readFile(settingsPath, "utf-8");
     return JSON.parse(data);
   } catch (error) {
@@ -298,9 +385,9 @@ ipcMain.handle("settings:read", async () => {
 
 ipcMain.handle("settings:write", async (_, data) => {
   const settingsDir = path.resolve(app.getPath("userData"), "Settings");
-  const settingsPath = resolveSafePath(settingsDir, "settings.json");
 
   try {
+    const settingsPath = resolveSafePath(settingsDir, "settings.json");
     await fs.promises.mkdir(settingsDir, { recursive: true });
     await fs.promises.writeFile(settingsPath, JSON.stringify(data, null, 2));
     return true;

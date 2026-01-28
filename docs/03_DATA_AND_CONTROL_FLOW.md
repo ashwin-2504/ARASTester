@@ -70,14 +70,19 @@ ConnectionResponse { Success, Message, ServerInfo }
 
 ```
 Renderer Process (React)
-    │ invokes: window.api.readFile(path)
+    │ invokes: window.api.readFile(baseDir, relativePath)
     ▼
-preload.js (contextBridge.exposeInMainWorld)
-    │ calls: ipcRenderer.invoke("fs:readFile", path)
+    preload.js (contextBridge.exposeInMainWorld)
+    │ calls: ipcRenderer.invoke("fs:readFile", baseDir, relativePath)
     ▼
 main.js (ipcMain.handle)
-    │ handler: "fs:readFile" [Line 117]
-    │ calls: fs.promises.readFile(filePath, "utf-8")
+    │ handler: "fs:readFile"
+    │ calls: resolveSafePath(baseDir, relativePath)
+    │     ├── validates: baseDir in Set[authorizedDirs]
+    │     ├── resolves: canonicalBase = realpathSync(baseDir)
+    │     ├── normalizes: relativePath matches [..] or isAbsolute
+    │     └── confirms: canonicalTarget.startsWith(canonicalBase)
+    │ calls: fs.promises.readFile(safePath, "utf-8")
     ▼
 File System
     │
@@ -85,7 +90,7 @@ File System
 Returns: file content string
 ```
 
-**Source**: FACT_ENTRY_POINTS.md, main.js Lines 117-119
+**Source**: main.js
 
 ---
 

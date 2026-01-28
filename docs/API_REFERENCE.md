@@ -6,7 +6,7 @@
 > - Security implications
 > - Architectural intent
 
-**Code Snapshot**: 2026-01-20
+**Code Snapshot**: 2026-01-28
 **Base URL**: `http://localhost:5000/api/aras`
 
 ---
@@ -88,18 +88,16 @@ Retrieve list of all active sessions.
 
 ### POST /disconnect
 
-Close session and release resources.
+### POST /disconnect/{sessionName}
+
+Close one or all active session(s) and release resources.
 
 - **Idempotency**: Safe to call multiple times. Returns Success=True if session is already gone.
 - **Side Effect**: Invalidates IOM connection and removes from pool.
+- **Cookie Management**: Clears the `ARAS_SESSION_ID` cookie if the current/explicit session is disconnected.
 
-**Request:**
-
-```json
-{
-  "sessionName": "Primary_Session" // Optional. If omitted, disconnects current.
-}
-```
+**Request (Optional):**
+Only for `/disconnect/{sessionName}` or if providing a JSON body to `/disconnect`.
 
 **Response:**
 
@@ -112,35 +110,24 @@ Close session and release resources.
 
 ---
 
+### GET /sessions
+
+Retrieve list of all active sessions.
+
+- **Guarantee**: Returns the _current real-time_ state of the backend session pool. Frontend **MUST** use this to sync.
+- **Authorization Scope**: Global. Returns ALL sessions active on the backend process.
+
+---
+
 ### GET /validate
 
-(Legacy) Test if current default connection is valid.
-
-**Response:**
-
-```json
-{
-  "Success": true,
-  "Message": "Valid. User: Admin",
-  "ServerInfo": { ... }
-}
-```
+Test if current connection is still valid on the server.
 
 ---
 
 ### GET /connection-status
 
-Get current connection state.
-
-**Response:**
-
-```json
-{
-  "IsConnected": true,
-  "Status": "Connected",
-  "ServerInfo": { ... }
-}
-```
+Get connection state and server info.
 
 ---
 
@@ -541,7 +528,13 @@ Check property equals expected value.
 
 ### POST /assert-state
 
-Verify lifecycle state.
+---
+
+### Additional Assertions (Extended)
+
+#### POST /assert-property-contains
+
+Verify if property value contains specific text.
 
 **Request:**
 
@@ -549,23 +542,159 @@ Verify lifecycle state.
 {
   "itemType": "Part",
   "id": "ITEM_ID",
-  "expectedState": "Released"
+  "property": "description",
+  "contains": "Assembly"
 }
 ```
 
-**Response (Fail):**
+#### POST /assert-count
+
+Verify number of items matching criteria.
+
+**Request:**
+
+```json
+{
+  "itemType": "Part",
+  "criteria": { "state": "Released" },
+  "expectedCount": 5
+}
+```
+
+#### POST /assert-locked
+
+Verify if item is currently locked.
+
+**Request:**
+
+```json
+{
+  "itemType": "Part",
+  "id": "ITEM_ID"
+}
+```
+
+#### POST /assert-unlocked
+
+Verify if item is currently unlocked.
+
+---
+
+## Workflow Endpoints
+
+### POST /start-workflow
+
+Start default workflow for an item.
+
+**Request:**
+
+```json
+{
+  "itemType": "Part",
+  "id": "ITEM_ID"
+}
+```
+
+### GET /assigned-activities
+
+Get active workflow assignments for the current user.
+
+**Response:**
 
 ```json
 {
   "Success": true,
-  "Passed": false,
-  "Message": "Expected state 'Released' but got 'Preliminary'",
-  "ActualValue": "Preliminary",
-  "ExpectedValue": "Released"
+  "Data": "<AML><Item type='Activity Assignment'>...</Item></AML>"
+}
+```
+
+### POST /complete-activity
+
+Evaluate and close a workflow activity.
+
+**Request:**
+
+```json
+{
+  "activityId": "ACTIVITY_ID",
+  "path": "Approve",
+  "comments": "Completed via ARASTester"
 }
 ```
 
 ---
+
+## File Endpoints
+
+### POST /upload-file
+
+Vault a local file to an item property.
+
+**Request:**
+
+```json
+{
+  "itemType": "CAD",
+  "id": "ITEM_ID",
+  "propertyName": "native_file",
+  "filePath": "C:\\Files\\part.dwg"
+}
+```
+
+### POST /download-file
+
+Download a vaulted file to a local path.
+
+**Request:**
+
+```json
+{
+  "itemType": "CAD",
+  "id": "ITEM_ID",
+  "propertyName": "native_file",
+  "savePath": "C:\\Downloads\\"
+}
+```
+
+### POST /verify-file-exists
+
+Check if a file property is set.
+
+---
+
+## Utility Endpoints
+
+### POST /generate-id
+
+Generate a new Aras GUID.
+
+### POST /get-next-sequence
+
+Get next value for a sequence.
+
+**Request:**
+
+```json
+{ "sequenceName": "Default Innovator Sequence" }
+```
+
+### POST /wait
+
+Pause execution (Backend delay).
+
+**Request:**
+
+```json
+{ "duration": 2000 }
+```
+
+### POST /set-variable
+
+Store a session-scoped variable.
+
+### POST /log-message
+
+Add a message to the session test log.
 
 ## Error Response Format
 

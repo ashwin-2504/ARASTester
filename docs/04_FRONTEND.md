@@ -6,7 +6,7 @@
 > - Security implications
 > - Architectural intent
 
-**Code Snapshot**: 2026-01-20
+**Code Snapshot**: 2026-01-28
 **Drift Warning**: This documentation reflects the codebase state at the above snapshot and may become outdated.
 
 ---
@@ -38,13 +38,16 @@ renderer/
 ├── app/
 │   └── main.jsx            # React entry point
 ├── components/
+│   ├── layout/             # 2 files
+│   ├── plan/               # 1 file
+│   ├── schema/             # 4 files
+│   ├── session/            # 4 files
+│   ├── tree/               # 2 files
+│   ├── ui/                 # 10 files
 │   ├── BackendStatus.jsx
 │   ├── JsonViewer.jsx
 │   ├── PlanModal.jsx
-│   ├── TestTree.jsx
-│   ├── schema/             # 4 files
-│   ├── tree/               # 2 files
-│   └── ui/                 # 8 files
+│   └── TestTree.tsx        # Converted to TSX
 ├── core/
 │   ├── adapters/           # 2 files
 │   ├── api/                # 1 file
@@ -123,91 +126,45 @@ Caches loaded test plans in memory.
 
 ---
 
-## 5. Action Executor (`renderer/core/services/ActionExecutor.js`)
+## 5. Action Executor (`renderer/core/services/ActionExecutor.ts`)
 
 Core service that executes test actions. Handles both client-side and server-side actions.
 
 ### Execution Flow
 
-```
-ActionExecutor.execute(action)
-    │
-    ├── Client-Side Action? → executeClientSide()
-    │       ├── Wait → setTimeout
-    │       ├── LogMessage → console.log
-    │       ├── SetVariable → (future: context store)
-    │       └── Custom → (mock execution)
-    │
-    └── Server-Side Action? → executeServerSide()
-            └── apiClient.post(endpoint, params)
-```
+1.  **Plugin Resolution**: Retrieves action implementation logic from `ActionRegistry`.
+2.  **Session Context**: Resolves which ARAS session to use (Explicit `sessionName` override vs Current Session).
+3.  **Client-Side Actions**: Executes logic locally (e.g., `Wait`, `LogMessage`, `SetVariable`).
+4.  **Server-Side Actions**: Forwards params to Backend API endpoints via `apiClient`.
+5.  **State Sync**: For `ArasConnect` and `ArasDisconnect`, automatically triggers a session list refresh.
 
-### Client-Side Actions (Lines 62-83)
+### Client-Side Actions
 
 | Action Type   | Behavior                               |
 | ------------- | -------------------------------------- |
 | `Wait`        | `await setTimeout(duration)`           |
 | `LogMessage`  | `console.log(level, message)`          |
-| `SetVariable` | Logs variable (future: context store)  |
-| `Custom`      | Mock execution (not fully implemented) |
-
-### Server-Side Actions (Lines 41-58)
-
-```javascript
-if (plugin.apiMethod === "GET") {
-  data = await apiClient.get(plugin.apiEndpoint);
-} else {
-  data = await apiClient.post(plugin.apiEndpoint, action.params || {});
-}
-```
-
-**Response Normalization**: Converts PascalCase (`Success`) to camelCase (`success`).
-
----
-
-## 4. Entry Script (from FACT_ENTRY_POINTS.md)
-
-| Setting      | Value                                                       |
-| ------------ | ----------------------------------------------------------- |
-| Entry File   | /renderer/app/main.jsx                                      |
-| Root Element | document.getElementById('root')                             |
-| CSS Import   | ../globals.css                                              |
-| React Mode   | NOT in StrictMode (no wrapper observed)                     |
-| Dark Mode    | Forced via `document.documentElement.classList.add('dark')` |
-
-**Source**: main.jsx Lines 7, 12
-
----
-
-## 5. IPC API (from FACT_ENTRY_POINTS.md)
-
-Frontend can invoke these channels via `window.electronAPI`:
-
-| Channel           | Purpose                   |
-| ----------------- | ------------------------- |
-| dialog:pickFolder | Open folder picker dialog |
-| fs:readFile       | Read file contents        |
-| fs:writeFile      | Write JSON to file        |
-| fs:listJsonFiles  | List JSON files in folder |
-| fs:deleteFile     | Delete a file             |
-| settings:read     | Read user settings        |
-| settings:write    | Write user settings       |
+| `SetVariable` | Stores variable in session log/context |
 
 ---
 
 ## 6. Action Schema (from core/schemas/action-schemas.json)
 
-The frontend uses a schema-driven approach for ARAS actions. Key observations:
+The frontend uses a schema-driven approach for ARAS actions.
 
-| Category                    | Count      |
-| --------------------------- | ---------- |
-| Connection & Authentication | 3 actions  |
-| Item CRUD Operations        | 7 actions  |
-| Lock Operations             | 3 actions  |
-| Lifecycle Operations        | 2 actions  |
-| Relationship Operations     | 3 actions  |
-| Workflow Operations         | 3 actions  |
-| AML & SQL Execution         | 3 actions  |
-| Assertion / Verification    | 4+ actions |
+| Category                    | Count     | Status         |
+| --------------------------- | --------- | -------------- |
+| Connection & Authentication | 3 actions | ✅ Implemented |
+| Item CRUD Operations        | 7 actions | ✅ Implemented |
+| Lock Operations             | 3 actions | ✅ Implemented |
+| Lifecycle Operations        | 2 actions | ✅ Implemented |
+| Relationship Operations     | 3 actions | ✅ Implemented |
+| Workflow Operations         | 3 actions | ✅ Implemented |
+| AML & SQL Execution         | 3 actions | ✅ Implemented |
+| Assertion / Verification    | 8 actions | ✅ Implemented |
+| File Vault Operations       | 3 actions | ✅ Implemented |
+| Utility Actions             | 7 actions | ✅ Implemented |
+
+**Total**: 42 actions fully mapped to Backend endpoints.
 
 **Source**: FACT_PUBLIC_INTERFACES.md (backend API mappings correspond to schema actions)

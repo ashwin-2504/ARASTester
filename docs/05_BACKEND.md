@@ -6,7 +6,7 @@
 > - Security implications
 > - Architectural intent
 
-**Code Snapshot**: 2026-01-20
+**Code Snapshot**: 2026-01-28
 **Drift Warning**: This documentation reflects the codebase state at the above snapshot and may become outdated.
 
 ---
@@ -20,6 +20,7 @@
 | Aras.IOM                                              | 15.0.1                | ArasBackend, Infrastructure |
 | Swashbuckle.AspNetCore                                | 6.4.0                 | ArasBackend                 |
 | Microsoft.Extensions.DependencyInjection.Abstractions | 10.0.2                | Application, Infrastructure |
+| Microsoft.AspNetCore.Http.Abstractions                | 2.2.0                 | ArasBackend (Web host)      |
 
 ---
 
@@ -30,11 +31,13 @@
 | Folder                                      | Namespace                           |
 | ------------------------------------------- | ----------------------------------- |
 | backend/ArasBackend/Controllers             | ArasBackend.Controllers             |
+| backend/ArasBackend/Services                | ArasBackend.Services (Web Specific) |
 | backend/ArasBackend/Middleware              | ArasBackend.Middleware              |
 | backend/ArasBackend.Core/Models             | ArasBackend.Core.Models             |
 | backend/ArasBackend.Core/Interfaces         | ArasBackend.Core.Interfaces         |
 | backend/ArasBackend.Core/Exceptions         | ArasBackend.Core.Exceptions         |
 | backend/ArasBackend.Application/Services    | ArasBackend.Application.Services    |
+| backend/ArasBackend.Application/Interfaces  | ArasBackend.Application.Interfaces  |
 | backend/ArasBackend.Infrastructure/Gateways | ArasBackend.Infrastructure.Gateways |
 | backend/ArasBackend.Infrastructure/Services | ArasBackend.Infrastructure.Services |
 
@@ -47,42 +50,29 @@
 **File**: `backend/ArasBackend/Controllers/ConnectionController.cs`
 **Base Route**: `/api/aras`
 
-| Method     | HTTP | Route              | Lines |
-| ---------- | ---- | ------------------ | ----- |
-| Connect    | POST | /connect           | 18-23 |
-| Disconnect | POST | /disconnect        | 25-30 |
-| GetStatus  | GET  | /connection-status | 32-37 |
-| Validate   | GET  | /validate          | 39-44 |
+| Method         | HTTP | Route              |
+| -------------- | ---- | ------------------ |
+| Connect        | POST | /connect           |
+| Disconnect     | POST | /disconnect        |
+| GetAllSessions | GET  | /sessions          |
+| GetStatus      | GET  | /connection-status |
+| Validate       | GET  | /validate          |
 
 ### ItemController
 
 **File**: `backend/ArasBackend/Controllers/ItemController.cs`
 **Base Route**: `/api/aras`
 
-| Method             | HTTP | Route                | Request Type              | Lines |
-| ------------------ | ---- | -------------------- | ------------------------- | ----- |
-| Query              | POST | /query               | QueryRequest              | 18-19 |
-| GetById            | POST | /get-by-id           | GetByIdRequest            | 21-22 |
-| GetByKeyedName     | POST | /get-by-keyed-name   | GetByKeyedNameRequest     | 24-25 |
-| Create             | POST | /create              | CreateItemRequest         | 27-28 |
-| Update             | POST | /update              | UpdateItemRequest         | 30-31 |
-| Delete             | POST | /delete              | DeleteItemRequest         | 33-34 |
-| Purge              | POST | /purge               | DeleteItemRequest         | 36-37 |
-| Lock               | POST | /lock                | LockRequest               | 39-40 |
-| Unlock             | POST | /unlock              | LockRequest               | 42-43 |
-| CheckLock          | POST | /check-lock          | LockRequest               | 45-46 |
-| Promote            | POST | /promote             | PromoteRequest            | 48-49 |
-| GetState           | POST | /get-state           | GetByIdRequest            | 51-52 |
-| AddRelationship    | POST | /add-relationship    | AddRelationshipRequest    | 54-55 |
-| GetRelationships   | POST | /get-relationships   | GetRelationshipsRequest   | 57-58 |
-| DeleteRelationship | POST | /delete-relationship | DeleteRelationshipRequest | 60-61 |
-| ApplyAml           | POST | /apply-aml           | ApplyAmlRequest           | 63-64 |
-| ApplySql           | POST | /apply-sql           | ApplySqlRequest           | 66-67 |
-| ApplyMethod        | POST | /apply-method        | ApplyMethodRequest        | 69-70 |
-| AssertExists       | POST | /assert-exists       | AssertExistsRequest       | 73-74 |
-| AssertNotExists    | POST | /assert-not-exists   | AssertExistsRequest       | 76-77 |
-| AssertProperty     | POST | /assert-property     | AssertPropertyRequest     | 79-80 |
-| AssertState        | POST | /assert-state        | AssertStateRequest        | 82-83 |
+| Category             | Methods                                                                                                                       |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| **CRUD**             | Query, GetById, GetByKeyedName, Create, Update, Delete, Purge                                                                 |
+| **Locking**          | Lock, Unlock, CheckLock                                                                                                       |
+| **Lifecycle**        | Promote, GetState                                                                                                             |
+| **Relationships**    | AddRelationship, GetRelationships, DeleteRelationship                                                                         |
+| **AML/SQL/Method**   | ApplyAml, ApplySql, ApplyMethod                                                                                               |
+| **Assertions**       | AssertExists, AssertNotExists, AssertProperty, AssertState, AssertPropertyContains, AssertCount, AssertLocked, AssertUnlocked |
+| **Workflow & Files** | StartWorkflow, GetAssignedActivities, CompleteActivity, UploadFile, DownloadFile, VerifyFileExists                            |
+| **Utility**          | GenerateId, GetNextSequence, Wait, SetVariable, LogMessage                                                                    |
 
 ---
 
@@ -91,49 +81,13 @@
 **File**: `backend/ArasBackend.Infrastructure/Gateways/ArasGateway.cs`
 **Implements**: `IArasGateway`
 
-| Method              | ARAS IOM Operation                                            | Lines   |
-| ------------------- | ------------------------------------------------------------- | ------- |
-| QueryItems          | newItem(type, "get") → apply()                                | 44-70   |
-| GetItemById         | newItem(type, "get") → setID() → apply()                      | 72-84   |
-| GetItemByKeyedName  | getItemByKeyedName()                                          | 86-89   |
-| CreateItem          | newItem(type, "add") → setProperty() → apply()                | 91-100  |
-| UpdateItem          | newItem(type, "edit") → setID() → setProperty() → apply()     | 102-112 |
-| DeleteItem          | newItem(type, "delete") → setID() → apply()                   | 114-122 |
-| PurgeItem           | newItem(type, "purge") → setID() → apply()                    | 124-132 |
-| LockItem            | newItem(type, "lock") → setID() → apply()                     | 134-142 |
-| UnlockItem          | newItem(type, "unlock") → setID() → apply()                   | 144-152 |
-| CheckLockStatus     | newItem(type, "get") → setAttribute("select", "locked_by_id") | 154-175 |
-| AddRelationship     | newItem(relType, "add") → setProperty(source_id, related_id)  | 177-192 |
-| GetRelationships    | newItem(relType, "get") → setProperty("source_id")            | 194-205 |
-| DeleteRelationship  | newItem(relType, "delete") → setID()                          | 207-215 |
-| PromoteItem         | newItem(type, "promoteItem") → setProperty("state")           | 217-228 |
-| GetCurrentState     | newItem(type, "get") → setAttribute("select", "state")        | 230-251 |
-| ApplyAML            | applyAML(aml)                                                 | 253-261 |
-| ApplySQL            | applySQL(sql)                                                 | 263-266 |
-| ApplyMethod         | applyMethod(name, body)                                       | 268-271 |
-| AssertItemExists    | newItem(type, "get") → apply() → check count > 0              | 273-291 |
-| AssertItemNotExists | newItem(type, "get") → apply() → check count == 0             | 293-311 |
-| AssertPropertyValue | getItemById() → getProperty() == expected                     | 313-329 |
-| AssertState         | getItemById() → getProperty("state") == expected              | 331-347 |
+Detailed IOM mappings are documented in the code. The gateway acts as a host-agnostic wrapper around the ARAS IOM SDK, executing all operations through the `ArasSessionManager`.
 
 ---
 
 ## 5. Domain Models (from FACT_DOMAIN_TERMS.md)
 
-All models are defined in `backend/ArasBackend.Core/Models/ArasModels.cs`:
-
-| Model                    | Purpose                       | Line Range |
-| ------------------------ | ----------------------------- | ---------- |
-| ServerInfo               | ARAS connection metadata      | 5-11       |
-| ConnectionRequest        | Login credentials             | 13-19      |
-| ConnectionResponse       | Login result                  | 21-26      |
-| ConnectionStatusResponse | Connection state              | 28-33      |
-| QueryRequest             | Item query parameters         | 35-42      |
-| GetByIdRequest           | Single item lookup            | 44-49      |
-| ItemResponse             | Generic item operation result | 150-156    |
-| AssertionResponse        | Test assertion result         | 158-165    |
-
-_(Full list in FACT_DOMAIN_TERMS.md)_
+All models are defined in `backend/ArasBackend.Core/Models/ArasModels.cs` (Request/Response contracts).
 
 ---
 
@@ -147,7 +101,7 @@ Per SDK Section 1.2, the correct connection pattern is:
 var conn = IomFactory.CreateHttpServerConnection(url, db, user, pass);
 var loginResult = conn.Login();
 if (loginResult.isError()) throw new Exception(loginResult.getErrorString());
-var innovator = IomFactory.CreateInnovator(conn);
+var innovator = loginResult.getInnovator();
 ```
 
 **ARASTester Implementation**: ✅ `ArasSessionManager` follows this pattern.
@@ -160,22 +114,22 @@ var innovator = IomFactory.CreateInnovator(conn);
 | Use pagination for large queries     | 4.2         | ✅ QueryRequest has Page/PageSize               |
 | Check for errors after apply()       | 5.4         | ✅ All gateway methods check `result.isError()` |
 
-### 6.3 Implementation Status
+### 6.3 Implementation Status (✅ Finalized)
 
-| Category                    | Implemented | Pending |
-| --------------------------- | ----------- | ------- |
-| Connection & Authentication | 3/3 ✅      | 0       |
-| Item CRUD                   | 7/7 ✅      | 0       |
-| Lock Operations             | 3/3 ✅      | 0       |
-| Lifecycle Operations        | 2/2 ✅      | 0       |
-| Relationship Operations     | 3/3 ✅      | 0       |
-| Workflow Operations         | 0/3         | 3 ⬜    |
-| AML & SQL Execution         | 3/3 ✅      | 0       |
-| Assertions                  | 4/8 ✅      | 4 ⬜    |
-| File Vault Operations       | 0/3         | 3 ⬜    |
-| Utility Actions             | 0/5         | 5 ⬜    |
+| Category                    | Implemented | Status             |
+| --------------------------- | ----------- | ------------------ |
+| Connection & Authentication | 5/5         | ✅ 100% Core       |
+| Item CRUD                   | 7/7         | ✅ 100% Core       |
+| Lock Operations             | 3/3         | ✅ 100% Core       |
+| Lifecycle Operations        | 2/2         | ✅ 100% Core       |
+| Relationship Operations     | 3/3         | ✅ 100% Core       |
+| Workflow Operations         | 3/3         | ✅ 100% Advanced   |
+| AML & SQL Execution         | 3/3         | ✅ 100% Core       |
+| Assertions                  | 8/8         | ✅ 100% Quality    |
+| File Vault Operations       | 3/3         | ✅ 100% Advanced   |
+| Utility Actions             | 5/5         | ✅ 100% Automation |
 
-**Total**: 25 implemented, 15 pending
+**Total**: 42/42 actions implemented.
 
 ---
 
@@ -183,19 +137,15 @@ var innovator = IomFactory.CreateInnovator(conn);
 
 ### 7.1 Session Identity & Concurrency
 
-- **Scope**: Sessions are **Process-Scoped Singletons**. A single backend process manages a pool of sessions shared by all connected clients. There is NO per-user isolation in the current single-tenant architecture.
-- **Identity**: `sessionName` is the **Unique Identifier** (Key) for a connection within the process.
-  - _Constraint_: Two sessions cannot share the same `sessionName`. Attempting to connect with an existing name (if allowed) overrides the previous connection.
-- **Concurrency**:
-  - Multiple active sessions are supported concurrently.
-  - **Limit**: Unbounded (technically limited by server memory/resources).
-  - **Isolation**: Sessions are isolated by their `sessionName` key. One test execution using "Session A" does not affect state in "Session B".
+- **Scope**: Sessions are **Process-Scoped Singletons**. A single backend process manages a pool of sessions.
+- **Identity**: `sessionName` is the **Unique Identifier** for a connection.
+- **Multi-Tenancy**: The backend supports multiple concurrent connections to different ARAS instances or databases within the same process.
 
 ### 7.2 Failure Modes
 
-| Operation          | Scenario              | Contract Behavior                                                                |
-| ------------------ | --------------------- | -------------------------------------------------------------------------------- |
-| `POST /connect`    | ARAS Unreachable      | Returns `Success: false` with specific error message. **No session is created**. |
-| `POST /connect`    | Bad Credentials       | Returns `Success: false`. **No session is created**.                             |
-| `POST /disconnect` | Invalid `sessionName` | **Idempotent Success**. Returns `Success: true` even if session did not exist.   |
-| `POST /disconnect` | API Failure (500)     | Local session reference is forcibly cleared to prevent "zombie" states.          |
+| Operation          | Scenario              | Contract Behavior                                                      |
+| ------------------ | --------------------- | ---------------------------------------------------------------------- |
+| `POST /connect`    | ARAS Unreachable      | Throws `ArasInfrastructureException` → Returns **502 Bad Gateway**.    |
+| `POST /connect`    | Bad Credentials       | Throws `ArasAuthException` → Returns **401 Unauthorized**.             |
+| `POST /disconnect` | Invalid `sessionName` | **Idempotent Success**. Returns Success even if session did not exist. |
+| `ANY`              | Item Not Found        | Throws `ArasNotFoundException` → Returns **404 Not Found**.            |

@@ -6,7 +6,7 @@
 > - Security implications
 > - Architectural intent
 
-**Code Snapshot**: 2026-01-20
+**Code Snapshot**: 2026-01-28
 **Drift Warning**: This documentation reflects the codebase state at the above snapshot and may become outdated.
 
 ---
@@ -41,13 +41,14 @@ flowchart LR
     end
 
     %% --- Backend App ---
-    subgraph Backend ["⚙️ ASP.NET Core Backend"]
+    subgraph Backend ["⚙️ ASP.NET Core Backend (Clean Arch)"]
         direction TB
         Middleware["Exception Middleware"]:::dotnet
-        Controllers["Controllers<br/>(Item/Connection)"]:::dotnet
-        Services["App Services"]:::dotnet
-        Gateway["Aras Gateway"]:::dotnet
-        Session["Aras Session Mgr"]:::dotnet
+        Controllers["Controllers<br/>(Presentation)"]:::dotnet
+        SessionCtx["WebSessionContext<br/>(Presentation)"]:::dotnet
+        Services["App Services<br/>(Application)"]:::dotnet
+        Gateway["Aras Gateway<br/>(Infrastructure)"]:::dotnet
+        SessionMgr["Aras Session Mgr<br/>(Infrastructure)"]:::dotnet
     end
 
     %% --- External ---
@@ -71,8 +72,9 @@ flowchart LR
     Middleware --> Controllers
     Controllers --> Services
     Services --> Gateway
-    Gateway --> Session
-    Session ==>|"IOM SDK (SOAP/XML)"| ARAS
+    Gateway --"Uses"--> SessionMgr
+    SessionMgr -.->|"Resolves ID"| SessionCtx
+    SessionMgr ==>|"IOM SDK (SOAP/XML)"| ARAS
 ```
 
 ## Data Flow Summary
@@ -116,6 +118,8 @@ main.js (entry per package.json "main")
 
 ```
 Program.cs (entry)
+    └── calls: builder.Services.AddHttpContextAccessor()
+    └── calls: builder.Services.AddScoped<ISessionContext, WebSessionContext>()
     └── calls: builder.Services.AddInfrastructure()
     └── calls: builder.Services.AddApplication()
     └── calls: builder.Services.AddControllers()
@@ -135,29 +139,31 @@ The following namespaces and folder groupings exist. **No architectural meaning 
 
 | Folder                             | Namespace                                                                | Project File                      |
 | ---------------------------------- | ------------------------------------------------------------------------ | --------------------------------- |
-| backend/ArasBackend                | ArasBackend.Controllers                                                  | ArasBackend.csproj                |
+| backend/ArasBackend                | ArasBackend.Controllers, ArasBackend.Services                            | ArasBackend.csproj                |
 | backend/ArasBackend.Core           | ArasBackend.Core.Models, ArasBackend.Core.Interfaces                     | ArasBackend.Core.csproj           |
-| backend/ArasBackend.Application    | ArasBackend.Application.Services                                         | ArasBackend.Application.csproj    |
+| backend/ArasBackend.Application    | ArasBackend.Application.Services, ArasBackend.Application.Interfaces     | ArasBackend.Application.csproj    |
 | backend/ArasBackend.Infrastructure | ArasBackend.Infrastructure.Gateways, ArasBackend.Infrastructure.Services | ArasBackend.Infrastructure.csproj |
 
-**Source**: Namespace declarations in each file (verified in FACT_PUBLIC_INTERFACES.md)
+**Source**: Namespace declarations in each file
 
 ### 2.2 Project References (from .csproj files)
 
 ```
-ArasBackend (main host)
-    ├── references: ArasBackend.Core
+ArasBackend (main host / Presentation)
     ├── references: ArasBackend.Application
     └── references: ArasBackend.Infrastructure
+        └── references: ArasBackend.Core
+    └── references: ArasBackend.Core (transitive/direct)
+
+ArasBackend.Infrastructure
+    ├── references: ArasBackend.Application (for interfaces)
+    └── references: ArasBackend.Core
 
 ArasBackend.Application
     └── references: ArasBackend.Core
-
-ArasBackend.Infrastructure
-    └── references: ArasBackend.Core
 ```
 
-**Source**: FACT_DEPENDENCIES.md
+**Source**: Project dependencies have been refactored for Clean Architecture.
 
 ---
 
@@ -167,16 +173,19 @@ Observable call chain from HTTP endpoint to ARAS IOM:
 
 ```
 HTTP Request
+    ├── [Session Extraction via WebSessionContext]
     └── ItemController (injects ItemAppService)
             └── ItemAppService (injects IArasGateway)
                     └── ArasGateway (injects ArasSessionManager)
+                            ├── uses: ISessionContext.SessionId (resolved from WebSessionContext)
                             └── calls: Innovator.newItem(), item.apply(), etc.
 ```
 
 **Observations**:
 
-- `ItemController` directly calls `_itemService.*` methods (observed in FACT_PUBLIC_INTERFACES.md)
-- `ArasGateway` uses `Aras.IOM.Innovator` object via `_sessionManager.Execute()` (observed in ArasGateway.cs Line 21)
+- `ItemController` delegates entirely to `IItemAppService`.
+- `ArasGateway` no longer depends on `IHttpContextAccessor` directly; it relies on `ISessionContext` to be host-agnostic.
+- `ArasSessionManager` uses `ISessionContext` to look up the correct IOM connection from its cache.
 
 ---
 
@@ -184,13 +193,15 @@ HTTP Request
 
 **Service Registration** (from Program.cs):
 
-| Method              | Namespace                                | Line |
-| ------------------- | ---------------------------------------- | ---- |
-| AddInfrastructure() | ArasBackend.Infrastructure               | 23   |
-| AddApplication()    | ArasBackend.Application                  | 24   |
-| AddControllers()    | Microsoft.Extensions.DependencyInjection | 25   |
+| Method                 | Namespace                                | Line (Approx) | Purpose                                           |
+| ---------------------- | ---------------------------------------- | ------------- | ------------------------------------------------- |
+| AddHttpContextAccessor | Microsoft.AspNetCore.Http                | 23            | Access to Request/Context                         |
+| AddScoped              | Microsoft.Extensions.DependencyInjection | 24            | Register `WebSessionContext` as `ISessionContext` |
+| AddInfrastructure()    | ArasBackend.Infrastructure               | 26            | Gateways, SessionManager                          |
+| AddApplication()       | ArasBackend.Application                  | 27            | App Services, Validators                          |
+| AddControllers()       | Microsoft.Extensions.DependencyInjection | 28            | API Controllers                                   |
 
-> **Design rationale not found in code or documentation.**
+> **Design Rationale**: Setup enforces Clean Architecture. `ArasBackend` (Web) acts as the Composition Root and Presentation Layer. The Application and Infrastructure layers are registered via their respective extension methods.
 
 ---
 

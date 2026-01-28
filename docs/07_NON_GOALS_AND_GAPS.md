@@ -1,78 +1,86 @@
 # 07_NON_GOALS_AND_GAPS
 
 > ⚠ HUMAN REVIEW REQUIRED
+>
 > - Business logic interpretation
 > - Security implications
 > - Architectural intent
 
-**Code Snapshot**: 2026-01-20
+**Code Snapshot**: 2026-01-28
 **Drift Warning**: This documentation reflects the codebase state at the above snapshot and may become outdated.
 
 ---
 
-## 1. Features Referenced but Not Implemented
+## 1. Features Implemented
 
-### Workflow Operations (⬜ Pending)
-| Action | IOM Method | Status |
-|--------|------------|--------|
-| StartWorkflow | `item.apply("startWorkflow")` | ⬜ Pending |
-| GetAssignedActivities | `innovator.getAssignedActivities()` | ⬜ Pending |
-| CompleteActivity | Activity item → `apply("closeActivity")` | ⬜ Pending |
+### Workflow Operations (✅ Implemented)
 
-### File Vault Operations (⬜ Pending)
-| Action | IOM Method | Status |
-|--------|------------|--------|
-| UploadFile | `item.setFileProperty(prop, path)` | ⬜ Pending |
-| DownloadFile | `item.fetchFileProperty(prop, path)` | ⬜ Pending |
-| VerifyFileExists | Check `File` relationship | ⬜ Pending |
+| Action                | IOM Method                          | Status         |
+| --------------------- | ----------------------------------- | -------------- |
+| StartWorkflow         | `item.apply("startWorkflow")`       | ✅ Implemented |
+| GetAssignedActivities | `innovator.getAssignedActivities()` | ✅ Implemented |
+| CompleteActivity      | Activity item → `EvaluateActivity`  | ✅ Implemented |
 
-### Additional Assertions (⬜ Pending)
-| Action | Pass Condition | Status |
-|--------|----------------|--------|
-| AssertPropertyContains | `getProperty().Contains()` | ⬜ Pending |
-| AssertCount | `getItemCount() == Expected` | ⬜ Pending |
-| AssertLocked | `locked_by_id != null` | ⬜ Pending |
-| AssertUnlocked | `locked_by_id == null` | ⬜ Pending |
+### File Vault Operations (✅ Implemented)
 
-### Utility Actions (⬜ Pending)
-| Action | IOM Method | Status |
-|--------|------------|--------|
-| GenerateID | `innovator.getNewID()` | ⬜ Pending |
-| GetNextSequence | `innovator.getNextSequence(name)` | ⬜ Pending |
-| Wait | `Task.Delay()` | ⬜ Pending |
-| SetVariable | Internal storage | ⬜ Pending |
-| LogMessage | Internal logging | ⬜ Pending |
+| Action           | IOM Method                         | Status         |
+| ---------------- | ---------------------------------- | -------------- |
+| UploadFile       | `item.setFileProperty(prop, path)` | ✅ Implemented |
+| DownloadFile     | `fileItem.checkout(dir)`           | ✅ Implemented |
+| VerifyFileExists | Check if property is set           | ✅ Implemented |
+
+### Additional Assertions (✅ Implemented)
+
+| Action                 | Pass Condition               | Status         |
+| ---------------------- | ---------------------------- | -------------- |
+| AssertPropertyContains | `getProperty().Contains()`   | ✅ Implemented |
+| AssertCount            | `getItemCount() == Expected` | ✅ Implemented |
+| AssertLocked           | `locked_by_id != null`       | ✅ Implemented |
+| AssertUnlocked         | `locked_by_id == null`       | ✅ Implemented |
+
+### Utility Actions (✅ Implemented)
+
+| Action          | IOM Method                        | Status         |
+| --------------- | --------------------------------- | -------------- |
+| GenerateID      | `innovator.getNewID()`            | ✅ Implemented |
+| GetNextSequence | `innovator.getNextSequence(name)` | ✅ Implemented |
+| Wait            | `Task.Delay()`                    | ✅ Implemented |
+| SetVariable     | Session Store                     | ✅ Implemented |
+| LogMessage      | Session Logging                   | ✅ Implemented |
 
 ---
 
 ## 2. Known Documentation Gaps
 
-| Gap | Status |
-|-----|--------|
-| ~~Store implementation details~~ | ✅ Documented in 04_FRONTEND.md |
-| ~~ExceptionHandlingMiddleware implementation~~ | ✅ Documented in 06_SECURITY_AND_FAILURES.md |
-| ~~Action execution flow~~ | ✅ Documented in 04_FRONTEND.md (ActionExecutor) |
-| Frontend component logic | ⬜ Individual .jsx files not extracted |
-| Test coverage | ⬜ ArasBackend.Tests project exists but not documented |
+| Gap                                            | Status                                                 |
+| ---------------------------------------------- | ------------------------------------------------------ |
+| ~~Store implementation details~~               | ✅ Documented in 04_FRONTEND.md                        |
+| ~~ExceptionHandlingMiddleware implementation~~ | ✅ Documented in 06_SECURITY_AND_FAILURES.md           |
+| ~~Action execution flow~~                      | ✅ Documented in 04_FRONTEND.md (ActionExecutor)       |
+| Frontend component logic                       | ⬜ Individual .jsx files not extracted                 |
+| Test coverage                                  | ⬜ ArasBackend.Tests project exists but not documented |
 
 ---
 
 ## 3. Discrepancies Found
 
-| Item | Discrepancy |
-|------|-------------|
-| Frontend Schema vs Backend | Some schema actions (File Vault, Workflow) have no backend endpoints |
+| Item                  | Discrepancy                                                                                                                                                          |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **StartWorkflow Map** | Frontend `ActionSchema` marks `workflowMap` as **required**, but `ArasGateway.cs` currently returns an error if a map is provided (only default workflow supported). |
+| **Wait/Log/Variable** | Backend provides endpoints for these utility actions, but `ActionExecutor.ts` implements them **client-side** by default for responsiveness.                         |
 
 ---
 
 ## 4. Open Questions - Answered
 
 ### Q1: Authentication Strategy
+
 **Question**: Is ARAS session-cookie based auth sufficient for production?
 
-**Answer** (from `ArasSessionManager.cs`):
-- **Current Implementation**: Cookie-based session (`ARAS_SESSION_ID`) stored via `IConnectionStore`
-- **Cookie Settings** (Lines 28-33):
+**Answer** (from `ConnectionController.cs`):
+
+- **Current Implementation**: Cookie-based session (`ARAS_SESSION_ID`) set in the presentation layer.
+- **Cookie Settings** (Lines 26-31):
   - `HttpOnly = true` ✅ (XSS protection)
   - `Secure = false` ⚠ (allows HTTP, intended for localhost)
   - `SameSite = Lax` ✅ (CSRF protection)
@@ -81,35 +89,38 @@
 ---
 
 ### Q2: Workflow Endpoints
+
 **Question**: Are StartWorkflow, GetAssignedActivities, CompleteActivity planned or deprecated?
 
 **Answer**:
-- **Status**: ⬜ Pending (Phase 3: Advanced - "Nice to Have")
-- **Priority**: Lower priority per implementation roadmap
-- **Schema Exists**: Yes, defined in `action-schemas.json` (Lines 562-631)
-- **Backend**: No endpoints implemented yet
+
+- **Status**: ✅ Implemented in `ArasGateway.cs`.
+- **Note**: Currently supports default workflow for an item; explicit map selection is pending full implementation. (Ref: `action-schemas.json` Lines 562-631)
 
 ---
 
 ### Q3: File Vault
+
 **Question**: Is file upload/download functionality planned?
 
 **Answer**:
-- **Status**: ⬜ Pending (Phase 3: Advanced)
-- **IOM Methods Available**: `item.setFileProperty()`, `item.fetchFileProperty()`
-- **Schema Exists**: Yes, category "file" in `action-schemas.json`
-- **Backend**: No endpoints implemented yet
+
+- **Status**: ✅ Implemented in `ArasGateway.cs`.
+- **Note**: Uses `setFileProperty` for upload and `checkout` for download. (Schema exists in `action-schemas.json`)
 
 ---
 
 ### Q4: Production CORS
+
 **Question**: What origins should be allowed in production?
 
 **Answer** (from `Program.cs` Lines 14-15):
+
 ```csharp
 policy.WithOrigins("http://localhost:3000", "http://localhost:5173")
       .SetIsOriginAllowed(origin => new Uri(origin).Host == "localhost")
 ```
+
 - **Current**: Only localhost allowed
 - **Production Recommendation**:
   - Remove localhost-only restriction
@@ -119,19 +130,19 @@ policy.WithOrigins("http://localhost:3000", "http://localhost:5173")
 ---
 
 ### Q5: Error Exposure
+
 **Question**: Should ARAS error strings be sanitized before returning to frontend?
 
-**Answer** (from `ArasGateway.cs` Line 26 and `ArasSessionManager.cs` Line 86):
+**Answer** (from `ArasGateway.cs` and `ArasSessionManager.cs`):
+
 ```csharp
 Message = result.getErrorString()  // ArasGateway
 throw new ArasAuthException(loginResult.getErrorString());  // SessionManager
 ```
+
 - **Current**: Raw ARAS error strings are returned
 - **Risk**: May expose internal system details
-- **Recommendation**:
-  - Log full errors server-side
-  - Return sanitized messages to frontend (e.g., "Operation failed")
-  - Consider error codes for debugging
+- **Recommendation**: Sanitization is planned once a robust error mapping system is implemented.
 
 ---
 

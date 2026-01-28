@@ -130,13 +130,13 @@ function waitForVite(retryCount = 0) {
       log(
         "RUNNER",
         "info",
-        "Waiting 500ms debounce to ensure bundle stability...",
+        "Waiting 100ms debounce to ensure bundle stability...",
       );
 
       setTimeout(() => {
         log("RUNNER", "success", "Vite is stable. Launching Electron...");
         startElectron();
-      }, 500);
+      }, 100);
     } else {
       log("RUNNER", "info", `Vite responded ${res.statusCode}, waiting...`);
       setTimeout(() => waitForVite(retryCount + 1), POLLING_INTERVAL);
@@ -256,16 +256,15 @@ function startElectron() {
   }
 })();
 
-const { execSync } = require("child_process");
-
 /**
  * Robustly kill a process tree
  */
 function killTree(pid, name) {
   try {
     if (process.platform === "win32") {
-      // /F = force, /T = tree (child processes), /PID = specific process logic
-      execSync(`taskkill /F /T /PID ${pid}`);
+      // Use spawnSync with arguments array to prevent command injection
+      const { spawnSync } = require("child_process");
+      spawnSync("taskkill", ["/F", "/T", "/PID", pid.toString()]);
     } else {
       process.kill(pid, "SIGKILL");
     }

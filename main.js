@@ -122,6 +122,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
     },
+    backgroundColor: "#1E1F22",
   });
 
   // Check for dev mode
@@ -234,39 +235,58 @@ ipcMain.handle("dialog:pickFolder", () => {
 });
 
 // ------------------------------------------
+// FILESYSTEM UTILS
+// ------------------------------------------
+/**
+ * Resolves and validates a path to prevent directory traversal.
+ * Ensures the resolved path resides within the specified base directory.
+ */
+function resolveSafePath(baseDir, relativePath) {
+  const resolvedBase = path.resolve(baseDir);
+  const resolvedPath = path.resolve(baseDir, relativePath);
+
+  if (!resolvedPath.startsWith(resolvedBase)) {
+    throw new Error(`Security Violation: Path traversal attempt detected`);
+  }
+
+  return resolvedPath;
+}
+
+// ------------------------------------------
 // FILESYSTEM HANDLERS
 // ------------------------------------------
 ipcMain.handle("fs:readFile", (_, filePath) => {
-  return fs.promises.readFile(filePath, "utf-8");
+  // Use path.resolve to normalize and then ensure it's a valid string
+  const safePath = path.resolve(filePath);
+  return fs.promises.readFile(safePath, "utf-8");
 });
 
 ipcMain.handle("fs:writeFile", (_, filePath, data) => {
-  return fs.promises.writeFile(filePath, JSON.stringify(data, null, 2));
+  const safePath = path.resolve(filePath);
+  return fs.promises.writeFile(safePath, JSON.stringify(data, null, 2));
 });
 
 // NEW — LIST JSON FILES IN A FOLDER
 ipcMain.handle("fs:listJsonFiles", async (_, folderPath) => {
-  const items = await fs.promises.readdir(folderPath);
+  const safeBase = path.resolve(folderPath);
+  const items = await fs.promises.readdir(safeBase);
 
   return items
     .filter((f) => f.endsWith(".json"))
-    .map((f) => path.join(folderPath, f));
+    .map((f) => resolveSafePath(safeBase, f));
 });
 
 ipcMain.handle("fs:deleteFile", async (_, filePath) => {
-  const fs = require("fs");
-  return fs.promises.unlink(filePath);
+  const safePath = path.resolve(filePath);
+  return fs.promises.unlink(safePath);
 });
 
 // ------------------------------------------
 // SETTINGS HANDLERS
 // ------------------------------------------
 ipcMain.handle("settings:read", async () => {
-  const settingsPath = path.join(
-    app.getPath("userData"),
-    "Settings",
-    "settings.json",
-  );
+  const settingsDir = path.resolve(app.getPath("userData"), "Settings");
+  const settingsPath = resolveSafePath(settingsDir, "settings.json");
   try {
     const data = await fs.promises.readFile(settingsPath, "utf-8");
     return JSON.parse(data);
@@ -277,8 +297,8 @@ ipcMain.handle("settings:read", async () => {
 });
 
 ipcMain.handle("settings:write", async (_, data) => {
-  const settingsDir = path.join(app.getPath("userData"), "Settings");
-  const settingsPath = path.join(settingsDir, "settings.json");
+  const settingsDir = path.resolve(app.getPath("userData"), "Settings");
+  const settingsPath = resolveSafePath(settingsDir, "settings.json");
 
   try {
     await fs.promises.mkdir(settingsDir, { recursive: true });

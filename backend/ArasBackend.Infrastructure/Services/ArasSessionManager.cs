@@ -2,51 +2,24 @@ using Aras.IOM;
 using ArasBackend.Core.Interfaces;
 using ArasBackend.Core.Exceptions;
 using ArasBackend.Core.Models;
-using Microsoft.AspNetCore.Http;
+using ArasBackend.Application.Interfaces;
 
 namespace ArasBackend.Infrastructure.Services;
 
 public class ArasSessionManager : IArasSessionManager
 {
     private readonly IConnectionStore _connectionStore;
-    private readonly IHttpContextAccessor _httpContextAccessor;
-    private const string CookieName = "ARAS_SESSION_ID";
-    private const string HeaderName = "X-Session-Name";
+    private readonly ISessionContext _sessionContext;
 
-    public ArasSessionManager(IConnectionStore connectionStore, IHttpContextAccessor httpContextAccessor)
+    public ArasSessionManager(IConnectionStore connectionStore, ISessionContext sessionContext)
     {
         _connectionStore = connectionStore;
-        _httpContextAccessor = httpContextAccessor;
+        _sessionContext = sessionContext;
     }
 
     private string? GetSessionId()
     {
-        // 1. Check Header
-        if (_httpContextAccessor.HttpContext?.Request.Headers.TryGetValue(HeaderName, out var headerValues) == true)
-        {
-            var headerValue = headerValues.FirstOrDefault();
-            if (!string.IsNullOrEmpty(headerValue)) return headerValue;
-        }
-
-        // 2. Check Cookie (Legacy/Fallback)
-        return _httpContextAccessor.HttpContext?.Request.Cookies[CookieName];
-    }
-
-    private void SetSessionId(string sessionId)
-    {
-        // We still set cookie for browser-based stickiness if needed, 
-        // though the frontend now primarily uses the header.
-        _httpContextAccessor.HttpContext?.Response.Cookies.Append(CookieName, sessionId, new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = false, // Allow HTTP for localhost
-            SameSite = SameSiteMode.Lax
-        });
-    }
-
-    private void ClearSessionId()
-    {
-        _httpContextAccessor.HttpContext?.Response.Cookies.Delete(CookieName);
+        return _sessionContext.SessionId;
     }
 
     private SessionContext? GetCurrentSession()
@@ -109,7 +82,9 @@ public class ArasSessionManager : IArasSessionManager
 
             // Store Session
             _connectionStore.AddSession(sessionName, session);
-            SetSessionId(sessionName);
+
+            // NOTE: We do NOT set cookies here anymore. That is a Presentation Layer concern.
+            // We return the SessionName so the Controller can deal with it.
 
             return new ConnectionResponse
             {
@@ -128,7 +103,7 @@ public class ArasSessionManager : IArasSessionManager
 
     public ConnectionResponse Disconnect()
     {
-        // Disconnects current session context (from header)
+        // Disconnects current session context
         var sessionId = GetSessionId();
         if (string.IsNullOrEmpty(sessionId)) return new ConnectionResponse { Success = true, Message = "Already disconnected" };
 
@@ -139,14 +114,8 @@ public class ArasSessionManager : IArasSessionManager
     {
         _connectionStore.RemoveSession(sessionName);
         
-        // If the disconnected session matches the current context cookie/header, clear cookie?
-        // It's stateless mostly but good practice.
-        var currentId = GetSessionId();
-        if (currentId == sessionName)
-        {
-            ClearSessionId();
-        }
-
+        // NOTE: We do NOT clear cookies here. That is a Presentation Layer concern.
+        
         return new ConnectionResponse { Success = true, Message = $"Session '{sessionName}' disconnected" };
     }
 

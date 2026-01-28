@@ -20,6 +20,9 @@ builder.Services.AddCors(options =>
 });
 
 // Register Architecture Layers
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ArasBackend.Application.Interfaces.ISessionContext, ArasBackend.Services.WebSessionContext>();
+
 builder.Services.AddInfrastructure();
 builder.Services.AddApplication();
 builder.Services.AddControllers()

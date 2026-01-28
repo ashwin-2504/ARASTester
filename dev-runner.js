@@ -74,27 +74,22 @@ function printBanner() {
 }
 
 /**
- * Find the first available port starting from startPort
+ * Find a free port using the OS native assignment (port 0)
  */
-async function findAvailablePort(startPort) {
+async function findAvailablePort() {
   return new Promise((resolve, reject) => {
     const server = net.createServer();
     server.unref(); // Don't let this server prevent exit
 
-    server.on("error", (err) => {
-      if (err.code === "EADDRINUSE") {
-        // Port taken, try next one
-        resolve(findAvailablePort(startPort + 1));
-      } else {
-        reject(err);
-      }
-    });
-
-    server.listen(startPort, () => {
-      const { port } = server.address();
+    server.listen(0, () => {
+      const port = server.address().port;
       server.close(() => {
         resolve(port);
       });
+    });
+
+    server.on("error", (err) => {
+      reject(err);
     });
   });
 }
@@ -217,13 +212,13 @@ function startElectron() {
 // ===========================================
 (async () => {
   try {
-    // 1. Find Open Ports
-    BACKEND_PORT = await findAvailablePort(5000);
-    VITE_PORT = await findAvailablePort(5173);
+    // 1. Find Open Ports (OS Assigned)
+    BACKEND_PORT = await findAvailablePort();
+    VITE_PORT = await findAvailablePort();
 
-    // Safety check: ensure they are different
+    // Safety check: ensure they are different (extremely unlikely but possible)
     if (VITE_PORT === BACKEND_PORT) {
-      VITE_PORT = await findAvailablePort(BACKEND_PORT + 1);
+      VITE_PORT = await findAvailablePort();
     }
 
     log("RUNNER", "info", `Allocated Backend Port: ${BACKEND_PORT}`);
@@ -236,7 +231,7 @@ function startElectron() {
     // Use npx to run vite, which handles finding the executable in node_modules
     viteProcess = spawn(
       "npx.cmd", // Use npx.cmd on Windows, npx on Linux/Mac (but user is on Windows)
-      ["vite", "--port", VITE_PORT.toString()],
+      ["vite", "--port", VITE_PORT.toString(), "--strictPort"],
       {
         stdio: "inherit",
         shell: true,

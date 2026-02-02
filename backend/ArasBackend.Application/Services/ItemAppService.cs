@@ -12,54 +12,54 @@ public class ItemAppService
         _gateway = gateway;
     }
 
-    public ItemResponse QueryItems(QueryRequest request) => _gateway.QueryItems(request);
-    public ItemResponse GetItemById(GetByIdRequest request) => _gateway.GetItemById(request);
-    public ItemResponse GetItemByKeyedName(GetByKeyedNameRequest request) => _gateway.GetItemByKeyedName(request);
-    public ItemResponse CreateItem(CreateItemRequest request) => _gateway.CreateItem(request);
-    public ItemResponse UpdateItem(UpdateItemRequest request) => _gateway.UpdateItem(request);
-    public ItemResponse DeleteItem(DeleteItemRequest request) => _gateway.DeleteItem(request);
-    public ItemResponse PurgeItem(DeleteItemRequest request) => _gateway.PurgeItem(request);
+    public Task<ItemResponse> QueryItems(QueryRequest request, CancellationToken cancellationToken = default) => _gateway.QueryItems(request, cancellationToken);
+    public Task<ItemResponse> GetItemById(GetByIdRequest request, CancellationToken cancellationToken = default) => _gateway.GetItemById(request, cancellationToken);
+    public Task<ItemResponse> GetItemByKeyedName(GetByKeyedNameRequest request, CancellationToken cancellationToken = default) => _gateway.GetItemByKeyedName(request, cancellationToken);
+    public Task<ItemResponse> CreateItem(CreateItemRequest request, CancellationToken cancellationToken = default) => _gateway.CreateItem(request, cancellationToken);
+    public Task<ItemResponse> UpdateItem(UpdateItemRequest request, CancellationToken cancellationToken = default) => _gateway.UpdateItem(request, cancellationToken);
+    public Task<ItemResponse> DeleteItem(DeleteItemRequest request, CancellationToken cancellationToken = default) => _gateway.DeleteItem(request, cancellationToken);
+    public Task<ItemResponse> PurgeItem(DeleteItemRequest request, CancellationToken cancellationToken = default) => _gateway.PurgeItem(request, cancellationToken);
     
-    public ItemResponse LockItem(LockRequest request) => _gateway.LockItem(request);
-    public ItemResponse UnlockItem(LockRequest request) => _gateway.UnlockItem(request);
-    public ItemResponse CheckLockStatus(LockRequest request) => _gateway.CheckLockStatus(request);
+    public Task<ItemResponse> LockItem(LockRequest request, CancellationToken cancellationToken = default) => _gateway.LockItem(request, cancellationToken);
+    public Task<ItemResponse> UnlockItem(LockRequest request, CancellationToken cancellationToken = default) => _gateway.UnlockItem(request, cancellationToken);
+    public Task<ItemResponse> CheckLockStatus(LockRequest request, CancellationToken cancellationToken = default) => _gateway.CheckLockStatus(request, cancellationToken);
     
-    public ItemResponse PromoteItem(PromoteRequest request) => _gateway.PromoteItem(request);
-    public ItemResponse GetCurrentState(GetByIdRequest request) => _gateway.GetCurrentState(request);
+    public Task<ItemResponse> PromoteItem(PromoteRequest request, CancellationToken cancellationToken = default) => _gateway.PromoteItem(request, cancellationToken);
+    public Task<ItemResponse> GetCurrentState(GetByIdRequest request, CancellationToken cancellationToken = default) => _gateway.GetCurrentState(request, cancellationToken);
     
-    public ItemResponse AddRelationship(AddRelationshipRequest request) => _gateway.AddRelationship(request);
-    public ItemResponse GetRelationships(GetRelationshipsRequest request) => _gateway.GetRelationships(request);
-    public ItemResponse DeleteRelationship(DeleteRelationshipRequest request) => _gateway.DeleteRelationship(request);
+    public Task<ItemResponse> AddRelationship(AddRelationshipRequest request, CancellationToken cancellationToken = default) => _gateway.AddRelationship(request, cancellationToken);
+    public Task<ItemResponse> GetRelationships(GetRelationshipsRequest request, CancellationToken cancellationToken = default) => _gateway.GetRelationships(request, cancellationToken);
+    public Task<ItemResponse> DeleteRelationship(DeleteRelationshipRequest request, CancellationToken cancellationToken = default) => _gateway.DeleteRelationship(request, cancellationToken);
     
-    public ItemResponse ApplyAML(ApplyAmlRequest request) => _gateway.ApplyAML(request);
-    public ItemResponse ApplySQL(ApplySqlRequest request) => _gateway.ApplySQL(request);
-    public ItemResponse ApplyMethod(ApplyMethodRequest request) => _gateway.ApplyMethod(request);
+    public Task<ItemResponse> ApplyAML(ApplyAmlRequest request, CancellationToken cancellationToken = default) => _gateway.ApplyAML(request, cancellationToken);
+    public Task<ItemResponse> ApplySQL(ApplySqlRequest request, CancellationToken cancellationToken = default) => _gateway.ApplySQL(request, cancellationToken);
+    public Task<ItemResponse> ApplyMethod(ApplyMethodRequest request, CancellationToken cancellationToken = default) => _gateway.ApplyMethod(request, cancellationToken);
     
-    public AssertionResponse AssertItemExists(AssertExistsRequest request) => _gateway.AssertItemExists(request);
-    public AssertionResponse AssertItemNotExists(AssertExistsRequest request) => _gateway.AssertItemNotExists(request);
-    public AssertionResponse AssertPropertyValue(AssertPropertyRequest request) => _gateway.AssertPropertyValue(request);
-    public AssertionResponse AssertState(AssertStateRequest request) => _gateway.AssertState(request);
+    public Task<AssertionResponse> AssertItemExists(AssertExistsRequest request, CancellationToken cancellationToken = default) => _gateway.AssertItemExists(request, cancellationToken);
+    public Task<AssertionResponse> AssertItemNotExists(AssertExistsRequest request, CancellationToken cancellationToken = default) => _gateway.AssertItemNotExists(request, cancellationToken);
+    public Task<AssertionResponse> AssertPropertyValue(AssertPropertyRequest request, CancellationToken cancellationToken = default) => _gateway.AssertPropertyValue(request, cancellationToken);
+    public Task<AssertionResponse> AssertState(AssertStateRequest request, CancellationToken cancellationToken = default) => _gateway.AssertState(request, cancellationToken);
     
     // Workflow Operations
-    public ItemResponse StartWorkflow(StartWorkflowRequest request) => _gateway.StartWorkflow(request);
-    public ItemResponse GetAssignedActivities() => _gateway.GetAssignedActivities();
-    public ItemResponse CompleteActivity(CompleteActivityRequest request) => _gateway.CompleteActivity(request);
+    public Task<ItemResponse> StartWorkflow(StartWorkflowRequest request, CancellationToken cancellationToken = default) => _gateway.StartWorkflow(request, cancellationToken);
+    public Task<ItemResponse> GetAssignedActivities(CancellationToken cancellationToken = default) => _gateway.GetAssignedActivities(cancellationToken);
+    public Task<ItemResponse> CompleteActivity(CompleteActivityRequest request, CancellationToken cancellationToken = default) => _gateway.CompleteActivity(request, cancellationToken);
     
     // Additional Assertions
-    public AssertionResponse AssertPropertyContains(AssertPropertyContainsRequest request) => _gateway.AssertPropertyContains(request);
-    public AssertionResponse AssertCount(AssertCountRequest request) => _gateway.AssertCount(request);
-    public AssertionResponse AssertLocked(LockRequest request) => _gateway.AssertLocked(request);
-    public AssertionResponse AssertUnlocked(LockRequest request) => _gateway.AssertUnlocked(request);
+    public Task<AssertionResponse> AssertPropertyContains(AssertPropertyContainsRequest request, CancellationToken cancellationToken = default) => _gateway.AssertPropertyContains(request, cancellationToken);
+    public Task<AssertionResponse> AssertCount(AssertCountRequest request, CancellationToken cancellationToken = default) => _gateway.AssertCount(request, cancellationToken);
+    public Task<AssertionResponse> AssertLocked(LockRequest request, CancellationToken cancellationToken = default) => _gateway.AssertLocked(request, cancellationToken);
+    public Task<AssertionResponse> AssertUnlocked(LockRequest request, CancellationToken cancellationToken = default) => _gateway.AssertUnlocked(request, cancellationToken);
     
     // File Operations
-    public ItemResponse UploadFile(UploadFileRequest request) => _gateway.UploadFile(request);
-    public ItemResponse DownloadFile(DownloadFileRequest request) => _gateway.DownloadFile(request);
-    public AssertionResponse VerifyFileExists(VerifyFileExistsRequest request) => _gateway.VerifyFileExists(request);
+    public Task<ItemResponse> UploadFile(UploadFileRequest request, CancellationToken cancellationToken = default) => _gateway.UploadFile(request, cancellationToken);
+    public Task<ItemResponse> DownloadFile(DownloadFileRequest request, CancellationToken cancellationToken = default) => _gateway.DownloadFile(request, cancellationToken);
+    public Task<AssertionResponse> VerifyFileExists(VerifyFileExistsRequest request, CancellationToken cancellationToken = default) => _gateway.VerifyFileExists(request, cancellationToken);
     
     // Utility Operations
-    public ItemResponse GenerateID() => _gateway.GenerateID();
-    public ItemResponse GetNextSequence(GetNextSequenceRequest request) => _gateway.GetNextSequence(request);
-    public async Task<ItemResponse> Wait(WaitRequest request, CancellationToken cancellationToken = default) => await _gateway.Wait(request, cancellationToken);
-    public ItemResponse SetVariable(SetVariableRequest request) => _gateway.SetVariable(request);
-    public ItemResponse LogMessage(LogMessageRequest request) => _gateway.LogMessage(request);
+    public Task<ItemResponse> GenerateID(CancellationToken cancellationToken = default) => _gateway.GenerateID(cancellationToken);
+    public Task<ItemResponse> GetNextSequence(GetNextSequenceRequest request, CancellationToken cancellationToken = default) => _gateway.GetNextSequence(request, cancellationToken);
+    public Task<ItemResponse> Wait(WaitRequest request, CancellationToken cancellationToken = default) => _gateway.Wait(request, cancellationToken);
+    public Task<ItemResponse> SetVariable(SetVariableRequest request, CancellationToken cancellationToken = default) => _gateway.SetVariable(request, cancellationToken);
+    public Task<ItemResponse> LogMessage(LogMessageRequest request, CancellationToken cancellationToken = default) => _gateway.LogMessage(request, cancellationToken);
 }

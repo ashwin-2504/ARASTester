@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Input } from "@/components/ui/input.jsx";
+import { Input } from "@/components/ui/input";
 import { Plus, Trash2 } from "lucide-react";
 import type { ActionSchemaField } from "@/types/plan";
 
@@ -122,13 +122,13 @@ const KeyValueEditor: React.FC<KeyValueEditorProps> = ({
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       <label className="text-sm font-medium leading-none block">
         {field.label}
         {field.required && <span className="text-red-500 ml-1">*</span>}
       </label>
 
-      <div className="space-y-2 p-3 bg-muted/20 rounded-lg border border-border/50">
+      <div className="space-y-1.5 p-3 bg-muted/20 rounded-lg border border-border/50">
         {pairs.map((pair) => (
           <div key={pair.id} className="flex gap-2 items-center">
             <Input

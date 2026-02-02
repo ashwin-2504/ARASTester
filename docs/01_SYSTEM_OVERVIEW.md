@@ -1,12 +1,6 @@
 # 01_SYSTEM_OVERVIEW
 
-> ⚠ HUMAN REVIEW REQUIRED
->
-> - Business logic interpretation
-> - Security implications
-> - Architectural intent
-
-**Code Snapshot**: 2026-02-28
+**Code Snapshot**: 2026-02-02
 
 ---
 
@@ -30,13 +24,13 @@
 
 ## 3. Key Features (Verbatim from README)
 
-| Feature                    | Description                            | Source Line |
-| -------------------------- | -------------------------------------- | ----------- |
-| Visual Test Builder        | Drag-and-drop interface for test plans | 29-30       |
-| Hierarchical Organization  | Nested test tree structure             | 32-33       |
-| Native Performance         | Electron + React desktop experience    | 35-36       |
-| Privacy First              | Local JSON file storage, no cloud      | 38-39       |
-| Extensible Action Registry | Pre-loaded ARAS interactions           | 41-42       |
+| Feature                   | Description                                   |
+| ------------------------- | --------------------------------------------- |
+| Visual Test Builder       | Drag-and-drop interface for test plans        |
+| Native ARAS Operations    | Workflow, File Vault, and Lifecycle tracking  |
+| Hierarchical Organization | Nested test tree structure                    |
+| Advanced Assertions       | Verification of properties, counts, and locks |
+| Privacy First             | Local JSON file storage, no cloud             |
 
 ---
 
@@ -65,11 +59,11 @@
 
 ## 6. Technology Stack Claims in README
 
-| Category         | Technologies Listed                 | Verified                                                                        |
-| ---------------- | ----------------------------------- | ------------------------------------------------------------------------------- |
-| Frontend         | React, Vite, Tailwind CSS, Radix UI | ✅ Present in FACT_DEPENDENCIES.md                                              |
-| Backend          | ASP.NET Core                        | ✅ Verified in FACT_DEPENDENCIES.md                                             |
-| State Management | Local JSON Storage                  | ✅ Verified in main.js IPC handlers                                             |
+| Category         | Technologies Listed                | Verified                            |
+| ---------------- | ---------------------------------- | ----------------------------------- |
+| Frontend         | React 19, Vite, Tailwind, Radix UI | ✅ Present in FACT_DEPENDENCIES.md  |
+| Backend          | ASP.NET Core (.NET 8), Aras.IOM    | ✅ Verified in FACT_DEPENDENCIES.md |
+| State Management | Zustand, Immer, Local JSON Storage | ✅ Verified in package.json         |
 
 ---
 

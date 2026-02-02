@@ -122,6 +122,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
     },
+    backgroundColor: "#1E1F22",
   });
 
   // Check for dev mode
@@ -188,7 +189,18 @@ function startBackend() {
 
   const port = process.env.BACKEND_PORT || "5000";
   logFrontend("info", `Starting backend from: ${exePath} on port ${port}`);
-  backendProcess = spawn(exePath, ["--urls", `http://localhost:${port}`]);
+
+  // Ensure we pass the environment variable, defaulting to Development if we are in dev mode
+  const backendEnv = {
+    ...process.env,
+    ASPNETCORE_ENVIRONMENT:
+      process.env.ASPNETCORE_ENVIRONMENT ||
+      (process.argv.includes("--dev") ? "Development" : "Production"),
+  };
+
+  backendProcess = spawn(exePath, ["--urls", `http://localhost:${port}`], {
+    env: backendEnv,
+  });
 
   backendProcess.stdout.on("data", (data) => {
     formatBackendLog(data, false);
@@ -209,7 +221,23 @@ function startBackend() {
 }
 
 app.whenReady().then(() => {
-  // Show UI immediately
+  // Auto-authorize saved test plan folder
+  try {
+    const settingsDir = path.resolve(app.getPath("userData"), "Settings");
+    const settingsPath = path.resolve(settingsDir, "settings.json");
+    if (fs.existsSync(settingsPath)) {
+      const data = fs.readFileSync(settingsPath, "utf-8");
+      const settings = JSON.parse(data);
+      if (settings.testPlanFolder) {
+        const folder = path.resolve(settings.testPlanFolder);
+        authorizedDirs.add(folder);
+        console.log(`[SECURITY] Auto-authorized saved test folder: ${folder}`);
+      }
+    }
+  } catch (err) {
+    console.warn("[SECURITY] Failed to load saved permissions:", err);
+  }
+
   // Start backend immediately (parallel to UI)
   console.log("Starting backend...");
   startBackend();
@@ -225,49 +253,155 @@ app.on("will-quit", () => {
 });
 
 // ------------------------------------------
-// DIALOG HANDLERS
+// SECURITY & FILESYSTEM UTILS
 // ------------------------------------------
-ipcMain.handle("dialog:pickFolder", () => {
-  return dialog.showOpenDialog({
+const authorizedDirs = new Set([path.resolve(app.getPath("userData"))]);
+
+/**
+ * Normalizes and validates a path to prevent directory traversal.
+ * String-level rejection is an optimization; canonical containment is the authoritative security check.
+ */
+function resolveSafePath(baseDir, relativePath) {
+  if (!baseDir || !relativePath) {
+    throw new Error("ERR_INVALID_ARGS");
+  }
+
+  // 1. Fast rejection of obviously malicious relative paths
+  const normalizedRelative = path.normalize(relativePath);
+  if (
+    path.isAbsolute(normalizedRelative) ||
+    normalizedRelative.includes("..")
+  ) {
+    console.error(`[SECURITY] Blocked fast-fail traversal: ${relativePath}`);
+    throw new Error("ERR_TRAVERSAL_DETECTED");
+  }
+
+  // 2. Resolve base directory and verify authorization
+  const resolvedBase = path.resolve(baseDir);
+  const canonicalBase = fs.existsSync(resolvedBase)
+    ? fs.realpathSync(resolvedBase)
+    : resolvedBase;
+
+  // Check if the base directory is authorized
+  let isAuthorized = false;
+  for (const authDir of authorizedDirs) {
+    if (canonicalBase.startsWith(authDir)) {
+      isAuthorized = true;
+      break;
+    }
+  }
+
+  if (!isAuthorized) {
+    console.error(`[SECURITY] Unauthorized base directory: ${canonicalBase}`);
+    throw new Error("ERR_UNAUTHORIZED_BASE");
+  }
+
+  // 3. Resolve target path and verify containment
+  const targetPath = path.resolve(canonicalBase, normalizedRelative);
+
+  // TOCTOU Mitigation: Use realpath if the file exists
+  let canonicalTarget;
+  try {
+    if (fs.existsSync(targetPath)) {
+      canonicalTarget = fs.realpathSync(targetPath);
+    } else {
+      // For new files, check the parent directory
+      const parentDir = path.dirname(targetPath);
+      if (fs.existsSync(parentDir)) {
+        canonicalTarget = path.join(
+          fs.realpathSync(parentDir),
+          path.basename(targetPath),
+        );
+      } else {
+        canonicalTarget = targetPath;
+      }
+    }
+  } catch (err) {
+    canonicalTarget = targetPath;
+  }
+
+  // 4. Final containment check (must start with base + separator)
+  const baseWithSep = canonicalBase.endsWith(path.sep)
+    ? canonicalBase
+    : canonicalBase + path.sep;
+  if (
+    !canonicalTarget.startsWith(baseWithSep) &&
+    canonicalTarget !== canonicalBase
+  ) {
+    console.error(
+      `[SECURITY] Traversal detected after canonicalization: ${canonicalTarget}`,
+    );
+    throw new Error("ERR_TRAVERSAL_DETECTED");
+  }
+
+  return canonicalTarget;
+}
+
+ipcMain.handle("dialog:pickFolder", async () => {
+  const result = await dialog.showOpenDialog({
     properties: ["openDirectory"],
   });
+  if (!result.canceled && result.filePaths.length > 0) {
+    const selectedPath = path.resolve(result.filePaths[0]);
+    authorizedDirs.add(selectedPath);
+  }
+  return result;
 });
 
 // ------------------------------------------
 // FILESYSTEM HANDLERS
 // ------------------------------------------
-ipcMain.handle("fs:readFile", (_, filePath) => {
-  return fs.promises.readFile(filePath, "utf-8");
+ipcMain.handle("fs:readFile", (_, baseDir, relativePath) => {
+  try {
+    const safePath = resolveSafePath(baseDir, relativePath);
+    return fs.promises.readFile(safePath, "utf-8");
+  } catch (err) {
+    console.error(`[FS] Error reading file: ${err.message}`);
+    throw err;
+  }
 });
 
-ipcMain.handle("fs:writeFile", (_, filePath, data) => {
-  return fs.promises.writeFile(filePath, JSON.stringify(data, null, 2));
+ipcMain.handle("fs:writeFile", (_, baseDir, relativePath, data) => {
+  try {
+    const safePath = resolveSafePath(baseDir, relativePath);
+    return fs.promises.writeFile(safePath, JSON.stringify(data, null, 2));
+  } catch (err) {
+    console.error(`[FS] Error writing file: ${err.message}`);
+    throw err;
+  }
 });
 
-// NEW — LIST JSON FILES IN A FOLDER
-ipcMain.handle("fs:listJsonFiles", async (_, folderPath) => {
-  const items = await fs.promises.readdir(folderPath);
+ipcMain.handle("fs:listJsonFiles", async (_, baseDir, relativePath = ".") => {
+  try {
+    const safeBase = resolveSafePath(baseDir, relativePath);
+    const items = await fs.promises.readdir(safeBase);
 
-  return items
-    .filter((f) => f.endsWith(".json"))
-    .map((f) => path.join(folderPath, f));
+    return items
+      .filter((f) => f.endsWith(".json"))
+      .map((f) => path.join(relativePath, f)); // Return relative paths to the frontend
+  } catch (err) {
+    console.error(`[FS] Error listing files: ${err.message}`);
+    throw err;
+  }
 });
 
-ipcMain.handle("fs:deleteFile", async (_, filePath) => {
-  const fs = require("fs");
-  return fs.promises.unlink(filePath);
+ipcMain.handle("fs:deleteFile", async (_, baseDir, relativePath) => {
+  try {
+    const safePath = resolveSafePath(baseDir, relativePath);
+    return fs.promises.unlink(safePath);
+  } catch (err) {
+    console.error(`[FS] Error deleting file: ${err.message}`);
+    throw err;
+  }
 });
 
 // ------------------------------------------
 // SETTINGS HANDLERS
 // ------------------------------------------
 ipcMain.handle("settings:read", async () => {
-  const settingsPath = path.join(
-    app.getPath("userData"),
-    "Settings",
-    "settings.json",
-  );
+  const settingsDir = path.resolve(app.getPath("userData"), "Settings");
   try {
+    const settingsPath = resolveSafePath(settingsDir, "settings.json");
     const data = await fs.promises.readFile(settingsPath, "utf-8");
     return JSON.parse(data);
   } catch (error) {
@@ -277,10 +411,10 @@ ipcMain.handle("settings:read", async () => {
 });
 
 ipcMain.handle("settings:write", async (_, data) => {
-  const settingsDir = path.join(app.getPath("userData"), "Settings");
-  const settingsPath = path.join(settingsDir, "settings.json");
+  const settingsDir = path.resolve(app.getPath("userData"), "Settings");
 
   try {
+    const settingsPath = resolveSafePath(settingsDir, "settings.json");
     await fs.promises.mkdir(settingsDir, { recursive: true });
     await fs.promises.writeFile(settingsPath, JSON.stringify(data, null, 2));
     return true;

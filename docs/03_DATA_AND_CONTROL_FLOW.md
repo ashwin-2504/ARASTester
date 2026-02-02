@@ -1,11 +1,6 @@
 # 03_DATA_AND_CONTROL_FLOW
 
-> ⚠ HUMAN REVIEW REQUIRED
-> - Business logic interpretation
-> - Security implications
-> - Architectural intent
-
-**Code Snapshot**: 2026-02-28
+**Code Snapshot**: 2026-02-02
 
 ---
 
@@ -27,10 +22,10 @@ ItemAppService.QueryItems()
     │ calls: _gateway.QueryItems(request)
     ▼
 ArasGateway.QueryItems() [Lines 44-70]
-    │ calls: inn.newItem(request.ItemType, "get")
-    │ calls: item.setAttribute("select", ...)
-    │ calls: item.setAttribute("page", ...)
-    │ calls: item.apply()
+    │ calls: _sessionManager.Execute(callback)
+    │     ├── resolves: ISessionContext.SessionId
+    │     └── retrieves: IOM.Innovator object
+    │
     ▼
 ARAS IOM SDK → Innovator Server
     │
@@ -68,14 +63,19 @@ ConnectionResponse { Success, Message, ServerInfo }
 
 ```
 Renderer Process (React)
-    │ invokes: window.electronAPI.readFile(path)
+    │ invokes: window.api.readFile(baseDir, relativePath)
     ▼
-preload.js (contextBridge.exposeInMainWorld)
-    │ calls: ipcRenderer.invoke("fs:readFile", path)
+    preload.js (contextBridge.exposeInMainWorld)
+    │ calls: ipcRenderer.invoke("fs:readFile", baseDir, relativePath)
     ▼
 main.js (ipcMain.handle)
-    │ handler: "fs:readFile" [Line 117]
-    │ calls: fs.promises.readFile(filePath, "utf-8")
+    │ handler: "fs:readFile"
+    │ calls: resolveSafePath(baseDir, relativePath)
+    │     ├── validates: baseDir in Set[authorizedDirs]
+    │     ├── resolves: canonicalBase = realpathSync(baseDir)
+    │     ├── normalizes: relativePath matches [..] or isAbsolute
+    │     └── confirms: canonicalTarget.startsWith(canonicalBase)
+    │ calls: fs.promises.readFile(safePath, "utf-8")
     ▼
 File System
     │
@@ -83,25 +83,25 @@ File System
 Returns: file content string
 ```
 
-**Source**: FACT_ENTRY_POINTS.md, main.js Lines 117-119
+**Source**: main.js
 
 ---
 
 ## 2. Traceable Flows (Confirmed End-to-End)
 
-| Flow | Start | End | Status |
-|------|-------|-----|--------|
-| Item CRUD | UI → API → Gateway → ARAS | Confirmed | ✅ Traceable |
+| Flow       | Start                            | End       | Status       |
+| ---------- | -------------------------------- | --------- | ------------ |
+| Item CRUD  | UI → API → Gateway → ARAS        | Confirmed | ✅ Traceable |
 | Connection | UI → API → SessionManager → ARAS | Confirmed | ✅ Traceable |
-| File I/O | Renderer → IPC → Main → FS | Confirmed | ✅ Traceable |
+| File I/O   | Renderer → IPC → Main → FS       | Confirmed | ✅ Traceable |
 
 ---
 
 ## 3. Flows Not Traceable from Code
 
-| Flow | Reason |
-|------|--------|
+| Flow                         | Reason                                              |
+| ---------------------------- | --------------------------------------------------- |
 | Frontend Component Lifecycle | Requires runtime analysis, not statically traceable |
-| Action Execution Order | Determined by user-created test plan JSON, not code |
+| Action Execution Order       | Determined by user-created test plan JSON, not code |
 
 > End-to-end data flow for user-defined test execution is not fully traceable from code alone.

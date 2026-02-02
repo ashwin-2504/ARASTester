@@ -16,13 +16,25 @@ interface ProfileCardProps {
   onDelete?: (session: SavedSession) => void;
 }
 
+/**
+ * ProfileCard component for saved session profiles.
+ *
+ * Connect Button Disable Logic:
+ * - disabled={isConnecting || !session.password}
+ * - Only disables THIS session's button when it is connecting
+ * - Other sessions remain clickable
+ *
+ * Note: Backend currently supports only one active connection.
+ * Initiating a new connection while one is pending may override
+ * the previous attempt depending on store implementation.
+ */
 export function ProfileCard({ session, onEdit, onDelete }: ProfileCardProps) {
   const {
     activeSessions,
     login,
     logout,
     isLoading,
-    connectingSessionName,
+    connectingSessions,
     deleteSavedSession,
   } = useSessionStore();
   
@@ -34,7 +46,7 @@ export function ProfileCard({ session, onEdit, onDelete }: ProfileCardProps) {
     (s) => s.name === session.name // Use session.name as it matches the saved session name usually
   );
   // Also check if this specific session is currently connecting
-  const isConnecting = connectingSessionName === session.sessionName;
+  const isConnecting = connectingSessions.has(session.sessionName);
   
   const isConnected = !!activeSession;
   
@@ -137,13 +149,7 @@ export function ProfileCard({ session, onEdit, onDelete }: ProfileCardProps) {
                 variant="outline"
                 className="h-8 px-3 text-xs bg-zinc-800 border-zinc-700 hover:bg-zinc-700 hover:text-white"
                 onClick={handleConnect}
-                disabled={isLoading && !isConnecting} // Only disable if loading but not this one (actually, user wanted other not disabled? User said "the one's that aren't being used to connect are also disabled". So I should NOT disable others unless necessary. I will remove strict disabled check for others here, or keep it if global loading blocks everything. Let's assume we allow parallel clicks? No, useSessionStore handles one login at a time usually. I'll disable if isLoading is true to prevent race conditions, BUT the feedback is now specific)
-                // Re-reading request: "the one's that aren't being used to connect are also disabled... jst everythings is disabled".
-                // If I keep disabled={isLoading}, they remain disabled.
-                // To fix this, I should only disable THIS button if THIS session is connecting, or arguably allow others.
-                // But Login is global state. If I start another login while one is pending, it might race.
-                // The user specifically disliked that "everything is disabled".
-                // So I will loosen the disable logic: disabled={isConnecting}
+                disabled={isConnecting || !session.password}
                 title={!session.password ? "Password required" : "Connect to session"}
               >
                 Connect
@@ -240,10 +246,11 @@ export function ProfileCard({ session, onEdit, onDelete }: ProfileCardProps) {
                  >
                     Delete
                  </Button>
+                  {/* Invariant: Disable only the session currently connecting */}
                   <Button
                     className="flex-[2] bg-emerald-600 hover:bg-emerald-700 text-white"
                     onClick={handleConnect}
-                    disabled={isLoading}
+                    disabled={isConnecting || !session.password}
                   >
                     Connect
                   </Button>

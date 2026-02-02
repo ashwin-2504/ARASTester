@@ -31,26 +31,25 @@ Designed specifically for **ARAS PLM Testers** and **Configuration Developers**,
 
 Forget complex scripting. Build your test plans using a modern, intuitive **drag-and-drop interface**. Reorder tests, group actions, and modify parameters visually.
 
+### ⚙️ Native ARAS Operations
+
+Go beyond basic CRUD. ARASTester supports complex **Workflow** activities (Start Workflow, Complete Activity), **File Vault** operations (Upload/Download), and advanced **Lifecycle** promotions natively.
+
 ### 📂 Hierarchical Organization
 
 Manage hundreds of test cases with ease. Our **nested test tree** allows you to structure your validation logic logically, just like your PLM data model.
 
-### ⚡ Native Performance
+### ✅ Advanced Assertions
 
-Built on **Electron** and **React**, ARASTester delivers a native desktop experience. It's fast, responsive, and integrates seamlessly with your Windows environment.
+Ensure your PLM logic is robust. Verify property values, check if items exist/don't exist, validate record counts, and verify lock statuses with dedicated assertion actions.
 
 ### 🔒 Privacy First & Local Storage
 
 Your data is yours. ARASTester stores all test plans as local **JSON files**. No cloud uploads, no external servers. You have full control over your testing IP.
 
-### 🛠️ Extensible Action Registry
-
-Need to click a button? Verify a field? Run a server method? Our **Action Registry** comes pre-loaded with essential ARAS interactions (Item CRUD, Workflow, File Vault, Assertions), and it's designed to grow with your needs.
-
-### 💾 Session Profiles (New!)
+### 💾 Session Profiles
 
 Save and manage multiple ARAS connection profiles. Link specific profiles to individual tests to automatically switch sessions during execution, ensuring your tests run in the correct environment every time.
-_(Note: Profiles are saved configurations. They become active ONLY when you Connect or run a test using them.)_
 
 ## 🎯 Built for ARAS Professionals
 
@@ -62,15 +61,14 @@ _(Note: Profiles are saved configurations. They become active ONLY when you Conn
 ### Prerequisites
 
 - Windows 10/11
-- Node.js (for development)
-  > [!NOTE]
-  > This project uses Node.js only. Bun is no longer required or supported.
+- .NET 8 SDK (for backend development)
+- Node.js (v18+)
 
 ### Installation
 
 1.  **Clone the repository**
     ```bash
-    git clone https://github.com/yourusername/arastester.git
+    git clone https://github.com/ashwin-2504/arastester.git
     ```
 2.  **Install dependencies**
     ```bash
@@ -83,9 +81,17 @@ _(Note: Profiles are saved configurations. They become active ONLY when you Conn
 
 ### Development Workflow
 
-**Frontend Dev (Fast)**
+**Full App Dev**
 
-- Uses Vite for faster builds and hot reload
+- Starts both Backend (.NET) and Frontend (Electron/React)
+
+```bash
+npm run dev
+```
+
+**Frontend Dev (Hot Reload)**
+
+- Uses Vite for faster UI iteration
 
 ```bash
 npm run dev:server
@@ -93,26 +99,18 @@ npm run dev:server
 
 **Electron Dev**
 
-- Uses Node.js for main process
+- Starts only the Electron shell
 
 ```bash
 npm run dev:electron
 ```
 
-**Full App Dev**
-
-- Starts both Backend and Electronics
-
-```bash
-npm run dev
-```
-
 ## 💻 Technology Stack
 
-- **Frontend**: React, Vite, Tailwind CSS, Radix UI
-- **Backend**: ASP.NET Core (.NET 8), Aras.IOM SDK
-- **Desktop**: Electron
-- **State Management**: Zustand, Local JSON Storage
+- **Frontend**: React 19, Vite, Tailwind CSS, Radix UI
+- **Backend**: ASP.NET Core (.NET 8), Aras.IOM SDK (Clean Architecture)
+- **Desktop**: Electron 39
+- **State Management**: Zustand, Immer, Local JSON Storage
 
 ---
 
@@ -121,12 +119,12 @@ npm run dev
 For detailed technical documentation, see the [docs](docs/01_SYSTEM_OVERVIEW.md) folder:
 
 - [System Overview](docs/01_SYSTEM_OVERVIEW.md)
-- [Architecture](docs/02_ARCHITECTURE.md) - includes Mermaid diagram
+- [Architecture](docs/02_ARCHITECTURE.md)
 - [Data & Control Flow](docs/03_DATA_AND_CONTROL_FLOW.md)
 - [Frontend Details](docs/04_FRONTEND.md)
 - [Backend Details](docs/05_BACKEND.md)
 - [Security & Failures](docs/06_SECURITY_AND_FAILURES.md)
 - [Non-Goals & Gaps](docs/07_NON_GOALS_AND_GAPS.md)
-- [API Reference](docs/API_REFERENCE.md) - request/response examples
+- [API Reference](docs/API_REFERENCE.md)
 
 ---

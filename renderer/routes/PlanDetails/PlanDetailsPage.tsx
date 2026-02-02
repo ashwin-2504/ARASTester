@@ -1,22 +1,22 @@
 import React, { useState } from 'react'
-import { ChevronLeft, RotateCcw, Save, Play, ChevronDown, Check } from 'lucide-react'
+import { ChevronLeft, RotateCcw, Save, Play, ChevronDown, Check, Loader2 } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu.jsx'
-import { Button } from '@/components/ui/button.jsx'
-import { Input } from '@/components/ui/input.jsx'
-import { ScrollArea } from '@/components/ui/scroll-area.jsx'
+} from '@/components/ui/dropdown-menu'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import TestTree from '@/components/TestTree'
-// @ts-ignore
-import JsonViewer from '@/components/JsonViewer.jsx'
+import JsonViewer from '@/components/JsonViewer'
 import { usePlanDetails } from './usePlanDetails'
 import { actionRegistry } from '@/core/registries/ActionRegistry'
 import actionSchemas from '@/core/schemas/action-schemas.json'
 import { useEscapeKey } from '@/lib/hooks/useEscapeKey'
 import type { Test, Action } from '@/types/plan'
+import { useMediaQuery } from '@/lib/hooks/useMediaQuery'
 
 // New Layout Components
 import { ActivityBar } from '@/components/layout/ActivityBar'
@@ -30,6 +30,35 @@ interface PlanDetailsPageProps {
   onBack?: () => void;
 }
 
+// Buffered Input Component
+const BufferedInput = ({ value, onChange, ...props }: React.ComponentProps<typeof Input>) => {
+  const [localValue, setLocalValue] = useState(value);
+
+  // Sync local value when external value changes (e.g. navigation)
+  React.useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
+
+  return (
+    <Input
+      {...props}
+      value={localValue}
+      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLocalValue(e.target.value)}
+      onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
+        if (localValue !== value) {
+          onChange?.({ ...e, target: { ...e.target, value: localValue } } as React.ChangeEvent<HTMLInputElement>);
+        }
+      }}
+      onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+          e.currentTarget.blur();
+        }
+        props.onKeyDown?.(e);
+      }}
+    />
+  );
+};
+
 export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDetailsPageProps) {
   const {
     plan, loading, error, isDirty, saveStatus, logs, selectedItem, initializingTestId,
@@ -42,10 +71,38 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDe
     handleRunAll, handleRunTest, handleRunAction,
     updateSelectedItem,
     handleToggleEnabled,
-    handleAddProfile, handleUpdateProfile, handleDeleteProfile
+    handleAddProfile, handleUpdateProfile, handleDeleteProfile,
+    isRunning
   } = usePlanDetails(filename)
 
   const [activeView, setActiveView] = useState<"sessions" | "tests">("tests");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const isNarrow = useMediaQuery("(max-width: 1024px)");
+
+  // Contract: Focus-based auto-hide applies ONLY in Overlay (narrow) mode.
+  // Contract: Resize -> Secondary panel hides (isNarrow overrides user preference)
+  React.useEffect(() => {
+    if (isNarrow) {
+      setIsSidebarOpen(false);
+    } else {
+        // Optional: Auto-open on wide? Contract says "Wide > Closed > No action", but usually we want it open.
+        // Adhering strictly to: "Wide > Open > No action" is preserved manually.
+        // Let's stick to: "Resize to narrow -> Close".
+        // Resize to wide -> Maintain state (or defaulting to open could be nice, but not strictly required).
+        setIsSidebarOpen(true); 
+    }
+  }, [isNarrow]);
+
+  const handleToggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+
+  const handleViewChange = (view: "sessions" | "tests") => {
+    if (view === activeView) {
+      handleToggleSidebar();
+    } else {
+      setActiveView(view);
+      setIsSidebarOpen(true);
+    }
+  };
 
   // Handle back navigation
   const handleBackNavigation = () => {
@@ -56,83 +113,136 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDe
   }
 
   useEscapeKey(() => {
-    // Optional: Deselect item on escape
+    if (isSidebarOpen) {
+      setIsSidebarOpen(false);
+    }
   })
 
   // Helper to determine if selected item is a test
-  const isTest = (item: any): item is Test => item?.hasOwnProperty('testID') && !item.hasOwnProperty('actionID')
+  const isTest = (item: unknown): item is Test => {
+    if (!item || typeof item !== 'object') return false;
+    return 'testID' in item && !('actionID' in item);
+  }
 
   if (loading) return <div className="flex h-full items-center justify-center text-muted-foreground">Loading...</div>
   if (error) return <div className="flex h-full items-center justify-center text-red-500">{error}</div>
 
   return (
-    <div className="flex h-full bg-background overflow-hidden">
+    <div className="flex h-full bg-background relative">
       {/* 1. Activity Bar (Far Left) */}
-      <ActivityBar activeView={activeView} onViewChange={setActiveView} />
+      <ActivityBar activeView={activeView} onViewChange={handleViewChange} />
 
-      {/* 2. Sidebar Panel (Middle Left) */}
-      {activeView === "tests" ? (
-        <SidebarPanel title="TEST EXPLORER">
-             <TestTree
-                testPlan={plan.testPlan}
-                selectedItem={selectedItem}
-                onSelect={setSelectedItem}
-                onEdit={() => { }}
-                onAddTest={handleAddTest}
-                onAddAction={handleAddAction}
-                onMoveTest={handleMoveTest}
-                onMoveAction={handleMoveAction}
-                onDeleteTest={handleDeleteTest}
-                onDeleteAction={handleDeleteAction}
-                onRunTest={handleRunTest}
-                onRunAction={handleRunAction}
-                onToggleEnabled={handleToggleEnabled}
-                logs={logs}
-                initializingTestId={initializingTestId}
-              />
-        </SidebarPanel>
-      ) : (
-        <SessionManager 
-            profiles={plan.profiles}
-            onAdd={handleAddProfile}
-            onUpdate={handleUpdateProfile}
-            onDelete={handleDeleteProfile}
+      {/* Fixed Sidebar Drawer (Overlay Mode) OR Docked Panel (Docked Mode) */}
+      {/* 
+          Docked Mode (!isNarrow):
+          - Render ONLY if isSidebarOpen (no ghost panel)
+          - Relative positioning to push content
+          
+          Overlay Mode (isNarrow):
+          - Always render if isSidebarOpen (Fixed on top)
+          - Hidden if !isSidebarOpen
+      */}
+      {(isSidebarOpen || !isNarrow) && (
+        <div 
+            className={`
+                bg-zinc-950 border-r border-zinc-800 flex flex-col transition-all duration-300 ease-in-out shadow-2xl z-40
+                ${isNarrow 
+                    ? `fixed left-12 top-0 bottom-0 w-80 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}` 
+                    : `relative w-80 ${isSidebarOpen ? 'block' : 'hidden'}` // Using hidden/block for docked toggling to avoid re-mounting if desired, OR conditional rendering.
+                }
+            `}
+            // For Docked mode, we want conditional rendering to avoid layout taking space.
+            // If !isSidebarOpen && !isNarrow, we want w-0 or display:none.
+            // The cleanest way per plan: "Render the component only when isSidebarOpen is true in Docked mode".
+            style={{
+                display: !isNarrow && !isSidebarOpen ? 'none' : 'flex'
+            }}
+        >
+        {activeView === "tests" ? (
+          <SidebarPanel title="TEST EXPLORER">
+               <TestTree
+                  testPlan={plan.testPlan}
+                  selectedItem={selectedItem}
+                  onSelect={setSelectedItem}
+                  onEdit={() => { }}
+                  onAddTest={handleAddTest}
+                  onAddAction={handleAddAction}
+                  onMoveTest={handleMoveTest}
+                  onMoveAction={handleMoveAction}
+                  onDeleteTest={handleDeleteTest}
+                  onDeleteAction={handleDeleteAction}
+                  onRunTest={handleRunTest}
+                  onRunAction={handleRunAction}
+                  onToggleEnabled={handleToggleEnabled}
+                  logs={logs}
+                  initializingTestId={initializingTestId}
+                />
+          </SidebarPanel>
+        ) : (
+          <SessionManager 
+              profiles={plan.profiles}
+              onAdd={handleAddProfile}
+              onUpdate={handleUpdateProfile}
+              onDelete={handleDeleteProfile}
+          />
+        )}
+      </div>
+      )}
+
+      {/* Backdrop - Only in Overlay Mode when Open */}
+      {isNarrow && isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-30 transition-opacity duration-300 animate-in fade-in" 
+          onClick={() => setIsSidebarOpen(false)} 
+          style={{ left: '3rem' }}
         />
       )}
 
       {/* 3. Main Content (Right) */}
       <div className="flex-1 flex flex-col min-w-0 bg-background">
           {/* Header */}
-          <header className="flex-none h-16 border-b px-6 flex items-center justify-between bg-card/50">
-            <div className="flex items-center gap-4">
+          {/* Header */}
+          <header className="flex-none h-auto min-h-[4rem] border-b px-6 py-4 flex flex-col gap-4 md:flex-row md:items-center justify-between bg-card/50 min-w-0">
+            <div className="flex items-center gap-4 min-w-0 flex-1">
               <button
                 onClick={handleBackNavigation}
-                className="p-2 -ml-2 rounded-full hover:bg-muted text-muted-foreground transition-colors"
+                className="p-2 -ml-2 rounded-full hover:bg-muted text-muted-foreground transition-colors flex-shrink-0"
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
-              <h1 className="text-xl font-bold tracking-tight">{plan.title || filename}</h1>
+              <h1 className="text-xl font-bold tracking-tight truncate" title={plan.title || filename}>
+                {plan.title || filename}
+              </h1>
             </div>
-            <div className="flex items-center gap-3">
-              {saveStatus && <span className="text-sm text-emerald-500 font-medium">{saveStatus}</span>}
+            <div className="flex items-center gap-3 flex-shrink-0 flex-wrap whitespace-nowrap">
+              {saveStatus && <span className="text-sm text-emerald-500 font-medium whitespace-nowrap">{saveStatus}</span>}
               <Button
                 variant="outline"
-                className="text-emerald-500 border-emerald-500 hover:bg-emerald-500/10"
+                className="text-emerald-500 border-emerald-500 hover:bg-emerald-500/10 whitespace-nowrap"
                 onClick={handleRunAll}
+                disabled={isRunning}
               >
-                <Play className="h-4 w-4 mr-2 fill-current" /> Run All
+                {isRunning ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Running...
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-4 w-4 mr-2 fill-current" /> Run All
+                  </>
+                )}
               </Button>
-              <Button variant="ghost" size="icon" onClick={() => { if (!isDirty || confirm("Discard changes?")) loadPlan() }}>
+              <Button variant="ghost" size="icon" onClick={() => { if (!isDirty || confirm("Discard changes?")) loadPlan() }} className="flex-shrink-0">
                 <RotateCcw className="h-4 w-4" />
               </Button>
-              <Button onClick={handleSave} disabled={!isDirty}>
+              <Button onClick={handleSave} disabled={!isDirty} className="flex-shrink-0">
                 <Save className="h-4 w-4 mr-2" /> Save
               </Button>
             </div>
           </header>
 
           {/* Details Content */}
-          <main className="flex-1 overflow-y-auto p-6 lg:p-10">
+          <main className="flex-1 overflow-y-auto p-4">
               {!selectedItem ? (
                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground space-y-4">
                   <div className="w-16 h-16 rounded-2xl bg-zinc-900 flex items-center justify-center">
@@ -141,9 +251,9 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDe
                   <p>Select a test or action to view details</p>
                 </div>
               ) : (
-                <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="max-w-4xl mx-auto space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
                   {/* Panel Header */}
-                  <div className="flex items-end justify-between border-b pb-6">
+                  <div className="flex items-end justify-between border-b pb-4">
                     <div>
                       <h2 className="text-2xl font-bold mb-1">{isTest(selectedItem) ? 'Test Details' : 'Action Details'}</h2>
                       <p className="text-sm text-muted-foreground">
@@ -154,24 +264,33 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDe
                       variant="outline"
                       className="text-emerald-500 border-emerald-500 hover:bg-emerald-500/10"
                       onClick={() => isTest(selectedItem) ? handleRunTest(selectedItem as Test) : handleRunAction(selectedItem as Action)}
+                      disabled={isRunning}
                     >
-                      <Play className="h-4 w-4 mr-2 fill-current" /> Run {isTest(selectedItem) ? 'Test' : 'Action'}
+                      {isRunning ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Running...
+                        </>
+                      ) : (
+                        <>
+                          <Play className="h-4 w-4 mr-2 fill-current" /> Run {isTest(selectedItem) ? 'Test' : 'Action'}
+                        </>
+                      )}
                     </Button>
                   </div>
 
                   {/* Form */}
-                  <div className="space-y-6">
+                  <div className="space-y-4">
                     {isTest(selectedItem) ? (
                       <>
-						<div className="space-y-2">
+						<div className="space-y-1.5">
                           <label className="block text-sm font-medium">Test Title</label>
-                          <Input
+                          <BufferedInput
                             value={(selectedItem as Test).testTitle}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSelectedItem({ testTitle: e.target.value })}
                           />
                         </div>
                         
-                        <div className="space-y-2">
+                        <div className="space-y-1.5">
                            <label className="block text-sm font-medium">Session Profile</label>
                            <div className="flex gap-2">
                                {/* Replaced native select with DropdownMenu for better control */}
@@ -215,7 +334,10 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDe
                                     variant="outline" 
                                     size="icon" 
                                     title="Manage Profiles"
-                                    onClick={() => setActiveView("sessions")}
+                                    onClick={() => {
+                                         setActiveView("sessions");
+                                         setIsSidebarOpen(true);
+                                    }}
                                >
                                     <Database className="h-4 w-4" />
                                </Button>
@@ -234,15 +356,15 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDe
                       </>
                     ) : (
                       <>
-                        <div className="space-y-2">
+                        <div className="space-y-1.5">
                           <label className="block text-sm font-medium">Action Title</label>
-                          <Input
+                          <BufferedInput
                             value={(selectedItem as Action).actionTitle}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSelectedItem({ actionTitle: e.target.value })}
                           />
                         </div>
 
-                        <div className="space-y-2">
+                        <div className="space-y-1.5">
                           <label className="block text-sm font-medium">Action Type</label>
                           <div className="flex gap-3">
                             {/* Category Dropdown */}
@@ -332,10 +454,10 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDe
                           if (plugin?.Editor) {
                             const Editor = plugin.Editor
                             return (
-                              <div className="mt-6 rounded-lg border bg-muted/20 p-5 space-y-5">
+                              <div className="mt-4 rounded-lg border bg-muted/20 p-4 space-y-4">
                                 <Editor
                                   params={(selectedItem as Action).params || {}}
-                                  onChange={(newParams: any) => updateSelectedItem({ params: newParams })}
+                                  onChange={(newParams: Record<string, unknown>) => updateSelectedItem({ params: newParams })}
                                 />
                               </div>
                             )

@@ -58,46 +58,49 @@ export default function DashboardPage() {
     <div className="h-full overflow-y-auto bg-zinc-950/50">
       <div className="container mx-auto p-8 space-y-8 animate-in fade-in duration-500 pb-24">
         {/* Header Section */}
-        <div className="flex items-center justify-between">
-          <div className="space-y-1.5">
-            <h1 className="text-2xl font-bold tracking-tight text-white">Dashboard</h1>
+        {/* Header Section */}
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between min-w-0">
+          <div className="space-y-1.5 flex-shrink-0 min-w-0">
+            <h1 className="text-2xl font-bold tracking-tight text-white truncate">Dashboard</h1>
             <BackendStatus />
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="relative w-[300px]">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto min-w-0">
+            <div className="relative w-full sm:max-w-[300px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search plans..."
-                className="pl-9 bg-[#1c1c1f] border-zinc-800 text-sm h-10 focus-visible:ring-indigo-500"
+                className="pl-9 bg-[#1c1c1f] border-zinc-800 text-sm h-10 focus-visible:ring-indigo-500 w-full"
                 value={search}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
               />
             </div>
 
-            <Button
-              variant="outline"
-              onClick={handleOpenFolder}
-              className="bg-[#1c1c1f] border-zinc-800 hover:bg-zinc-800 hover:text-white h-10"
-            >
-              <FolderOpen className="mr-2 h-4 w-4" /> Open Folder
-            </Button>
+            <div className="flex items-center gap-3 flex-shrink-0 whitespace-nowrap">
+              <Button
+                variant="outline"
+                onClick={handleOpenFolder}
+                className="bg-[#1c1c1f] border-zinc-800 hover:bg-zinc-800 hover:text-white h-10 whitespace-nowrap"
+              >
+                <FolderOpen className="mr-2 h-4 w-4" /> Open Folder
+              </Button>
 
-            <Button
-              onClick={openCreateModal}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-10 px-6 font-medium shadow-[0_0_15px_rgba(79,70,229,0.3)]"
-            >
-              <Plus className="mr-2 h-4 w-4" /> New Plan
-            </Button>
+              <Button
+                onClick={openCreateModal}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-10 px-6 font-medium shadow-[0_0_15px_rgba(79,70,229,0.3)] whitespace-nowrap"
+              >
+                <Plus className="mr-2 h-4 w-4" /> New Plan
+              </Button>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/settings')}
-              className="text-zinc-400 hover:text-white hover:bg-zinc-800 h-10 w-10"
-            >
-              <SettingsIcon className="h-5 w-5" />
-            </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/settings')}
+                className="text-zinc-400 hover:text-white hover:bg-zinc-800 h-10 w-10 flex-shrink-0"
+              >
+                <SettingsIcon className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
         </div>
 

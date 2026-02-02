@@ -16,7 +16,7 @@ export const StatusIndicator = ({ status, onRun, className, iconClassName }) => 
   if (isRunning) {
     return (
       <div
-        className={cn("flex items-center justify-center p-2", className)}
+        className={cn("flex items-center justify-center", className)}
         role="status"
         aria-label="Running..."
       >
@@ -26,45 +26,39 @@ export const StatusIndicator = ({ status, onRun, className, iconClassName }) => 
   }
 
   return (
-    <div
-      className={cn("relative flex items-center justify-center", className)}
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={(e) => {
+        e.stopPropagation()
+        onRun?.()
+      }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      className={cn(
+        "transition-all duration-200",
+        className
+      )}
+      title={isHovered ? "Run" : (status || "Run")}
+      aria-label={status ? `Run (Status: ${status})` : "Run"}
     >
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={(e) => {
-          e.stopPropagation()
-          onRun?.()
-        }}
-        className={cn(
-          "transition-all duration-200",
-          // If hovered, we want to look like a standard run button
-          // If not hovered and has status, we might want different styling or just the icon
-          isHovered ? "opacity-100" : (status ? "opacity-100 hover:bg-transparent" : "opacity-100")
-        )}
-        title={isHovered ? "Run" : (status || "Run")}
-        aria-label={status ? `Run (Status: ${status})` : "Run"}
-      >
-        {isHovered ? (
-          <Play className={cn("fill-current text-white", iconClassName)} />
-        ) : (
-          (() => {
-            switch (status) {
-              case 'Success':
-                return <CircleCheck className={cn("text-emerald-500", iconClassName)} />
-              case 'Failed':
-              case 'Error':
-                return <CircleX className={cn("text-red-500", iconClassName)} />
-              case 'Warning':
-                return <TriangleAlert className={cn("text-yellow-500", iconClassName)} />
-              default: // Idle or unknown
-                return <Play className={cn("fill-current text-emerald-500", iconClassName)} />
-            }
-          })()
-        )}
-      </Button>
-    </div>
+      {isHovered ? (
+        <Play className={cn("fill-current text-white", iconClassName)} />
+      ) : (
+        (() => {
+          switch (status) {
+            case 'Success':
+              return <CircleCheck className={cn("text-emerald-500", iconClassName)} />
+            case 'Failed':
+            case 'Error':
+              return <CircleX className={cn("text-red-500", iconClassName)} />
+            case 'Warning':
+              return <TriangleAlert className={cn("text-yellow-500", iconClassName)} />
+            default: // Idle or unknown
+              return <Play className={cn("fill-current text-emerald-500", iconClassName)} />
+          }
+        })()
+      )}
+    </Button>
   )
 }

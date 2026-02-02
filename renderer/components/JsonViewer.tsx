@@ -3,16 +3,16 @@ import React from 'react';
 /**
  * Validates if a string is XML
  */
-const isXml = (text) => {
+const isXml = (text: string): boolean => {
   return typeof text === 'string' && text.trim().startsWith('<') && text.trim().endsWith('>');
 };
 
 /**
  * Simple XML formatter
  */
-const formatXml = (xml) => {
+const formatXml = (xml: string): string => {
   let formatted = '';
-  let reg = /(>)(<)(\/*)/g;
+  const reg = /(>)(<)(\/*)/g;
   xml = xml.replace(reg, '$1\r\n$2$3');
   let pad = 0;
 
@@ -42,10 +42,14 @@ const formatXml = (xml) => {
   return formatted;
 };
 
-const JsonViewer = ({ data }) => {
-  if (!data) return null;
+interface JsonViewerProps {
+  data: unknown;
+}
 
-  const renderValue = (value) => {
+const JsonViewer: React.FC<JsonViewerProps> = ({ data }) => {
+  if (data === undefined || data === null) return null;
+
+  const renderValue = (value: unknown): React.ReactNode => {
     if (value === null) return <span className="text-rose-400">null</span>;
     if (typeof value === 'boolean') return <span className="text-rose-400">{value.toString()}</span>;
     if (typeof value === 'number') return <span className="text-blue-400">{value}</span>;
@@ -62,11 +66,11 @@ const JsonViewer = ({ data }) => {
     return <span>{JSON.stringify(value)}</span>;
   };
 
-  const renderNode = (key, value, isLast) => {
+  const renderNode = (key: string, value: unknown, isLast: boolean): React.ReactNode => {
     return (
       <div key={key} className="pl-4">
         <span className="text-sky-300">"{key}"</span>: {typeof value === 'object' && value !== null ? (
-          renderObject(value)
+          renderObject(value as Record<string, unknown>)
         ) : (
           renderValue(value)
         )}
@@ -75,16 +79,17 @@ const JsonViewer = ({ data }) => {
     );
   };
 
-  const renderObject = (obj) => {
+  const renderObject = (obj: Record<string, unknown> | unknown): React.ReactNode => {
     if (obj === null) return <span className="text-rose-400">null</span>;
+    if (typeof obj !== 'object') return renderValue(obj);
 
-    const keys = Object.keys(obj);
+    const keys = Object.keys(obj as object);
     if (keys.length === 0) return <span>{'{ }'}</span>;
 
     return (
       <span>
         {'{'}
-        {keys.map((key, index) => renderNode(key, obj[key], index === keys.length - 1))}
+        {keys.map((key, index) => renderNode(key, (obj as any)[key], index === keys.length - 1))}
         {'}'}
       </span>
     );

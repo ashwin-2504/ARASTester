@@ -2,12 +2,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ArasBackend.Core\ArasBackend.Core.csproj" />
+    <ProjectReference Include="..\ArasBackend.Application\ArasBackend.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Aras.IOM" Version="15.0.1" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.2" />
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+
   </ItemGroup>
 
   <PropertyGroup>

@@ -18,7 +18,7 @@ public class ItemAppServiceTests
     }
 
     [Fact]
-    public void GetItemById_ShouldReturnItem_WhenFound()
+    public async Task GetItemById_ShouldReturnItem_WhenFound()
     {
         // Arrange
         var request = new GetByIdRequest { ItemType = "Part", Id = "12345" };
@@ -28,11 +28,11 @@ public class ItemAppServiceTests
             Data = new List<Dictionary<string, object>> { new() { ["id"] = "12345" } } 
         };
 
-        _mockGateway.Setup(g => g.GetItemById(request))
-            .Returns(expectedResponse);
+        _mockGateway.Setup(g => g.GetItemById(request, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = _service.GetItemById(request);
+        var result = await _service.GetItemById(request);
 
         // Assert
         Assert.True(result.Success);
@@ -43,14 +43,14 @@ public class ItemAppServiceTests
     }
 
     [Fact]
-    public void GetItemById_ShouldThrow_WhenGatewayFails()
+    public async Task GetItemById_ShouldThrow_WhenGatewayFails()
     {
         // Arrange
         var request = new GetByIdRequest { ItemType = "Part", Id = "12345" };
-        _mockGateway.Setup(g => g.GetItemById(request))
-            .Throws(new ArasBackend.Core.Exceptions.ArasInfrastructureException("Gateway Error"));
+        _mockGateway.Setup(g => g.GetItemById(request, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new ArasBackend.Core.Exceptions.ArasInfrastructureException("Gateway Error"));
 
         // Act & Assert
-        Assert.Throws<ArasBackend.Core.Exceptions.ArasInfrastructureException>(() => _service.GetItemById(request));
+        await Assert.ThrowsAsync<ArasBackend.Core.Exceptions.ArasInfrastructureException>(() => _service.GetItemById(request));
     }
 }

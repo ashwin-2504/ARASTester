@@ -1,7 +1,7 @@
 # FACT_PUBLIC_INTERFACES
 
 **Source**: Publicly exposed classes reachable from entry points.
-**Extraction Date**: 2026-02-28
+**Extraction Date**: 2026-01-20
 **Constraint**: Only method signatures with explicit route attributes. No inferred behaviors.
 
 ---
@@ -14,67 +14,73 @@
 **Inherits**: `ControllerBase`
 **Attribute**: `[ApiController]`
 
-| HTTP Method | Route | Method Name | Request Type | Response Type |
-|-------------|-------|-------------|--------------|---------------|
-| POST | /api/aras/connect | Connect | ConnectionRequest | ConnectionResponse |
-| POST | /api/aras/disconnect | Disconnect | (none) | ConnectionResponse |
-| POST | /api/aras/disconnect/{sessionName} | DisconnectSession | (string sessionName) | ConnectionResponse |
-| GET | /api/aras/sessions | GetAllSessions | (none) | AllSessionsResponse |
-| GET | /api/aras/connection-status | GetStatus | (none) | ConnectionStatusResponse |
-| GET | /api/aras/validate | Validate | (none) | ConnectionResponse |
+| HTTP Method | Route | Method Name | Request Type | Response Type | Line |
+|-------------|-------|-------------|--------------|---------------|------|
+| POST | /api/aras/connect | Connect | ConnectionRequest | ConnectionResponse | 18-23 |
+| POST | /api/aras/disconnect | Disconnect | (none) | ConnectionResponse | 25-30 |
+| GET | /api/aras/connection-status | GetStatus | (none) | ConnectionStatusResponse | 32-37 |
+| GET | /api/aras/validate | Validate | (none) | ConnectionResponse | 39-44 |
 
 ### ItemController (`backend/ArasBackend/Controllers/ItemController.cs`)
 **Inherits**: `ControllerBase`
 **Attribute**: `[ApiController]`
 
-| HTTP Method | Route | Method Name | Request Type | Response Type |
-|-------------|-------|-------------|--------------|---------------|
-| POST | /api/aras/query | Query | QueryRequest | ItemResponse |
-| POST | /api/aras/get-by-id | GetById | GetByIdRequest | ItemResponse |
-| POST | /api/aras/get-by-keyed-name | GetByKeyedName | GetByKeyedNameRequest | ItemResponse |
-| POST | /api/aras/create | Create | CreateItemRequest | ItemResponse |
-| POST | /api/aras/update | Update | UpdateItemRequest | ItemResponse |
-| POST | /api/aras/delete | Delete | DeleteItemRequest | ItemResponse |
-| POST | /api/aras/purge | Purge | DeleteItemRequest | ItemResponse |
-| POST | /api/aras/lock | Lock | LockRequest | ItemResponse |
-| POST | /api/aras/unlock | Unlock | LockRequest | ItemResponse |
-| POST | /api/aras/check-lock | CheckLock | LockRequest | ItemResponse |
-| POST | /api/aras/promote | Promote | PromoteRequest | ItemResponse |
-| POST | /api/aras/get-state | GetState | GetByIdRequest | ItemResponse |
-| POST | /api/aras/add-relationship | AddRelationship | AddRelationshipRequest | ItemResponse |
-| POST | /api/aras/get-relationships | GetRelationships | GetRelationshipsRequest | ItemResponse |
-| POST | /api/aras/delete-relationship | DeleteRelationship | DeleteRelationshipRequest | ItemResponse |
-| POST | /api/aras/apply-aml | ApplyAml | ApplyAmlRequest | ItemResponse |
-| POST | /api/aras/apply-sql | ApplySql | ApplySqlRequest | ItemResponse |
-| POST | /api/aras/apply-method | ApplyMethod | ApplyMethodRequest | ItemResponse |
-| POST | /api/aras/assert-exists | AssertExists | AssertExistsRequest | AssertionResponse |
-| POST | /api/aras/assert-not-exists | AssertNotExists | AssertExistsRequest | AssertionResponse |
-| POST | /api/aras/assert-property | AssertProperty | AssertPropertyRequest | AssertionResponse |
-| POST | /api/aras/assert-state | AssertState | AssertStateRequest | AssertionResponse |
-| POST | /api/aras/start-workflow | StartWorkflow | StartWorkflowRequest | ItemResponse |
-| GET | /api/aras/assigned-activities | GetAssignedActivities | (none) | ItemResponse |
-| POST | /api/aras/complete-activity | CompleteActivity | CompleteActivityRequest | ItemResponse |
-| POST | /api/aras/assert-property-contains | AssertPropertyContains | AssertPropertyContainsRequest | AssertionResponse |
-| POST | /api/aras/assert-count | AssertCount | AssertCountRequest | AssertionResponse |
-| POST | /api/aras/assert-locked | AssertLocked | LockRequest | AssertionResponse |
-| POST | /api/aras/assert-unlocked | AssertUnlocked | LockRequest | AssertionResponse |
-| POST | /api/aras/upload-file | UploadFile | UploadFileRequest | ItemResponse |
-| POST | /api/aras/download-file | DownloadFile | DownloadFileRequest | ItemResponse |
-| POST | /api/aras/verify-file-exists | VerifyFileExists | VerifyFileExistsRequest | AssertionResponse |
-| POST | /api/aras/generate-id | GenerateId | (none) | ItemResponse |
-| POST | /api/aras/get-next-sequence | GetNextSequence | GetNextSequenceRequest | ItemResponse |
-| POST | /api/aras/wait | Wait | WaitRequest | ItemResponse |
-| POST | /api/aras/set-variable | SetVariable | SetVariableRequest | ItemResponse |
-| POST | /api/aras/log-message | LogMessage | LogMessageRequest | ItemResponse |
+| HTTP Method | Route | Method Name | Request Type | Response Type | Line |
+|-------------|-------|-------------|--------------|---------------|------|
+| POST | /api/aras/query | Query | QueryRequest | ItemResponse | 18-19 |
+| POST | /api/aras/get-by-id | GetById | GetByIdRequest | ItemResponse | 21-22 |
+| POST | /api/aras/get-by-keyed-name | GetByKeyedName | GetByKeyedNameRequest | ItemResponse | 24-25 |
+| POST | /api/aras/create | Create | CreateItemRequest | ItemResponse | 27-28 |
+| POST | /api/aras/update | Update | UpdateItemRequest | ItemResponse | 30-31 |
+| POST | /api/aras/delete | Delete | DeleteItemRequest | ItemResponse | 33-34 |
+| POST | /api/aras/purge | Purge | DeleteItemRequest | ItemResponse | 36-37 |
+| POST | /api/aras/lock | Lock | LockRequest | ItemResponse | 39-40 |
+| POST | /api/aras/unlock | Unlock | LockRequest | ItemResponse | 42-43 |
+| POST | /api/aras/check-lock | CheckLock | LockRequest | ItemResponse | 45-46 |
+| POST | /api/aras/promote | Promote | PromoteRequest | ItemResponse | 48-49 |
+| POST | /api/aras/get-state | GetState | GetByIdRequest | ItemResponse | 51-52 |
+| POST | /api/aras/add-relationship | AddRelationship | AddRelationshipRequest | ItemResponse | 54-55 |
+| POST | /api/aras/get-relationships | GetRelationships | GetRelationshipsRequest | ItemResponse | 57-58 |
+| POST | /api/aras/delete-relationship | DeleteRelationship | DeleteRelationshipRequest | ItemResponse | 60-61 |
+| POST | /api/aras/apply-aml | ApplyAml | ApplyAmlRequest | ItemResponse | 63-64 |
+| POST | /api/aras/apply-sql | ApplySql | ApplySqlRequest | ItemResponse | 66-67 |
+| POST | /api/aras/apply-method | ApplyMethod | ApplyMethodRequest | ItemResponse | 69-70 |
+| POST | /api/aras/assert-exists | AssertExists | AssertExistsRequest | AssertionResponse | 73-74 |
+| POST | /api/aras/assert-not-exists | AssertNotExists | AssertExistsRequest | AssertionResponse | 76-77 |
+| POST | /api/aras/assert-property | AssertProperty | AssertPropertyRequest | AssertionResponse | 79-80 |
+| POST | /api/aras/assert-state | AssertState | AssertStateRequest | AssertionResponse | 82-83 |
 
 ### Inline Mapped Endpoint (`backend/ArasBackend/Program.cs`)
-| HTTP Method | Route | Response |
-|-------------|-------|----------|
-| GET | /api/status | `{ status, timestamp }` |
+| HTTP Method | Route | Response | Line |
+|-------------|-------|----------|------|
+| GET | /api/status | `{ status, timestamp }` | 39-42 |
 
 ---
 
 ## ArasGateway (`backend/ArasBackend.Infrastructure/Gateways/ArasGateway.cs`)
-**Implements**: `IArasGateway`
+**Implements**: `IArasGateway` (inferred from `: IArasGateway` line 10)
 
-_(Note: Gateway implementation details not verified in this pass, derived from Controller usage)_
+| Method | Parameter Type | Return Type | Lines |
+|--------|----------------|-------------|-------|
+| QueryItems | QueryRequest | ItemResponse | 44-70 |
+| GetItemById | GetByIdRequest | ItemResponse | 72-84 |
+| GetItemByKeyedName | GetByKeyedNameRequest | ItemResponse | 86-89 |
+| CreateItem | CreateItemRequest | ItemResponse | 91-100 |
+| UpdateItem | UpdateItemRequest | ItemResponse | 102-112 |
+| DeleteItem | DeleteItemRequest | ItemResponse | 114-122 |
+| PurgeItem | DeleteItemRequest | ItemResponse | 124-132 |
+| LockItem | LockRequest | ItemResponse | 134-142 |
+| UnlockItem | LockRequest | ItemResponse | 144-152 |
+| CheckLockStatus | LockRequest | ItemResponse | 154-175 |
+| AddRelationship | AddRelationshipRequest | ItemResponse | 177-192 |
+| GetRelationships | GetRelationshipsRequest | ItemResponse | 194-205 |
+| DeleteRelationship | DeleteRelationshipRequest | ItemResponse | 207-215 |
+| PromoteItem | PromoteRequest | ItemResponse | 217-228 |
+| GetCurrentState | GetByIdRequest | ItemResponse | 230-251 |
+| ApplyAML | ApplyAmlRequest | ItemResponse | 253-261 |
+| ApplySQL | ApplySqlRequest | ItemResponse | 263-266 |
+| ApplyMethod | ApplyMethodRequest | ItemResponse | 268-271 |
+| AssertItemExists | AssertExistsRequest | AssertionResponse | 273-291 |
+| AssertItemNotExists | AssertExistsRequest | AssertionResponse | 293-311 |
+| AssertPropertyValue | AssertPropertyRequest | AssertionResponse | 313-329 |
+| AssertState | AssertStateRequest | AssertionResponse | 331-347 |

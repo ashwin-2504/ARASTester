@@ -1,8 +1,8 @@
 # FACT_DOMAIN_TERMS
 
-**Source**: `backend/ArasBackend.Core/Models/ArasModels.cs`
-**Extraction Date**: 2026-02-28
-**Constraint**: Definitions of key domain entities used in API contracts.
+**Source**: Explicitly defined classes, models, and properties in code.
+**Extraction Date**: 2026-01-20
+**Constraint**: Each term includes exact file path and symbol definition location.
 
 ---
 
@@ -30,7 +30,6 @@
 | Success | bool | No |
 | Message | string? | No |
 | ServerInfo | ServerInfo? | No |
-| SessionName | string? | No |
 
 ### ConnectionStatusResponse (Lines 28-33)
 | Property | Type | Required |
@@ -153,79 +152,6 @@
 | ItemType | string | Yes |
 | Id | string | Yes |
 | ExpectedState | string | Yes |
-
-### StartWorkflowRequest
-| Property | Type | Required |
-|----------|------|----------|
-| ItemType | string | Yes |
-| Id | string | Yes |
-| WorkflowMap | string? | No |
-
-### CompleteActivityRequest
-| Property | Type | Required |
-|----------|------|----------|
-| ActivityId | string | Yes |
-| Path | string | Yes |
-| Comments | string? | No |
-
-### AssertPropertyContainsRequest
-| Property | Type | Required |
-|----------|------|----------|
-| ItemType | string | Yes |
-| Id | string | Yes |
-| Property | string | Yes |
-| Contains | string | Yes |
-
-### AssertCountRequest
-| Property | Type | Required |
-|----------|------|----------|
-| ItemType | string | Yes |
-| Criteria | Dictionary<string, string> | Yes |
-| ExpectedCount | int | No |
-
-### UploadFileRequest
-| Property | Type | Required |
-|----------|------|----------|
-| ItemType | string | Yes |
-| Id | string | Yes |
-| PropertyName | string | Yes |
-| FilePath | string | Yes |
-
-### DownloadFileRequest
-| Property | Type | Required |
-|----------|------|----------|
-| ItemType | string | Yes |
-| Id | string | Yes |
-| PropertyName | string | Yes |
-| SavePath | string | Yes |
-
-### VerifyFileExistsRequest
-| Property | Type | Required |
-|----------|------|----------|
-| ItemType | string | Yes |
-| Id | string | Yes |
-| PropertyName | string | Yes |
-
-### GetNextSequenceRequest
-| Property | Type | Required |
-|----------|------|----------|
-| SequenceName | string | Yes |
-
-### SetVariableRequest
-| Property | Type | Required |
-|----------|------|----------|
-| VariableName | string | Yes |
-| Value | object? | No |
-
-### LogMessageRequest
-| Property | Type | Required |
-|----------|------|----------|
-| Message | string | Yes |
-
-### WaitRequest
-| Property | Type | Required |
-|----------|------|----------|
-| Duration | int | No |
 
 ### ItemResponse (Lines 150-156)
 | Property | Type | Required |

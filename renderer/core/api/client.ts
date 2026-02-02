@@ -6,30 +6,43 @@ export interface ApiOptions {
   sessionName?: string;
 }
 
-interface ApiResponse {
-  [key: string]: any;
+// Recursive type for JSON-compatible data
+type JsonValue = string | number | boolean | null | JsonArray | JsonObject;
+interface JsonArray extends Array<JsonValue> {}
+interface JsonObject {
+  [key: string]: JsonValue;
 }
 
 /**
  * Normalize response from PascalCase (backend) to camelCase (frontend)
  */
-function normalizeResponse(data: any): any {
-  if (!data || typeof data !== "object") return data;
+function normalizeResponse<T>(data: unknown): T {
+  if (!data || typeof data !== "object") return data as T;
 
-  const normalized: ApiResponse = {};
-  for (const [key, value] of Object.entries(data)) {
+  if (Array.isArray(data)) {
+    return data.map(item => normalizeResponse(item)) as unknown as T;
+  }
+
+  const normalized: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
     // Convert first letter to lowercase
     const camelKey = key.charAt(0).toLowerCase() + key.slice(1);
-    normalized[camelKey] = value;
+    
+    // Recursive normalization for nested objects
+    if (typeof value === 'object' && value !== null) {
+      normalized[camelKey] = normalizeResponse(value);
+    } else {
+      normalized[camelKey] = value;
+    }
   }
-  return normalized;
+  return normalized as T;
 }
 
 export class ApiError extends Error {
   status?: number;
-  response?: any;
+  response?: unknown;
 
-  constructor(message: string, status?: number, response?: any) {
+  constructor(message: string, status?: number, response?: unknown) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
@@ -49,7 +62,11 @@ export const apiClient = {
    */
   cancelAll(): void {
     for (const [, controller] of this._activeRequests) {
-      controller.abort();
+      try {
+        controller.abort();
+      } catch (e) {
+        // Ignore abort errors
+      }
     }
     this._activeRequests.clear();
   },
@@ -61,7 +78,11 @@ export const apiClient = {
   cancel(requestId: string): void {
     const controller = this._activeRequests.get(requestId);
     if (controller) {
-      controller.abort();
+      try {
+        controller.abort();
+      } catch (e) {
+        // Ignore abort errors
+      }
       this._activeRequests.delete(requestId);
     }
   },
@@ -87,9 +108,10 @@ export const apiClient = {
       }
 
       return response;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as Error;
       // Retry on network errors (fetch failed completely)
-      if (retries > 0 && (error.message.includes("Failed to fetch") || error.name === "TypeError")) {
+      if (retries > 0 && (err.message?.includes("Failed to fetch") || err.name === "TypeError")) {
         await this._wait(backoff);
         return this._fetchWithRetry(url, options, retries - 1, backoff * 2);
       }
@@ -103,7 +125,7 @@ export const apiClient = {
    * @param data - Payload data
    * @param options - Optional settings { requestId, signal }
    */
-  async post<T = any>(endpoint: string, data: any, options: ApiOptions = {}): Promise<T> {
+  async post<T>(endpoint: string, data: unknown, options: ApiOptions = {}): Promise<T> {
     const controller = new AbortController();
     const requestId = options.requestId || `post-${endpoint}-${Date.now()}`;
 
@@ -134,13 +156,13 @@ export const apiClient = {
       // Check for HTTP errors
       if (!response.ok) {
         throw new ApiError(
-          result.message || result.Message || `HTTP ${response.status}`,
+          (result as any).message || (result as any).Message || `HTTP ${response.status}`,
           response.status,
           result
         );
       }
 
-      return normalizeResponse(result) as T;
+      return normalizeResponse<T>(result);
     } finally {
       this._activeRequests.delete(requestId);
     }
@@ -151,7 +173,7 @@ export const apiClient = {
    * @param endpoint - API Endpoint
    * @param options - Optional settings { requestId, signal }
    */
-  async get<T = any>(endpoint: string, options: ApiOptions = {}): Promise<T> {
+  async get<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
     const controller = new AbortController();
     const requestId = options.requestId || `get-${endpoint}-${Date.now()}`;
 
@@ -177,15 +199,16 @@ export const apiClient = {
 
       if (!response.ok) {
         throw new ApiError(
-          result.message || result.Message || `HTTP ${response.status}`,
+          (result as any).message || (result as any).Message || `HTTP ${response.status}`,
           response.status,
           result
         );
       }
 
-      return normalizeResponse(result) as T;
+      return normalizeResponse<T>(result);
     } finally {
       this._activeRequests.delete(requestId);
     }
   },
 };
+

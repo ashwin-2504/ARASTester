@@ -14,7 +14,7 @@ import type { ActionPlugin, ActionSchema, ActionSchemaField } from "@/types/plan
  */
 class ActionRegistry {
   private plugins: Map<string, ActionPlugin>;
-  private categories: Map<string, any>;
+  private categories: Map<string, unknown>;
 
   constructor() {
     this.plugins = new Map();
@@ -28,14 +28,22 @@ class ActionRegistry {
   loadFromSchema() {
     // Load categories
     if (actionSchemas.categories) {
-      actionSchemas.categories.forEach((cat: any) => {
-        this.categories.set(cat.id, cat);
+      actionSchemas.categories.forEach((cat: unknown) => {
+        // We know cat has an id because we use it, but safe practice is to inspect or assert if needed.
+        // For now, we store as unknown or type assert if we trust schema.json structure "mostly".
+        // Let's use a basic shape check if we were strict, but here we just store it.
+        // Actually cat needs to be an object with an ID to be useful in the map.
+         const category = cat as { id: string, [key: string]: unknown };
+         if (category && category.id) {
+            this.categories.set(category.id, category);
+         }
       });
     }
 
     // Load actions
     if (actionSchemas.actions) {
-      actionSchemas.actions.forEach((schema: any) => {
+      actionSchemas.actions.forEach((schema: unknown) => {
+        // Assert schema is ActionSchema to proceed, trusting the JSON loader for now but avoiding 'any'
         this.register(this.createPluginFromSchema(schema as ActionSchema));
       });
     }
@@ -55,11 +63,13 @@ class ActionRegistry {
       isClientSide: schema.isClientSide || false,
       defaultParams: this.buildDefaultParams(schema.fields),
       // Create a dynamic Editor component that uses SchemaFormRenderer
-      Editor: (props: any) =>
+      // Props typed as any in signature previously -> unknown or defined interface
+      // Editor props usually: { params: Record<string, any>, onChange: (newParams) => void }
+      Editor: (props: { params?: Record<string, unknown>, onChange?: (p: Record<string, unknown>) => void }) =>
         React.createElement(SchemaFormRenderer, {
           schema: schema,
-          params: props.params,
-          onChange: props.onChange,
+          params: props.params as Record<string, any>,
+          onChange: props.onChange as any,
         }),
       schema: schema, // Keep reference for validation and other uses
     };
@@ -68,10 +78,10 @@ class ActionRegistry {
   /**
    * Build default parameters object from field definitions
    */
-  buildDefaultParams(fields: ActionSchemaField[]): Record<string, any> {
+  buildDefaultParams(fields: ActionSchemaField[]): Record<string, unknown> {
     if (!fields || fields.length === 0) return {};
 
-    return fields.reduce((acc: any, field) => {
+    return fields.reduce((acc: Record<string, unknown>, field) => {
       if (field.default !== undefined) {
         acc[field.name] = field.default;
       }

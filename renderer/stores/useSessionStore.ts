@@ -51,7 +51,12 @@ interface SessionState {
   activeSessions: SessionInfo[];
   savedSessions: SavedSession[];
   currentSessionName: string;
-  connectingSessionName: string | null;
+  /**
+   * Multiple connection attempts may be in-flight for UX responsiveness.
+   * Backend supports only one active session; the first successful
+   * connection becomes authoritative and clears pending attempts.
+   */
+  connectingSessions: Set<string>;
   isLoading: boolean;
   error: string | null;
 
@@ -78,7 +83,7 @@ export const useSessionStore = create<SessionState>()(
       activeSessions: [],
       savedSessions: [],
       currentSessionName: "default",
-      connectingSessionName: null,
+      connectingSessions: new Set(),
       isLoading: false,
       error: null,
 
@@ -116,7 +121,11 @@ export const useSessionStore = create<SessionState>()(
 
       login: async (credentials: ConnectionRequest) => {
         const targetName = credentials.sessionName || "default";
-        set({ isLoading: true, connectingSessionName: targetName, error: null });
+        set((state) => {
+          const newSet = new Set(state.connectingSessions);
+          newSet.add(targetName);
+          return { isLoading: true, connectingSessions: newSet, error: null };
+        });
         
         try {
           const response = await apiClient.post<ConnectionResponse>(
@@ -141,11 +150,15 @@ export const useSessionStore = create<SessionState>()(
             }
           }
 
-          set({ isLoading: false, connectingSessionName: null });
+          set({ isLoading: false, connectingSessions: new Set() });
           return response;
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : "Login failed";
-          set({ error: message, isLoading: false, connectingSessionName: null });
+          set((state) => {
+            const newSet = new Set(state.connectingSessions);
+            newSet.delete(targetName);
+            return { error: message, isLoading: false, connectingSessions: newSet };
+          });
           return { success: false, message };
         }
       },
@@ -158,7 +171,7 @@ export const useSessionStore = create<SessionState>()(
             ? `/api/aras/disconnect/${encodeURIComponent(name)}`
             : "/api/aras/disconnect";
 
-          await apiClient.post(endpoint, {});
+          await apiClient.post<ConnectionResponse>(endpoint, {});
           await get().fetchSessions();
           set({ isLoading: false });
         } catch (err: unknown) {

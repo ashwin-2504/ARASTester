@@ -1,19 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Input } from '@/components/ui/input.jsx';
-// @ts-ignore
+import { Input } from '@/components/ui/input';
 import KeyValueEditor from './KeyValueEditor';
 import type { ActionSchemaField } from '@/types/plan';
 
 interface FieldRendererProps {
   field: ActionSchemaField;
-  value: any;
-  onChange: (value: any) => void;
+  value: unknown;
+  onChange: (value: unknown) => void;
   error?: string;
 }
 
 // Helper hook for debounced value
-function useDebouncedChange(value: any, onChange: (val: any) => void, delay = 300) {
-  const [localValue, setLocalValue] = useState(value);
+function useDebouncedChange<T>(value: T, onChange: (val: T) => void, delay = 300) {
+  const [localValue, setLocalValue] = useState<T>(value);
   const skipUpdate = useRef(false);
 
   // Sync local value when prop value changes (e.g. undo/redo or selection change)
@@ -47,10 +46,18 @@ const FieldRenderer: React.FC<FieldRendererProps> = ({ field, value, onChange, e
   // We use local state for inputs that trigger frequent updates (text, number, textarea, json)
   // Checkbox and Select are usually instant/cheap enough, but text needs debouncing.
   
-  const [textValue, setTextValue] = useDebouncedChange(value ?? field.default ?? '', onChange);
-  const [numberValue, setNumberValue] = useDebouncedChange(value ?? field.default ?? '', onChange);
-  const [jsonValue, setJsonValue] = useDebouncedChange(
-     typeof value === 'object' ? JSON.stringify(value, null, 2) : (value ?? ''),
+  const [textValue, setTextValue] = useDebouncedChange<string>(
+    (value as string) ?? (field.default as string) ?? '', 
+    onChange as (v: string) => void
+  );
+  
+  const [numberValue, setNumberValue] = useDebouncedChange<string>(
+    (value as string) ?? (field.default as string) ?? '', 
+    onChange as (v: string) => void
+  );
+  
+  const [jsonValue, setJsonValue] = useDebouncedChange<string>(
+     typeof value === 'object' ? JSON.stringify(value, null, 2) : ((value as string) ?? ''),
      (val: string) => {
         try {
             const parsed = JSON.parse(val);
@@ -83,7 +90,7 @@ const FieldRenderer: React.FC<FieldRendererProps> = ({ field, value, onChange, e
 
   // Render required indicator
   const renderLabel = () => (
-    <label className="text-sm font-medium leading-none block mb-2">
+    <label className="text-sm font-medium leading-none block mb-1">
       {field.label}
       {field.required && <span className="text-red-500 ml-1">*</span>}
     </label>
@@ -142,7 +149,7 @@ const FieldRenderer: React.FC<FieldRendererProps> = ({ field, value, onChange, e
         <div className="space-y-1">
           {renderLabel()}
           <select
-            value={value ?? field.default ?? ''}
+            value={(value as string) ?? (field.default as string) ?? ''}
             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onChange(e.target.value)}
             className={`w-full appearance-none rounded-md border border-input px-4 py-2.5 text-sm focus:border-primary focus:ring-primary ${baseInputClass}`}
           >
@@ -161,7 +168,7 @@ const FieldRenderer: React.FC<FieldRendererProps> = ({ field, value, onChange, e
         <div className="flex items-center gap-2">
           <input
             type="checkbox"
-            checked={value ?? field.default ?? false}
+            checked={(value as boolean) ?? (field.default as boolean) ?? false}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.checked)}
             className="rounded border-border text-primary focus:ring-primary h-4 w-4"
           />
@@ -178,8 +185,8 @@ const FieldRenderer: React.FC<FieldRendererProps> = ({ field, value, onChange, e
       return (
         <KeyValueEditor
           field={field}
-          value={value}
-          onChange={onChange}
+          value={value as Record<string, string> | undefined}
+          onChange={onChange as (val: Record<string, string> | undefined) => void}
         />
       );
 

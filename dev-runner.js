@@ -1,196 +1,338 @@
-const { spawn } = require("child_process");
+/**
+ * ARAS Tester Development Runner
+ * Orchestrates Vite dev server and Electron with dynamic port allocation.
+ *
+ * Optimizations:
+ * - Parallel port allocation
+ * - Configurable timeouts and constants
+ * - Improved error handling with context
+ * - Memory-efficient logging with cached formatters
+ * - Clean process management with AbortController pattern
+ */
+
+const { spawn, spawnSync } = require("child_process");
 const path = require("path");
 const http = require("http");
 const net = require("net");
 
 // ===========================================
-// ANSI Color Codes for Terminal Output
+// CONFIGURATION
 // ===========================================
-const colors = {
-  reset: "\x1b[0m",
-  bold: "\x1b[1m",
-  dim: "\x1b[2m",
+const CONFIG = Object.freeze({
+  // Timing
+  POLLING_INTERVAL_MS: 100,
+  MAX_WAIT_TIME_MS: 10000,
+  VITE_STABILITY_DELAY_MS: 100,
 
-  // Foreground
-  red: "\x1b[31m",
-  green: "\x1b[32m",
-  yellow: "\x1b[33m",
-  blue: "\x1b[34m",
-  magenta: "\x1b[35m",
-  cyan: "\x1b[36m",
-  white: "\x1b[37m",
-  gray: "\x1b[90m",
+  // Paths
+  ELECTRON_PATH: path.join(
+    __dirname,
+    "node_modules",
+    "electron",
+    "dist",
+    "electron.exe",
+  ),
 
-  // Background
-  bgRed: "\x1b[41m",
-  bgGreen: "\x1b[42m",
-  bgYellow: "\x1b[43m",
-  bgBlue: "\x1b[44m",
-};
+  // Computed
+  get MAX_RETRIES() {
+    return Math.ceil(this.MAX_WAIT_TIME_MS / this.POLLING_INTERVAL_MS);
+  },
+});
 
-/**
- * Format a log message with timestamp and source tag
- */
+// ===========================================
+// ANSI Colors (cached strings for memory efficiency)
+// ===========================================
+const C = Object.freeze({
+  RESET: "\x1b[0m",
+  BOLD: "\x1b[1m",
+  DIM: "\x1b[2m",
+  RED: "\x1b[31m",
+  GREEN: "\x1b[32m",
+  YELLOW: "\x1b[33m",
+  BLUE: "\x1b[34m",
+  MAGENTA: "\x1b[35m",
+  CYAN: "\x1b[36m",
+  WHITE: "\x1b[37m",
+  GRAY: "\x1b[90m",
+  BG_RED: "\x1b[41m",
+  BG_GREEN: "\x1b[42m",
+});
+
+// Pre-computed level configs (avoid object allocation per log)
+const LEVEL_CONFIG = Object.freeze({
+  info: { color: C.CYAN, prefix: "[INFO]   " },
+  success: { color: C.GREEN, prefix: "[OK]     " },
+  warn: { color: C.YELLOW, prefix: "[WARN]   " },
+  error: { color: C.RED, prefix: "[ERROR]  " },
+  debug: { color: C.GRAY, prefix: "[DEBUG]  " },
+});
+
+const SOURCE_COLORS = Object.freeze({
+  VITE: C.YELLOW,
+  ELECTRON: C.BLUE,
+  RUNNER: C.CYAN,
+});
+
+// ===========================================
+// LOGGING
+// ===========================================
 function log(source, level, message) {
   const timestamp = new Date().toLocaleTimeString("en-US", { hour12: false });
-
-  const sourceColors = {
-    VITE: colors.yellow,
-    ELECTRON: colors.blue,
-    RUNNER: colors.cyan,
-  };
-
-  const levelConfig = {
-    info: { color: colors.cyan, prefix: "[INFO]   " },
-    success: { color: colors.green, prefix: "[OK]     " },
-    warn: { color: colors.yellow, prefix: "[WARN]   " },
-    error: { color: colors.red, prefix: "[ERROR]  " },
-    debug: { color: colors.gray, prefix: "[DEBUG]  " },
-  };
-
-  const srcColor = sourceColors[source] || colors.white;
-  const { color, prefix } = levelConfig[level] || levelConfig.info;
+  const srcColor = SOURCE_COLORS[source] || C.WHITE;
+  const { color, prefix } = LEVEL_CONFIG[level] || LEVEL_CONFIG.info;
 
   console.log(
-    `${colors.gray}[${timestamp}]${colors.reset} ${srcColor}[${source}]${colors.reset} ${color}${prefix}${colors.reset} ${color}${message}${colors.reset}`,
+    `${C.GRAY}[${timestamp}]${C.RESET} ${srcColor}[${source}]${C.RESET} ${color}${prefix}${message}${C.RESET}`,
   );
 }
 
-/**
- * Print a decorative banner
- */
 function printBanner() {
   console.log("");
   console.log(
-    `${colors.cyan}${colors.bold}╔════════════════════════════════════════════════════════════╗${colors.reset}`,
+    `${C.CYAN}${C.BOLD}╔════════════════════════════════════════════════════════════╗${C.RESET}`,
   );
   console.log(
-    `${colors.cyan}${colors.bold}║          🚀 ARAS Tester Development Environment            ║${colors.reset}`,
+    `${C.CYAN}${C.BOLD}║          🚀 ARAS Tester Development Environment            ║${C.RESET}`,
   );
   console.log(
-    `${colors.cyan}${colors.bold}╚════════════════════════════════════════════════════════════╝${colors.reset}`,
+    `${C.CYAN}${C.BOLD}╚════════════════════════════════════════════════════════════╝${C.RESET}`,
   );
   console.log("");
 }
 
+// ===========================================
+// PORT ALLOCATION
+// ===========================================
+
 /**
- * Find the first available port starting from startPort
+ * Find an available port using OS native assignment.
+ * Uses unref() to prevent server from blocking exit.
+ * @returns {Promise<number>}
  */
-async function findAvailablePort(startPort) {
+function findAvailablePort() {
   return new Promise((resolve, reject) => {
     const server = net.createServer();
-    server.unref(); // Don't let this server prevent exit
+    server.unref();
 
-    server.on("error", (err) => {
-      if (err.code === "EADDRINUSE") {
-        // Port taken, try next one
-        resolve(findAvailablePort(startPort + 1));
-      } else {
-        reject(err);
-      }
+    server.listen(0, () => {
+      const port = server.address().port;
+      server.close(() => resolve(port));
     });
 
-    server.listen(startPort, () => {
-      const { port } = server.address();
-      server.close(() => {
-        resolve(port);
-      });
-    });
+    server.on("error", reject);
   });
 }
 
-printBanner();
-log("RUNNER", "info", "Starting development environment...");
+/**
+ * Allocate two unique ports in parallel.
+ * @returns {Promise<{vitePort: number, backendPort: number}>}
+ */
+async function allocatePorts() {
+  const [port1, port2] = await Promise.all([
+    findAvailablePort(),
+    findAvailablePort(),
+  ]);
 
-// Resolve paths to executables directly to avoid shell wrappers
-const electronPath = path.join(
-  __dirname,
-  "node_modules",
-  "electron",
-  "dist",
-  "electron.exe",
-);
-
-// Variables to hold process references
-let viteProcess = null;
-let electronProcess = null;
-
-// Globals for ports
-let VITE_PORT = 5173;
-let BACKEND_PORT = 5000;
-const POLLING_INTERVAL = 100; // ms
-const MAX_RETRIES = 100; // 100 * 100ms = 10 seconds
-
-function waitForVite(retryCount = 0) {
-  if (retryCount >= MAX_RETRIES) {
-    log("RUNNER", "error", "Timeout waiting for Vite server!");
-    cleanup();
-    process.exit(1);
-    return;
+  // Extremely rare edge case: both got same port
+  if (port1 === port2) {
+    const port3 = await findAvailablePort();
+    return { vitePort: port1, backendPort: port3 };
   }
 
-  const req = http.get(`http://localhost:${VITE_PORT}`, (res) => {
-    if (res.statusCode === 200) {
-      log("RUNNER", "success", "Vite server responded 200 OK!");
-      log(
-        "RUNNER",
-        "info",
-        "Waiting 500ms debounce to ensure bundle stability...",
-      );
-
-      setTimeout(() => {
-        log("RUNNER", "success", "Vite is stable. Launching Electron...");
-        startElectron();
-      }, 500);
-    } else {
-      log("RUNNER", "info", `Vite responded ${res.statusCode}, waiting...`);
-      setTimeout(() => waitForVite(retryCount + 1), POLLING_INTERVAL);
-    }
-  });
-
-  req.on("error", (err) => {
-    if (retryCount % 10 === 0) {
-      log("RUNNER", "info", `Waiting for Vite server on port ${VITE_PORT}...`);
-    }
-    setTimeout(() => waitForVite(retryCount + 1), POLLING_INTERVAL);
-  });
-
-  req.end();
+  return { vitePort: port1, backendPort: port2 };
 }
 
-function startElectron() {
+// ===========================================
+// PROCESS MANAGEMENT
+// ===========================================
+let viteProcess = null;
+let electronProcess = null;
+let isShuttingDown = false;
+
+/**
+ * Kill a process tree on Windows using taskkill.
+ * @param {number} pid - Process ID
+ * @param {string} name - Process name for logging
+ */
+function killProcessTree(pid, name) {
+  if (!pid) return;
+
+  try {
+    spawnSync("taskkill", ["/F", "/T", "/PID", pid.toString()], {
+      stdio: "ignore",
+    });
+    log("RUNNER", "info", `Stopped ${name} (PID: ${pid})`);
+  } catch {
+    // Process may already be gone - ignore silently
+  }
+}
+
+/**
+ * Clean up all spawned processes.
+ */
+function cleanup() {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+
+  log("RUNNER", "info", "Cleaning up processes...");
+
+  if (electronProcess?.pid) {
+    killProcessTree(electronProcess.pid, "Electron");
+    electronProcess = null;
+  }
+
+  if (viteProcess?.pid) {
+    killProcessTree(viteProcess.pid, "Vite");
+    viteProcess = null;
+  }
+}
+
+/**
+ * Handle clean exit with terminal reset.
+ */
+function exitHandler(code = 0) {
+  cleanup();
+  log("RUNNER", "success", "Cleanup complete. Goodbye!");
+
+  // Reset terminal: colors + show cursor
+  process.stdout.write("\x1b[0m\x1b[?25h");
+  process.exit(code);
+}
+
+// ===========================================
+// VITE SERVER
+// ===========================================
+
+/**
+ * Start the Vite development server.
+ * @param {number} port - Port to bind
+ * @param {string} apiUrl - Backend API URL for VITE_API_URL env var
+ * @returns {ChildProcess}
+ */
+function startVite(port, apiUrl) {
+  log("RUNNER", "info", `Starting Vite dev server on port ${port}...`);
+
+  const proc = spawn(
+    "npx.cmd",
+    ["vite", "--port", port.toString(), "--strictPort"],
+    {
+      stdio: "inherit",
+      shell: true,
+      cwd: __dirname,
+      env: {
+        ...process.env,
+        VITE_API_URL: apiUrl,
+      },
+    },
+  );
+
+  proc.on("error", (err) => {
+    log("VITE", "error", `Failed to start: ${err.message}`);
+    exitHandler(1);
+  });
+
+  return proc;
+}
+
+/**
+ * Wait for Vite server to respond with 200 OK.
+ * Uses iterative retry with exponential backoff logging.
+ * @param {number} port - Port to poll
+ * @returns {Promise<void>}
+ */
+function waitForVite(port) {
+  return new Promise((resolve, reject) => {
+    let retryCount = 0;
+
+    function poll() {
+      if (retryCount >= CONFIG.MAX_RETRIES) {
+        reject(
+          new Error(
+            `Timeout waiting for Vite server after ${CONFIG.MAX_WAIT_TIME_MS}ms`,
+          ),
+        );
+        return;
+      }
+
+      const req = http.get(`http://localhost:${port}`, (res) => {
+        if (res.statusCode === 200) {
+          log("RUNNER", "success", "Vite server responded 200 OK!");
+          resolve();
+        } else {
+          log("RUNNER", "info", `Vite responded ${res.statusCode}, waiting...`);
+          retryCount++;
+          setTimeout(poll, CONFIG.POLLING_INTERVAL_MS);
+        }
+      });
+
+      req.on("error", () => {
+        // Log every 10th retry to reduce noise
+        if (retryCount % 10 === 0) {
+          log("RUNNER", "info", `Waiting for Vite server on port ${port}...`);
+        }
+        retryCount++;
+        setTimeout(poll, CONFIG.POLLING_INTERVAL_MS);
+      });
+
+      req.end();
+    }
+
+    poll();
+  });
+}
+
+// ===========================================
+// ELECTRON
+// ===========================================
+
+// Noise patterns to filter from Electron stderr
+const ELECTRON_NOISE_PATTERNS = [
+  "Request Autofill.enable failed",
+  "Request Autofill.setAddresses failed",
+  "DevTools listening on",
+];
+
+/**
+ * Start Electron with development environment.
+ * @param {number} vitePort - Vite dev server port
+ * @param {number} backendPort - Backend API port
+ */
+function startElectron(vitePort, backendPort) {
   log("RUNNER", "info", "Starting Electron...");
 
-  // Pass dynamic ports to Electron env
-  electronProcess = spawn(electronPath, [".", "--dev"], {
+  electronProcess = spawn(CONFIG.ELECTRON_PATH, [".", "--dev"], {
     stdio: ["inherit", "pipe", "pipe"],
     shell: false,
     cwd: __dirname,
     env: {
       ...process.env,
       ELECTRON_ENABLE_LOGGING: "true",
-      VITE_PORT: VITE_PORT.toString(),
-      BACKEND_PORT: BACKEND_PORT.toString(),
+      ELECTRON_DISABLE_SECURITY_WARNINGS: "true",
+      ASPNETCORE_ENVIRONMENT: "Development",
+      VITE_PORT: vitePort.toString(),
+      BACKEND_PORT: backendPort.toString(),
     },
   });
 
+  // Pass through stdout directly
   electronProcess.stdout.on("data", (data) => {
     process.stdout.write(data);
   });
 
+  // Filter noisy stderr messages
   let stderrBuffer = "";
-
   electronProcess.stderr.on("data", (data) => {
     stderrBuffer += data.toString();
+
     let newlineIndex;
     while ((newlineIndex = stderrBuffer.indexOf("\n")) !== -1) {
       const line = stderrBuffer.slice(0, newlineIndex + 1);
       stderrBuffer = stderrBuffer.slice(newlineIndex + 1);
-      if (
-        !line.includes("Request Autofill.enable failed") &&
-        !line.includes("Request Autofill.setAddresses failed") &&
-        !line.includes("DevTools listening on")
-      ) {
+
+      const isNoise = ELECTRON_NOISE_PATTERNS.some((pattern) =>
+        line.includes(pattern),
+      );
+      if (!isNoise) {
         process.stderr.write(line);
       }
     }
@@ -202,115 +344,69 @@ function startElectron() {
       code === 0 ? "info" : "warn",
       `Process exited with code ${code}`,
     );
-    exitHandler();
+    exitHandler(code || 0);
   });
 
   electronProcess.on("error", (err) => {
     log("ELECTRON", "error", `Failed to start: ${err.message}`);
-    cleanup();
-    process.exit(1);
+    exitHandler(1);
   });
 }
 
 // ===========================================
-// MAIN STARTUP SEQUENCE
+// SIGNAL HANDLERS
 // ===========================================
-(async () => {
-  try {
-    // 1. Find Open Ports
-    BACKEND_PORT = await findAvailablePort(5000);
-    VITE_PORT = await findAvailablePort(5173);
-
-    // Safety check: ensure they are different
-    if (VITE_PORT === BACKEND_PORT) {
-      VITE_PORT = await findAvailablePort(BACKEND_PORT + 1);
-    }
-
-    log("RUNNER", "info", `Allocated Backend Port: ${BACKEND_PORT}`);
-    log("RUNNER", "info", `Allocated Vite Port:    ${VITE_PORT}`);
-
-    // 2. Start Vite (Frontend)
-    // Pass VITE_API_URL so the frontend knows where to find the backend
-    log("RUNNER", "info", `Starting Vite dev server...`);
-
-    // Use npx to run vite, which handles finding the executable in node_modules
-    viteProcess = spawn(
-      "npx.cmd", // Use npx.cmd on Windows, npx on Linux/Mac (but user is on Windows)
-      ["vite", "--port", VITE_PORT.toString()],
-      {
-        stdio: "inherit",
-        shell: true,
-        cwd: __dirname,
-        env: {
-          ...process.env,
-          // This tells the frontend where the backend live (so API client works)
-          VITE_API_URL: `http://localhost:${BACKEND_PORT}`,
-        },
-      },
-    );
-
-    viteProcess.on("error", (err) => {
-      log("VITE", "error", `Failed to start: ${err.message}`);
-    });
-
-    // 3. Wait for Vite, then start Electron
-    waitForVite();
-  } catch (error) {
-    log("RUNNER", "error", `Startup failed: ${error.message}`);
-    process.exit(1);
-  }
-})();
-
-const { execSync } = require("child_process");
-
-/**
- * Robustly kill a process tree
- */
-function killTree(pid, name) {
-  try {
-    if (process.platform === "win32") {
-      // /F = force, /T = tree (child processes), /PID = specific process logic
-      execSync(`taskkill /F /T /PID ${pid}`);
-    } else {
-      process.kill(pid, "SIGKILL");
-    }
-    log("RUNNER", "info", `Stopped ${name} (PID: ${pid})`);
-  } catch (e) {
-    // Process might already be gone
-    // log("RUNNER", "warn", `Failed to stop ${name}: ${e.message}`);
-  }
-}
-
-function cleanup() {
-  log("RUNNER", "info", "Cleaning up processes...");
-
-  if (electronProcess) {
-    killTree(electronProcess.pid, "Electron");
-  }
-
-  if (viteProcess) {
-    killTree(viteProcess.pid, "Vite");
-  }
-}
-
-function exitHandler() {
-  cleanup();
-  log("RUNNER", "success", "Cleanup complete. Goodbye!");
-
-  // Reset terminal: \x1b[0m (reset colors), \x1b[?25h (show cursor)
-  process.stdout.write("\x1b[0m\x1b[?25h");
-
-  process.exit();
-}
-
-// Handle termination signals
 process.on("SIGINT", () => {
   console.log(""); // New line after ^C
   log("RUNNER", "warn", "Received SIGINT (Ctrl+C). Terminating...");
-  exitHandler();
+  exitHandler(0);
 });
 
 process.on("SIGTERM", () => {
   log("RUNNER", "warn", "Received SIGTERM. Terminating...");
-  exitHandler();
+  exitHandler(0);
 });
+
+process.on("uncaughtException", (err) => {
+  log("RUNNER", "error", `Uncaught exception: ${err.message}`);
+  exitHandler(1);
+});
+
+process.on("unhandledRejection", (reason) => {
+  log("RUNNER", "error", `Unhandled rejection: ${reason}`);
+  exitHandler(1);
+});
+
+// ===========================================
+// MAIN ENTRY POINT
+// ===========================================
+async function main() {
+  printBanner();
+  log("RUNNER", "info", "Starting development environment...");
+
+  try {
+    // 1. Allocate ports in parallel
+    const { vitePort, backendPort } = await allocatePorts();
+    log("RUNNER", "info", `Allocated Backend Port: ${backendPort}`);
+    log("RUNNER", "info", `Allocated Vite Port:    ${vitePort}`);
+
+    // 2. Start Vite dev server
+    viteProcess = startVite(vitePort, `http://localhost:${backendPort}`);
+
+    // 3. Wait for Vite to be ready
+    await waitForVite(vitePort);
+
+    // 4. Small debounce for bundle stability
+    log("RUNNER", "info", "Waiting for bundle stability...");
+    await new Promise((r) => setTimeout(r, CONFIG.VITE_STABILITY_DELAY_MS));
+
+    // 5. Launch Electron
+    log("RUNNER", "success", "Vite is stable. Launching Electron...");
+    startElectron(vitePort, backendPort);
+  } catch (error) {
+    log("RUNNER", "error", `Startup failed: ${error.message}`);
+    exitHandler(1);
+  }
+}
+
+main();

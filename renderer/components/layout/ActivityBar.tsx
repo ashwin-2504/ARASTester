@@ -1,4 +1,3 @@
-import React from "react";
 import { Users, FileText, Settings } from "lucide-react";
 
 interface ActivityBarProps {

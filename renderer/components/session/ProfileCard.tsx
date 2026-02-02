@@ -34,7 +34,7 @@ export function ProfileCard({ session, onEdit, onDelete }: ProfileCardProps) {
     login,
     logout,
     isLoading,
-    connectingSessionName,
+    connectingSessions,
     deleteSavedSession,
   } = useSessionStore();
   
@@ -46,7 +46,7 @@ export function ProfileCard({ session, onEdit, onDelete }: ProfileCardProps) {
     (s) => s.name === session.name // Use session.name as it matches the saved session name usually
   );
   // Also check if this specific session is currently connecting
-  const isConnecting = connectingSessionName === session.sessionName;
+  const isConnecting = connectingSessions.has(session.sessionName);
   
   const isConnected = !!activeSession;
   

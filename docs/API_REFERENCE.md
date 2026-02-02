@@ -1,12 +1,6 @@
 # API_REFERENCE
 
-> ⚠ HUMAN REVIEW REQUIRED
->
-> - Business logic interpretation
-> - Security implications
-> - Architectural intent
-
-**Code Snapshot**: 2026-01-28
+**Code Snapshot**: 2026-02-02
 **Base URL**: `http://localhost:5000/api/aras`
 
 ---

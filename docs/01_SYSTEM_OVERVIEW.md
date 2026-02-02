@@ -1,13 +1,6 @@
 # 01_SYSTEM_OVERVIEW
 
-> ⚠ HUMAN REVIEW REQUIRED
->
-> - Business logic interpretation
-> - Security implications
-> - Architectural intent
-
-**Code Snapshot**: 2026-01-28
-**Drift Warning**: This documentation reflects the codebase state at the above snapshot and may become outdated.
+**Code Snapshot**: 2026-02-02
 
 ---
 

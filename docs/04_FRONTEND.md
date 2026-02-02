@@ -1,13 +1,6 @@
 # 04_FRONTEND
 
-> ⚠ HUMAN REVIEW REQUIRED
->
-> - Business logic interpretation
-> - Security implications
-> - Architectural intent
-
-**Code Snapshot**: 2026-01-28
-**Drift Warning**: This documentation reflects the codebase state at the above snapshot and may become outdated.
+**Code Snapshot**: 2026-02-02
 
 ---
 
@@ -25,7 +18,7 @@
 | @radix-ui/react-scroll-area   | ^1.2.10  | Scroll Area           |
 | @radix-ui/react-slot          | ^1.2.4   | Slot Component        |
 | lucide-react                  | ^0.554.0 | Icons                 |
-| framer-motion                 | ^12.26.2 | Animations            |
+| tailwindcss-animate           | ^1.0.7   | Animations            |
 | tailwindcss                   | ^3.4.17  | CSS Framework         |
 | vite                          | ^7.2.2   | Build Tool            |
 
@@ -44,10 +37,10 @@ renderer/
 │   ├── session/            # 4 files
 │   ├── tree/               # 2 files
 │   ├── ui/                 # 10 files
-│   ├── BackendStatus.jsx
-│   ├── JsonViewer.jsx
+│   ├── BackendStatus.tsx
+│   ├── JsonViewer.tsx
 │   ├── PlanModal.jsx
-│   └── TestTree.tsx        # Converted to TSX
+│   └── TestTree.tsx
 ├── core/
 │   ├── adapters/           # 2 files
 │   ├── api/                # 1 file
@@ -56,6 +49,11 @@ renderer/
 │   ├── schemas/            # 1 file (action-schemas.json)
 │   └── services/           # 1 file
 ├── layouts/                # 1 file
+├── lib/
+│   ├── hooks/
+│   ├── idGenerator.ts
+│   ├── logger.ts
+│   └── utils.ts
 ├── routes/
 │   ├── Dashboard/          # 2 files
 │   ├── PlanDetails/        # 2 files

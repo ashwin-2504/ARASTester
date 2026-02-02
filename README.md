@@ -107,8 +107,8 @@ npm run dev:electron
 
 ## 💻 Technology Stack
 
-- **Frontend**: React 19, Vite, Tailwind CSS, Radix UI, Framer Motion
-- **Backend**: ASP.NET Core (.NET 8), Aras.IOM SDK
+- **Frontend**: React 19, Vite, Tailwind CSS, Radix UI
+- **Backend**: ASP.NET Core (.NET 8), Aras.IOM SDK (Clean Architecture)
 - **Desktop**: Electron 39
 - **State Management**: Zustand, Immer, Local JSON Storage
 

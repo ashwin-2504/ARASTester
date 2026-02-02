@@ -137,13 +137,7 @@ export function ProfileCard({ session, onEdit, onDelete }: ProfileCardProps) {
                 variant="outline"
                 className="h-8 px-3 text-xs bg-zinc-800 border-zinc-700 hover:bg-zinc-700 hover:text-white"
                 onClick={handleConnect}
-                disabled={isLoading && !isConnecting} // Only disable if loading but not this one (actually, user wanted other not disabled? User said "the one's that aren't being used to connect are also disabled". So I should NOT disable others unless necessary. I will remove strict disabled check for others here, or keep it if global loading blocks everything. Let's assume we allow parallel clicks? No, useSessionStore handles one login at a time usually. I'll disable if isLoading is true to prevent race conditions, BUT the feedback is now specific)
-                // Re-reading request: "the one's that aren't being used to connect are also disabled... jst everythings is disabled".
-                // If I keep disabled={isLoading}, they remain disabled.
-                // To fix this, I should only disable THIS button if THIS session is connecting, or arguably allow others.
-                // But Login is global state. If I start another login while one is pending, it might race.
-                // The user specifically disliked that "everything is disabled".
-                // So I will loosen the disable logic: disabled={isConnecting}
+                disabled={isConnecting || !session.password}
                 title={!session.password ? "Password required" : "Connect to session"}
               >
                 Connect

@@ -77,7 +77,7 @@ const SchemaFormRenderer: React.FC<SchemaFormRendererProps> = ({ schema, params 
   );
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* Simple fields - can be 2 columns if there are many */}
       {simpleFields.length > 0 && (
         <div className={simpleFields.length > 2 ? "grid grid-cols-1 md:grid-cols-2 gap-4" : "space-y-4"}>

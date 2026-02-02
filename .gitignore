@@ -59,5 +59,6 @@ lib/
 # Build/Lint output files
 errors.txt
 lint_output*.txt
+lint_errors.txt
 tsc_output*.txt
 tsc_errors*.txt

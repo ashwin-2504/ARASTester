@@ -90,7 +90,7 @@ const FieldRenderer: React.FC<FieldRendererProps> = ({ field, value, onChange, e
 
   // Render required indicator
   const renderLabel = () => (
-    <label className="text-sm font-medium leading-none block mb-2">
+    <label className="text-sm font-medium leading-none block mb-1">
       {field.label}
       {field.required && <span className="text-red-500 ml-1">*</span>}
     </label>

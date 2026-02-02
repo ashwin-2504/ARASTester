@@ -24,6 +24,7 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
   const [logs, setLogs] = useState<Record<string, ExecutionLog>>({});
   const [saveStatus, setSaveStatus] = useState("");
   const [initializingTestId, setInitializingTestId] = useState<string | null>(null);
+  const [isRunning, setIsRunning] = useState(false);
 
   // Ensure unique IDs for all items (backfill for legacy data)
   const ensureIds = (data: TestPlan): TestPlan => {
@@ -224,7 +225,7 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
     }
   };
 
-  const handleRunAction = async (action: Action, sessionName?: string) => {
+  const _runActionInternal = async (action: Action, sessionName?: string) => {
     setLogs((prev) => ({
       ...prev,
       [action.actionID]: {
@@ -318,32 +319,59 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
     }
   };
 
-  const handleRunTest = async (test: Test) => {
+  const _runTestInternal = async (test: Test) => {
     let sessionName: string | undefined = undefined;
-    
+
     // Resolve session if profile ID is present
     if (test.sessionProfileId) {
-        setInitializingTestId(test.testID);
-        try {
-            sessionName = await ensureSession(test.sessionProfileId);
-        } finally {
-            setInitializingTestId(null);
-        }
+      setInitializingTestId(test.testID);
+      try {
+        sessionName = await ensureSession(test.sessionProfileId);
+      } finally {
+        setInitializingTestId(null);
+      }
     }
 
     if (import.meta.env.DEV) {
-        console.log(`▶️ Running: ${test.testTitle} [Session: ${sessionName || "Default"}]`);
+      console.log(`▶️ Running: ${test.testTitle} [Session: ${sessionName || "Default"}]`);
     }
-    
+
     for (const action of test.testActions || []) {
-      if (action.isEnabled !== false) await handleRunAction(action, sessionName);
+      if (action.isEnabled !== false) await _runActionInternal(action, sessionName);
+    }
+  };
+
+  const handleRunAction = async (action: Action, sessionName?: string) => {
+    if (isRunning) return;
+    setIsRunning(true);
+    try {
+      await _runActionInternal(action, sessionName);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const handleRunTest = async (test: Test) => {
+    if (isRunning) return;
+    setIsRunning(true);
+    try {
+      await _runTestInternal(test);
+    } finally {
+      setIsRunning(false);
     }
   };
 
   const handleRunAll = async () => {
+    if (isRunning) return;
     if (isDirty) await handleSave();
-    for (const test of plan.testPlan || []) {
-      if (test.isEnabled !== false) await handleRunTest(test);
+    
+    setIsRunning(true);
+    try {
+      for (const test of plan.testPlan || []) {
+        if (test.isEnabled !== false) await _runTestInternal(test);
+      }
+    } finally {
+      setIsRunning(false);
     }
   };
 
@@ -468,6 +496,7 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
     logs,
     selectedItem,
     initializingTestId,
+    isRunning,
     setSelectedItem,
     loadPlan,
     handleSave,

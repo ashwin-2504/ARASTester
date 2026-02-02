@@ -16,6 +16,18 @@ interface ProfileCardProps {
   onDelete?: (session: SavedSession) => void;
 }
 
+/**
+ * ProfileCard component for saved session profiles.
+ *
+ * Connect Button Disable Logic:
+ * - disabled={isConnecting || !session.password}
+ * - Only disables THIS session's button when it is connecting
+ * - Other sessions remain clickable
+ *
+ * Note: Backend currently supports only one active connection.
+ * Initiating a new connection while one is pending may override
+ * the previous attempt depending on store implementation.
+ */
 export function ProfileCard({ session, onEdit, onDelete }: ProfileCardProps) {
   const {
     activeSessions,
@@ -234,10 +246,11 @@ export function ProfileCard({ session, onEdit, onDelete }: ProfileCardProps) {
                  >
                     Delete
                  </Button>
+                  {/* Invariant: Disable only the session currently connecting */}
                   <Button
                     className="flex-[2] bg-emerald-600 hover:bg-emerald-700 text-white"
                     onClick={handleConnect}
-                    disabled={isLoading}
+                    disabled={isConnecting || !session.password}
                   >
                     Connect
                   </Button>

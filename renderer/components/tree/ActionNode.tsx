@@ -86,13 +86,13 @@ const ActionNode = React.memo<ActionNodeProps>(function ActionNode({
             <StatusIndicator
               status={action.status} // Will be passed from parent
               onRun={() => onRunAction && onRunAction(action)}
-              className="h-6 w-6"
-              iconClassName="h-3 w-3"
+              className="h-8 w-8"
+              iconClassName="h-4 w-4"
             />
             <Button
               variant="ghost"
               size="icon"
-              className="h-6 w-6 text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
+              className="h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
               onClick={(e: React.MouseEvent) => {
                 e.stopPropagation()
                 onDeleteAction(action.actionID)
@@ -100,7 +100,7 @@ const ActionNode = React.memo<ActionNodeProps>(function ActionNode({
               title="Delete Action"
               aria-label="Delete Action"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <Trash2 className="h-4 w-4" />
             </Button>
           </div>
         </div>

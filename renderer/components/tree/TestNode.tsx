@@ -118,13 +118,13 @@ const TestNode = React.memo<TestNodeProps>(function TestNode({
               <StatusIndicator
                 status={test.status} // Will be computed in parent or passed down
                 onRun={() => onRunTest && onRunTest(test)}
-                className="h-7 w-7"
-                iconClassName="h-3.5 w-3.5"
+                className="h-8 w-8"
+                iconClassName="h-4 w-4"
               />
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7"
+                className="h-8 w-8"
                 onClick={handleAddActionClick}
                 title="Add Action"
                 aria-label="Add Action"
@@ -134,7 +134,7 @@ const TestNode = React.memo<TestNodeProps>(function TestNode({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                 onClick={(e: React.MouseEvent) => {
                   e.stopPropagation()
                   onDeleteTest(test.testID)
@@ -142,7 +142,7 @@ const TestNode = React.memo<TestNodeProps>(function TestNode({
                 title="Delete Test"
                 aria-label="Delete Test"
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash2 className="h-4 w-4" />
               </Button>
             </div>
           </div>

@@ -13,40 +13,65 @@ export async function getPlans(): Promise<TestPlan[]> {
 
   try {
     const files = await StorageService.listJsonFiles(folder);
-    const plans: TestPlan[] = [];
-    for (const f of files) {
+
+    const results = await mapConcurrent(files, 20, async (f): Promise<TestPlan | null> => {
       try {
         const raw = await StorageService.readFile(folder, f);
         let json: unknown;
         try {
           json = JSON.parse(raw);
         } catch (parseError: unknown) {
-          const msg = parseError instanceof Error ? parseError.message : String(parseError);
-          console.warn(
-            `Skipping invalid JSON file: ${f} - ${msg}`,
-          );
-          continue;
+          const msg =
+            parseError instanceof Error
+              ? parseError.message
+              : String(parseError);
+          console.warn(`Skipping invalid JSON file: ${f} - ${msg}`);
+          return null;
         }
-        
+
         // Basic schema validation could go here, for now we cast safely-ish
-        if (typeof json === 'object' && json !== null) {
-           const filename = f.replace(/\\/g, "/").split("/").pop();
-           plans.push({ ...(json as TestPlan), __id: f, __filename: filename });
+        if (typeof json === "object" && json !== null) {
+          const filename = f.replace(/\\/g, "/").split("/").pop();
+          return { ...(json as TestPlan), __id: f, __filename: filename };
         }
+        return null;
       } catch (err: unknown) {
         console.error("Failed reading plan", f, err);
+        return null;
       }
-    }
+    });
+
+    const plans = results.filter((p): p is TestPlan => p !== null);
+
     plans.sort((a, b) =>
-      (b.updated || b.created || "").localeCompare(
-        a.updated || a.created || "",
-      ),
+      (b.updated || b.created || "").localeCompare(a.updated || a.created || ""),
     );
     return plans;
   } catch (error: unknown) {
     console.error("Error listing plans:", error);
     return [];
   }
+}
+
+async function mapConcurrent<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let index = 0;
+
+  const workers = new Array(Math.min(concurrency, items.length))
+    .fill(null)
+    .map(async () => {
+      while (index < items.length) {
+        const i = index++;
+        results[i] = await fn(items[i]);
+      }
+    });
+
+  await Promise.all(workers);
+  return results;
 }
 
 export async function createPlan(title: string, description: string): Promise<TestPlan> {

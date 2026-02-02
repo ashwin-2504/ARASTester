@@ -6,8 +6,7 @@
 > - Security implications
 > - Architectural intent
 
-**Code Snapshot**: 2026-01-20
-**Drift Warning**: This documentation reflects the codebase state at the above snapshot and may become outdated.
+**Code Snapshot**: 2026-02-28
 
 ---
 

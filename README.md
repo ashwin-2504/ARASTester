@@ -9,7 +9,7 @@
 
 <br />
 
-![ARASTester Dashboard Preview](IMAGES/DASHBOARD.png)
+![ARASTester Dashboard Preview](images/DASHBOARD.png)
 
 <br />
 
@@ -45,7 +45,7 @@ Your data is yours. ARASTester stores all test plans as local **JSON files**. No
 
 ### 🛠️ Extensible Action Registry
 
-Need to click a button? Verify a field? Run a server method? Our **Action Registry** comes pre-loaded with essential ARAS interactions, and it's designed to grow with your needs.
+Need to click a button? Verify a field? Run a server method? Our **Action Registry** comes pre-loaded with essential ARAS interactions (Item CRUD, Workflow, File Vault, Assertions), and it's designed to grow with your needs.
 
 ### 💾 Session Profiles (New!)
 
@@ -118,20 +118,15 @@ npm run dev
 
 ## 📚 Documentation
 
-For detailed technical documentation, see the [documentation](documentation/01_SYSTEM_OVERVIEW.md) folder:
+For detailed technical documentation, see the [docs](docs/01_SYSTEM_OVERVIEW.md) folder:
 
-- [System Overview](documentation/01_SYSTEM_OVERVIEW.md)
-- [Architecture](documentation/02_ARCHITECTURE.md) - includes Mermaid diagram
-- [Data & Control Flow](documentation/03_DATA_AND_CONTROL_FLOW.md)
-- [Frontend Details](documentation/04_FRONTEND.md)
-- [Backend Details](documentation/05_BACKEND.md)
-- [Security & Failures](documentation/06_SECURITY_AND_FAILURES.md)
-- [Non-Goals & Gaps](documentation/07_NON_GOALS_AND_GAPS.md)
-- [API Reference](documentation/API_REFERENCE.md) - request/response examples
-
-### ARAS IOM Reference
-
-- [ARAS IOM Operations Reference](docs/ARAS_IOM_OPERATIONS.md) - Implementation status and IOM patterns
-- [Aras IOM SDK - Programmer's Guide](docs/Aras%20IOM%20SDK%20-%20Programmer's%20Guide.txt) - Official SDK documentation
+- [System Overview](docs/01_SYSTEM_OVERVIEW.md)
+- [Architecture](docs/02_ARCHITECTURE.md) - includes Mermaid diagram
+- [Data & Control Flow](docs/03_DATA_AND_CONTROL_FLOW.md)
+- [Frontend Details](docs/04_FRONTEND.md)
+- [Backend Details](docs/05_BACKEND.md)
+- [Security & Failures](docs/06_SECURITY_AND_FAILURES.md)
+- [Non-Goals & Gaps](docs/07_NON_GOALS_AND_GAPS.md)
+- [API Reference](docs/API_REFERENCE.md) - request/response examples
 
 ---

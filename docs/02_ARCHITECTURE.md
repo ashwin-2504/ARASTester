@@ -6,8 +6,7 @@
 > - Security implications
 > - Architectural intent
 
-**Code Snapshot**: 2026-01-20
-**Drift Warning**: This documentation reflects the codebase state at the above snapshot and may become outdated.
+**Code Snapshot**: 2026-02-28
 
 ---
 
@@ -98,7 +97,7 @@ index.html (entry)
             └── renders to: document.getElementById('root')
 ```
 
-**Source**: [index.html](file:///c:/Projects/ARASTester/index.html) Line 22, [main.jsx](file:///c:/Projects/ARASTester/renderer/app/main.jsx) Lines 1-4
+**Source**: [index.html](../index.html), [main.jsx](../renderer/app/main.jsx)
 
 ### 1.2 Entry Point Chain (Electron Main Process)
 
@@ -110,7 +109,7 @@ main.js (entry per package.json "main")
     └── loads: http://localhost:5173 (dev) OR dist/index.html (prod)
 ```
 
-**Source**: [main.js](file:///c:/Projects/ARASTester/main.js) Lines 2, 35, 48, 26, 31
+**Source**: [main.js](../main.js)
 
 ### 1.3 Entry Point Chain (Backend)
 
@@ -123,7 +122,7 @@ Program.cs (entry)
     └── maps controllers: app.MapControllers()
 ```
 
-**Source**: [Program.cs](file:///c:/Projects/ARASTester/backend/ArasBackend/Program.cs) Lines 23-25, 29, 44
+**Source**: [Program.cs](../backend/ArasBackend/Program.cs)
 
 ---
 

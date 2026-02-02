@@ -6,8 +6,7 @@
 > - Security implications
 > - Architectural intent
 
-**Code Snapshot**: 2026-01-20
-**Drift Warning**: This documentation reflects the codebase state at the above snapshot and may become outdated.
+**Code Snapshot**: 2026-02-28
 
 ---
 
@@ -17,7 +16,7 @@
 >
 > "Designed specifically for **ARAS PLM Testers** and **Configuration Developers**, this tool empowers you to build, organize, and execute complex test scenarios without writing a single line of code."
 
-**Source**: [README.md](file:///c:/Projects/ARASTester/README.md), Lines 22-25
+**Source**: [README.md](../README.md)
 
 ---
 
@@ -25,7 +24,7 @@
 
 > "This is a application for automatic testing of ARAS"
 
-**Source**: [package.json](file:///c:/Projects/ARASTester/package.json), Line 4
+**Source**: [package.json](../package.json)
 
 ---
 
@@ -46,7 +45,7 @@
 - **QA Teams**: Reduce regression testing time from days to minutes.
 - **Developers**: Verify configuration changes instantly.
 
-**Source**: [README.md](file:///c:/Projects/ARASTester/README.md), Lines 46-47
+**Source**: [README.md](../README.md)
 
 ---
 
@@ -60,7 +59,7 @@
 | License  | ISC                                     |
 | Platform | win-x64 (from csproj RuntimeIdentifier) |
 
-**Source**: [package.json](file:///c:/Projects/ARASTester/package.json), Lines 2-6
+**Source**: [package.json](../package.json)
 
 ---
 
@@ -69,10 +68,8 @@
 | Category         | Technologies Listed                 | Verified                                                                        |
 | ---------------- | ----------------------------------- | ------------------------------------------------------------------------------- |
 | Frontend         | React, Vite, Tailwind CSS, Radix UI | ✅ Present in FACT_DEPENDENCIES.md                                              |
-| Backend          | Electron, Node.js                   | ⚠ README states "Backend: Electron, Node.js" but actual backend is ASP.NET Core |
+| Backend          | ASP.NET Core                        | ✅ Verified in FACT_DEPENDENCIES.md                                             |
 | State Management | Local JSON Storage                  | ✅ Verified in main.js IPC handlers                                             |
-
-> ⚠ **DISCREPANCY NOTED**: README Line 73 states "Backend: Electron, Node.js" but the actual backend is ASP.NET Core with Aras.IOM SDK (see FACT_DEPENDENCIES.md).
 
 ---
 

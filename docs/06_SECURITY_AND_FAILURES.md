@@ -5,8 +5,7 @@
 > - Security implications
 > - Architectural intent
 
-**Code Snapshot**: 2026-01-20
-**Drift Warning**: This documentation reflects the codebase state at the above snapshot and may become outdated.
+**Code Snapshot**: 2026-02-28
 
 ---
 
@@ -95,7 +94,7 @@ No role-based access control (RBAC), policy-based authorization, or endpoint-lev
 
 ### 5.1 Global Exception Middleware
 
-**File**: [ExceptionHandlingMiddleware.cs](file:///c:/Projects/ARASTester/backend/ArasBackend/Middleware/ExceptionHandlingMiddleware.cs)
+**File**: [ExceptionHandlingMiddleware.cs](../backend/ArasBackend/Middleware/ExceptionHandlingMiddleware.cs)
 
 The middleware catches all unhandled exceptions and returns structured JSON responses.
 

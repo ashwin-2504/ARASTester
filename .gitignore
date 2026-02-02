@@ -43,9 +43,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Internal documentation (not for customers)
-docs/
-
 # Local library references
 lib/
 

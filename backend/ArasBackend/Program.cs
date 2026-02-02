@@ -8,20 +8,47 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddCors(options =>
 {
+    var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+    
+    if (allowedOrigins.Length == 0)
+    {
+        // Fail fast or warn
+        Console.WriteLine("WARNING: No CORS AllowedOrigins configured.");
+    }
+
     options.AddPolicy("AllowLocalhost",
         policy =>
         {
-            policy.WithOrigins("http://localhost:3000", "http://localhost:5173")
-                  .SetIsOriginAllowed(origin => new Uri(origin).Host == "localhost")
-                  .AllowAnyHeader()
-                  .AllowAnyMethod()
-                  .AllowCredentials();
+            if (builder.Environment.IsDevelopment())
+            {
+                // In development, allow any localhost origin to support dynamic ports
+                policy.SetIsOriginAllowed(origin => 
+                {
+                    if (Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+                    {
+                        return uri.Host == "localhost";
+                    }
+                    return false;
+                })
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
+            }
+            else
+            {
+                // In production, strictly enforce configured origins
+                policy.WithOrigins(allowedOrigins)
+                      .AllowAnyHeader()
+                      .AllowAnyMethod()
+                      .AllowCredentials();
+            }
         });
 });
 
 // Register Architecture Layers
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ArasBackend.Application.Interfaces.ISessionContext, ArasBackend.Services.WebSessionContext>();
+builder.Services.AddScoped<ArasBackend.Middleware.ArasAuthorizeAttribute>(); // Register Filter
 
 builder.Services.AddInfrastructure();
 builder.Services.AddApplication();

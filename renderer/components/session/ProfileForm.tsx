@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
-import { useSessionStore, SavedSession } from "@/stores/useSessionStore";
+import { SavedSession } from "@/stores/useSessionStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,7 +48,7 @@ export function ProfileForm({ initialData, onCancel, onSubmit, isLoading = false
             sessionName: formData.name, // Format alignment
             id: initialData?.id // Pass ID if editing
         });
-    } catch (err) {
+    } catch (_err) {
         setError("Failed to save profile");
     }
   };

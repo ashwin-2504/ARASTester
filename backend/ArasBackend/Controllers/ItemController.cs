@@ -6,6 +6,7 @@ namespace ArasBackend.Controllers;
 
 [ApiController]
 [Route("api/aras")]
+[ServiceFilter(typeof(Middleware.ArasAuthorizeAttribute))]
 public class ItemController : ControllerBase
 {
     private readonly ItemAppService _itemService;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Plus, Trash2, Edit2, Copy, Save, X } from 'lucide-react';
 import {
   Dialog,
@@ -7,7 +7,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -100,15 +99,15 @@ export function PlanProfilesDialog({
                            <Input 
                              placeholder="Profile Name" 
                              value={editForm.name} 
-                             onChange={e => setEditForm({...editForm, name: e.target.value})} 
+                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditForm({...editForm, name: e.target.value})} 
                            />
                            <div className="grid grid-cols-2 gap-2">
-                               <Input placeholder="URL" value={editForm.url} onChange={e => setEditForm({...editForm, url: e.target.value})} />
-                               <Input placeholder="Database" value={editForm.database} onChange={e => setEditForm({...editForm, database: e.target.value})} />
+                               <Input placeholder="URL" value={editForm.url} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditForm({...editForm, url: e.target.value})} />
+                               <Input placeholder="Database" value={editForm.database} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditForm({...editForm, database: e.target.value})} />
                            </div>
                            <div className="grid grid-cols-2 gap-2">
-                               <Input placeholder="Username" value={editForm.username} onChange={e => setEditForm({...editForm, username: e.target.value})} />
-                               <Input type="text" placeholder="Password" value={editForm.password} onChange={e => setEditForm({...editForm, password: e.target.value})} />
+                               <Input placeholder="Username" value={editForm.username} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditForm({...editForm, username: e.target.value})} />
+                               <Input type="text" placeholder="Password" value={editForm.password} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditForm({...editForm, password: e.target.value})} />
                            </div>
                            <div className="flex justify-end gap-2 mt-2">
                                <Button size="sm" variant="ghost" onClick={handleStopEdit}><X className="h-4 w-4 mr-1"/> Cancel</Button>

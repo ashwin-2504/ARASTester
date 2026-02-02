@@ -189,7 +189,18 @@ function startBackend() {
 
   const port = process.env.BACKEND_PORT || "5000";
   logFrontend("info", `Starting backend from: ${exePath} on port ${port}`);
-  backendProcess = spawn(exePath, ["--urls", `http://localhost:${port}`]);
+
+  // Ensure we pass the environment variable, defaulting to Development if we are in dev mode
+  const backendEnv = {
+    ...process.env,
+    ASPNETCORE_ENVIRONMENT:
+      process.env.ASPNETCORE_ENVIRONMENT ||
+      (process.argv.includes("--dev") ? "Development" : "Production"),
+  };
+
+  backendProcess = spawn(exePath, ["--urls", `http://localhost:${port}`], {
+    env: backendEnv,
+  });
 
   backendProcess.stdout.on("data", (data) => {
     formatBackendLog(data, false);
@@ -210,7 +221,23 @@ function startBackend() {
 }
 
 app.whenReady().then(() => {
-  // Show UI immediately
+  // Auto-authorize saved test plan folder
+  try {
+    const settingsDir = path.resolve(app.getPath("userData"), "Settings");
+    const settingsPath = path.resolve(settingsDir, "settings.json");
+    if (fs.existsSync(settingsPath)) {
+      const data = fs.readFileSync(settingsPath, "utf-8");
+      const settings = JSON.parse(data);
+      if (settings.testPlanFolder) {
+        const folder = path.resolve(settings.testPlanFolder);
+        authorizedDirs.add(folder);
+        console.log(`[SECURITY] Auto-authorized saved test folder: ${folder}`);
+      }
+    }
+  } catch (err) {
+    console.warn("[SECURITY] Failed to load saved permissions:", err);
+  }
+
   // Start backend immediately (parallel to UI)
   console.log("Starting backend...");
   startBackend();

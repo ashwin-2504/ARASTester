@@ -164,6 +164,8 @@ function startElectron() {
     env: {
       ...process.env,
       ELECTRON_ENABLE_LOGGING: "true",
+      ELECTRON_DISABLE_SECURITY_WARNINGS: "true",
+      ASPNETCORE_ENVIRONMENT: "Development",
       VITE_PORT: VITE_PORT.toString(),
       BACKEND_PORT: BACKEND_PORT.toString(),
     },

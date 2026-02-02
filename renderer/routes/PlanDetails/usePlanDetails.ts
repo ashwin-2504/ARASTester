@@ -7,15 +7,21 @@ import { apiClient } from "@/core/api/client";
 import { generateTestId, generateActionId } from "@/lib/idGenerator";
 import { confirm } from "@/lib/hooks/useConfirmDialog";
 import { useSessionStore } from "@/stores/useSessionStore";
-import type { TestPlan, Test, Action } from "@/types/plan";
+import type { TestPlan, Test, Action, PlanProfile } from "@/types/plan";
+
+export interface ExecutionLog {
+  status: string;
+  timestamp: string;
+  details?: unknown;
+}
 
 export function usePlanDetails(filename: string, _onNavigate?: (path: string) => void) {
-  const [plan, setPlan] = useState<Partial<TestPlan> & { testPlan: Test[] }>({ testPlan: [] });
+  const [plan, setPlan] = useState<TestPlan | (Partial<TestPlan> & { testPlan: Test[] })>({ testPlan: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<Test | Action | null>(null);
   const [isDirty, setIsDirty] = useState(false);
-  const [logs, setLogs] = useState<Record<string, { status: string; timestamp: string; details?: any }>>({});
+  const [logs, setLogs] = useState<Record<string, ExecutionLog>>({});
   const [saveStatus, setSaveStatus] = useState("");
   const [initializingTestId, setInitializingTestId] = useState<string | null>(null);
 
@@ -38,13 +44,13 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
     try {
       setLoading(true);
       const data = await TestPlanAdapter.getPlan(filename);
-      // @ts-ignore - Ensure Ids modifies in place or return
       setPlan(ensureIds(data));
       setIsDirty(false);
       setError(null);
       setSelectedItem(null);
-    } catch (err: any) {
-      setError(err.message || String(err));
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -65,8 +71,9 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
       setIsDirty(false);
       setSaveStatus("Saved!");
       setTimeout(() => setSaveStatus(""), 2000);
-    } catch (err: any) {
-      setError(err.message || String(err));
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg);
     }
   };
 
@@ -126,8 +133,11 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
       ...prev,
       testPlan: prev.testPlan.filter((t) => t.testID !== testId),
     }));
-    // @ts-ignore - Check if selected item is the deleted test
-    if (selectedItem?.testID === testId) setSelectedItem(null);
+    
+    // Check if selected item is the deleted test
+    if (selectedItem && 'testID' in selectedItem && selectedItem.testID === testId) {
+        setSelectedItem(null);
+    }
     setIsDirty(true);
   };
 
@@ -149,8 +159,11 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
         });
       })
     );
-    // @ts-ignore - Check if selected item is the deleted action
-    if (selectedItem?.actionID === actionId) setSelectedItem(null);
+    
+    // Check if selected item is the deleted action
+    if (selectedItem && 'actionID' in selectedItem && selectedItem.actionID === actionId) {
+        setSelectedItem(null);
+    }
     setIsDirty(true);
   };
 
@@ -206,8 +219,7 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
     setIsDirty(true);
 
     // Update selectedItem if the moved action was selected
-    // @ts-ignore
-    if (movedAction && selectedItem?.actionID === movedAction.actionID) {
+    if (movedAction && selectedItem && 'actionID' in selectedItem && selectedItem.actionID === (movedAction as Action).actionID) {
       setSelectedItem(movedAction);
     }
   };
@@ -234,7 +246,7 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
   };
 
   // Profile Management
-  const handleAddProfile = (profile: any) => {
+  const handleAddProfile = (profile: PlanProfile) => {
     setPlan((prev) =>
       produce(prev, (draft) => {
         if (!draft.profiles) draft.profiles = [];
@@ -244,7 +256,7 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
     setIsDirty(true);
   };
 
-  const handleUpdateProfile = (id: string, updates: any) => {
+  const handleUpdateProfile = (id: string, updates: Partial<PlanProfile>) => {
     setPlan((prev) =>
       produce(prev, (draft) => {
         const profile = draft.profiles?.find((p) => p.id === id);
@@ -277,7 +289,9 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
     if (existing) return existing.name;
 
     // Not active, try to login
-    console.log(`🔌 Auto-connecting session: ${profile.name}`);
+    if (import.meta.env.DEV) {
+       console.log(`🔌 Auto-connecting session: ${profile.name}`);
+    }
     if (!profile.password) {
       console.warn("Cannot auto-connect: Password missing in profile");
       return undefined; // Fallback to prompt or fail?
@@ -317,7 +331,9 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
         }
     }
 
-    console.log(`▶️ Running: ${test.testTitle} [Session: ${sessionName || "Default"}]`);
+    if (import.meta.env.DEV) {
+        console.log(`▶️ Running: ${test.testTitle} [Session: ${sessionName || "Default"}]`);
+    }
     
     for (const action of test.testActions || []) {
       if (action.isEnabled !== false) await handleRunAction(action, sessionName);
@@ -332,71 +348,45 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
   };
 
   const updateSelectedItem = (updates: Partial<Test> | Partial<Action>) => {
-    if (!selectedItem) return;
-
-    // Determine the ID to find the item after state update
-    const isAction = "actionID" in selectedItem;
-    const itemId = isAction
-      ? (selectedItem as Action).actionID
-      : (selectedItem as Test).testID;
-
-    // We'll capture the updated item here
-    let updatedItemCopy: Test | Action | null = null;
-
-    setPlan((prevPlan) => {
-      // Use produce to update the plan immutably
-      const newPlan = produce(prevPlan, (draft) => {
-        if (!isAction) {
-          // Updating a Test
-          const test = draft.testPlan.find(
-            (t: Test) => t.testID === itemId,
-          );
-          if (test) {
-            Object.assign(test, updates);
-          }
-        } else {
-          // Updating an Action
-          for (const test of draft.testPlan) {
-            if (!test.testActions) continue;
-            const action = test.testActions.find(
-              (a: Action) => a.actionID === itemId,
-            );
-            if (action) {
-              Object.assign(action, updates);
-              break;
-            }
-          }
-        }
-      });
-
-      // After produce, find the updated item from the NEW (non-proxy) state
-      let updatedItem: Test | Action | null = null;
-      if (!isAction) {
-        updatedItem = newPlan.testPlan.find((t) => t.testID === itemId) || null;
-      } else {
-        for (const test of newPlan.testPlan) {
-          if (!test.testActions) continue;
-          const action = test.testActions.find((a) => a.actionID === itemId);
-          if (action) {
-            updatedItem = action;
-            break;
-          }
-        }
-      }
-
-      // Create a plain copy to ensure no proxy references
-      if (updatedItem) {
-        updatedItemCopy = JSON.parse(JSON.stringify(updatedItem));
-      }
-
-      return newPlan;
+    // 1. Immediate optimistic update for UI responsiveness
+    setSelectedItem((prev) => {
+      if (!prev) return null;
+      // Detailed merge is safer, but shallow merge works if updates are full replacements of properties
+      return { ...prev, ...updates } as Test | Action;
     });
-
-    // Update selectedItem synchronously after setPlan
-    if (updatedItemCopy) {
-      setSelectedItem(updatedItemCopy);
-    }
+    
     setIsDirty(true);
+
+    // 2. Update the master plan state
+      // Determine the ID to find the item in the plan
+    setPlan((prevPlan) => {
+        return produce(prevPlan, (draft: TestPlan) => {
+            if (!selectedItem) return;
+
+            const isAction = "actionID" in selectedItem;
+            const itemId = isAction
+                ? (selectedItem as Action).actionID
+                : (selectedItem as Test).testID;
+
+            if (!isAction) {
+                // Updating a Test
+                const test = draft.testPlan.find((t: Test) => t.testID === itemId);
+                if (test) {
+                    Object.assign(test, updates);
+                }
+            } else {
+                // Updating an Action
+                for (const test of draft.testPlan) {
+                    if (!test.testActions) continue;
+                    const action = test.testActions.find((a: Action) => a.actionID === itemId);
+                    if (action) {
+                        Object.assign(action, updates);
+                        break;
+                    }
+                }
+            }
+        });
+    });
   };
 
   const handleToggleEnabled = (item: Test | Action) => {
@@ -410,12 +400,12 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
     let shouldUpdateSelected = false;
 
     setPlan((prevPlan) => {
-      const newPlan = produce(prevPlan, (draft) => {
+      const newPlan = produce(prevPlan, (draft: TestPlan) => {
         if (!isAction) {
           // Toggle Test
           const test = draft.testPlan.find((t: Test) => t.testID === itemId);
           if (test) {
-            test.isEnabled = test.isEnabled === false ? true : false;
+            test.isEnabled = test.isEnabled === false;
           }
         } else {
           // Toggle Action
@@ -425,7 +415,7 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
               (a: Action) => a.actionID === itemId,
             );
             if (action) {
-              action.isEnabled = action.isEnabled === false ? true : false;
+              action.isEnabled = action.isEnabled === false;
               break;
             }
           }
@@ -449,9 +439,9 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
 
       // Check if we should update selectedItem
       if (updatedItem) {
-        shouldUpdateSelected = !isAction
-          ? (selectedItem as Test)?.testID === itemId
-          : (selectedItem as Action)?.actionID === itemId;
+        shouldUpdateSelected = isAction
+          ? (selectedItem as Action)?.actionID === itemId
+          : (selectedItem as Test)?.testID === itemId;
 
         if (shouldUpdateSelected) {
           // Create a plain copy to ensure no proxy references

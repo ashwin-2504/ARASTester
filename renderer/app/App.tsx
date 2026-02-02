@@ -50,10 +50,9 @@ export default function App() {
               path="/plan/:filename" 
               element={
                 <PageWrapper>
-                  {/* @ts-ignore router params handling */}
                   {(params, navigate) => (
                     <PlanDetailsPage 
-                      filename={decodeURIComponent(params.filename)} 
+                      filename={decodeURIComponent(params.filename || "")} 
                       onNavigate={(path) => navigate(path)}
                       onBack={() => navigate(-1)}
                     />
@@ -73,12 +72,14 @@ export default function App() {
   )
 }
 
-// Helper to bridge Router params to Props if needed, or update PlanDetailsPage to use useParams.
-// Actually PlanDetailsPage was migrated to take { filename }. 
-// So we need to extract it from useParams.
-import { useParams, useNavigate, NavigateFunction } from 'react-router-dom';
+// Helper to bridge Router params to Props if needed
+import { useParams, useNavigate, NavigateFunction, Params } from 'react-router-dom';
 
-function PageWrapper({ children }: { children: (params: any, navigate: NavigateFunction) => React.ReactNode }) {
+interface PageWrapperProps {
+  children: (params: Readonly<Params<string>>, navigate: NavigateFunction) => React.ReactNode;
+}
+
+function PageWrapper({ children }: PageWrapperProps) {
   const params = useParams();
   const navigate = useNavigate();
   return <>{children(params, navigate)}</>;

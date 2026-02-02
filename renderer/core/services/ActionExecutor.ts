@@ -6,7 +6,8 @@ import type { Action, ActionPlugin } from "@/types/plan";
 export interface ActionResult {
   success: boolean;
   message?: string;
-  [key: string]: any;
+  data?: unknown;
+  [key: string]: unknown; // Prefer unknown over any for strictness
 }
 
 /**
@@ -37,48 +38,51 @@ export const ActionExecutor = {
         success: false,
         message: `No handler for action type: ${action.actionType}`,
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Action Execution Error:", err);
+      const msg = err instanceof Error ? err.message : String(err);
       return {
         success: false,
-        message: err.message || "Unknown execution error",
+        message: msg || "Unknown execution error",
       };
     }
   },
 
   async executeServerSide(action: Action, plugin: ActionPlugin, sessionName?: string): Promise<ActionResult> {
     try {
-      let data: any;
+      let data: ActionResult;
       
       // Resolve session name: explicit -> store current -> undefined (default)
       const resolvedSessionName = sessionName || useSessionStore.getState().currentSessionName;
       const options = resolvedSessionName ? { sessionName: resolvedSessionName } : {};
       
       if (plugin.apiMethod === "GET") {
-        data = await apiClient.get(plugin.apiEndpoint!, options);
+        data = await apiClient.get<ActionResult>(plugin.apiEndpoint!, options);
       } else {
-        data = await apiClient.post(plugin.apiEndpoint!, action.params || {}, options);
+        data = await apiClient.post<ActionResult>(plugin.apiEndpoint!, action.params || {}, options);
       }
       
-      
       // Response is already normalized by apiClient
-      const result = {
-        success: data.success ?? true,
-        ...data,
+      // The spread here needs care if 'data' has a 'success' property that conflicts, 
+      // but 'data.success' takes precedence in our logic if present.
+      // However, if data is ActionResult, it already has success.
+      // Explicitly construct result to avoid spread issues with strict types
+      const { success: _ignored, ...rest } = data;
+      const result: ActionResult = {
+        success: typeof data.success === 'boolean' ? data.success : true,
+        ...rest
       };
 
       // Auto-refresh session state for connection actions
       if (result.success && ['ArasConnect', 'ArasDisconnect'].includes(action.actionType)) {
           // Fire and forget - or await if we want to ensure UI update before proceeding
-          // Awaiting is safer to prevent race conditions in subsequent steps
           useSessionStore.getState().fetchSessions().catch(console.error);
       }
 
       return result;
-    } catch (err: any) {
-      // Handle AbortError gracefully
-      if (err.name === "AbortError") {
-        return { success: false, message: "Request was cancelled" };
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") {
+         return { success: false, message: "Request was cancelled" };
       }
       throw err;
     }
@@ -93,6 +97,7 @@ export const ActionExecutor = {
       }
 
       case "LogMessage":
+        // User-visible log action - kept for visibility
         console.log(
           `[${action.params?.level || "info"}]`,
           action.params?.message,
@@ -101,9 +106,11 @@ export const ActionExecutor = {
 
       case "SetVariable":
         // Future: Context variable store integration
-        console.log(
-          `Set variable: ${action.params?.variableName} = ${action.params?.value}`,
-        );
+        if (import.meta.env.DEV) {
+          console.log(
+            `Set variable: ${action.params?.variableName} = ${action.params?.value}`,
+          );
+        }
         return {
           success: true,
           variableName: action.params?.variableName,

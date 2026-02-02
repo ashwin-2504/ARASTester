@@ -158,7 +158,7 @@ export const useSessionStore = create<SessionState>()(
             ? `/api/aras/disconnect/${encodeURIComponent(name)}`
             : "/api/aras/disconnect";
 
-          await apiClient.post(endpoint, {});
+          await apiClient.post<ConnectionResponse>(endpoint, {});
           await get().fetchSessions();
           set({ isLoading: false });
         } catch (err: unknown) {

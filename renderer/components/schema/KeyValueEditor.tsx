@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Input } from "@/components/ui/input.jsx";
+import { Input } from "@/components/ui/input";
 import { Plus, Trash2 } from "lucide-react";
 import type { ActionSchemaField } from "@/types/plan";
 

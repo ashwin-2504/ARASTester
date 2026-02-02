@@ -8,11 +8,13 @@ public class ExceptionHandlingMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<ExceptionHandlingMiddleware> _logger;
+    private readonly IWebHostEnvironment _env;
 
-    public ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger)
+    public ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger, IWebHostEnvironment env)
     {
         _next = next;
         _logger = logger;
+        _env = env;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -59,7 +61,16 @@ public class ExceptionHandlingMiddleware
                 
             case ArasInfrastructureException infraEx:
                 response.Message = "External system failure";
-                response.Detail = infraEx.Message;
+                // Only expose infrastructure details in Development
+                if (_env.IsDevelopment())
+                {
+                    response.Detail = infraEx.Message;
+                }
+                else
+                {
+                    response.Detail = "See server logs for details.";
+                }
+                
                 context.Response.StatusCode = (int)HttpStatusCode.BadGateway;
                 _logger.LogError(infraEx, "Infrastructure failure");
                 break;

@@ -12,15 +12,15 @@ interface TestNodeProps {
   index: number;
   isExpanded: boolean;
   onToggleExpand: (id: string) => void;
-  selectedItem: any;
-  onSelect: (item: any) => void;
-  onEdit?: (item: any) => void;
+  selectedItem: Test | Action | null;
+  onSelect: (item: Test | Action) => void;
+  onEdit?: (item: Test | Action) => void;
   onAddAction: (test: Test) => void;
   onDeleteTest: (id: string) => void;
   onDeleteAction: (id: string) => void;
   onRunTest: (test: Test) => void;
   onRunAction: (action: Action) => void;
-  onToggleEnabled: (item: any) => void;
+  onToggleEnabled: (item: Test | Action) => void;
   logs?: Record<string, any>;
   draggingType?: string | null;
 }
@@ -42,8 +42,8 @@ const TestNode = React.memo<TestNodeProps>(function TestNode({
   logs = {},
   draggingType // Received prop
 }) {
-  const isSelected = selectedItem?.testID === test.testID
-  const isChildSelected = test.testActions?.some(a => a?.actionID === selectedItem?.actionID)
+  const isSelected = selectedItem && 'testID' in selectedItem && selectedItem.testID === test.testID
+  const isChildSelected = test.testActions?.some(a => selectedItem && 'actionID' in selectedItem && a?.actionID === selectedItem.actionID)
   const isActiveContext = isSelected || isChildSelected
 
   const handleAddActionClick = (e: React.MouseEvent) => {

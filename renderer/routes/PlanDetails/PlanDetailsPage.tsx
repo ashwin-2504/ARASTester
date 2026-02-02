@@ -5,13 +5,12 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu.jsx'
-import { Button } from '@/components/ui/button.jsx'
-import { Input } from '@/components/ui/input.jsx'
-import { ScrollArea } from '@/components/ui/scroll-area.jsx'
+} from '@/components/ui/dropdown-menu'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import TestTree from '@/components/TestTree'
-// @ts-ignore
-import JsonViewer from '@/components/JsonViewer.jsx'
+import JsonViewer from '@/components/JsonViewer'
 import { usePlanDetails } from './usePlanDetails'
 import { actionRegistry } from '@/core/registries/ActionRegistry'
 import actionSchemas from '@/core/schemas/action-schemas.json'
@@ -29,6 +28,35 @@ interface PlanDetailsPageProps {
   onNavigate?: (path: string) => void;
   onBack?: () => void;
 }
+
+// Buffered Input Component
+const BufferedInput = ({ value, onChange, ...props }: React.ComponentProps<typeof Input>) => {
+  const [localValue, setLocalValue] = useState(value);
+
+  // Sync local value when external value changes (e.g. navigation)
+  React.useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
+
+  return (
+    <Input
+      {...props}
+      value={localValue}
+      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLocalValue(e.target.value)}
+      onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
+        if (localValue !== value) {
+          onChange?.({ ...e, target: { ...e.target, value: localValue } } as React.ChangeEvent<HTMLInputElement>);
+        }
+      }}
+      onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+          e.currentTarget.blur();
+        }
+        props.onKeyDown?.(e);
+      }}
+    />
+  );
+};
 
 export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDetailsPageProps) {
   const {
@@ -60,7 +88,10 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDe
   })
 
   // Helper to determine if selected item is a test
-  const isTest = (item: any): item is Test => item?.hasOwnProperty('testID') && !item.hasOwnProperty('actionID')
+  const isTest = (item: unknown): item is Test => {
+    if (!item || typeof item !== 'object') return false;
+    return 'testID' in item && !('actionID' in item);
+  }
 
   if (loading) return <div className="flex h-full items-center justify-center text-muted-foreground">Loading...</div>
   if (error) return <div className="flex h-full items-center justify-center text-red-500">{error}</div>
@@ -165,7 +196,7 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDe
                       <>
 						<div className="space-y-2">
                           <label className="block text-sm font-medium">Test Title</label>
-                          <Input
+                          <BufferedInput
                             value={(selectedItem as Test).testTitle}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSelectedItem({ testTitle: e.target.value })}
                           />
@@ -236,7 +267,7 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDe
                       <>
                         <div className="space-y-2">
                           <label className="block text-sm font-medium">Action Title</label>
-                          <Input
+                          <BufferedInput
                             value={(selectedItem as Action).actionTitle}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSelectedItem({ actionTitle: e.target.value })}
                           />
@@ -335,7 +366,7 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDe
                               <div className="mt-6 rounded-lg border bg-muted/20 p-5 space-y-5">
                                 <Editor
                                   params={(selectedItem as Action).params || {}}
-                                  onChange={(newParams: any) => updateSelectedItem({ params: newParams })}
+                                  onChange={(newParams: Record<string, unknown>) => updateSelectedItem({ params: newParams })}
                                 />
                               </div>
                             )

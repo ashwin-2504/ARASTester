@@ -1,17 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { Loader2, Server, Globe, WifiOff } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Loader2, WifiOff } from 'lucide-react';
 import { apiClient } from '@/core/api/client';
 import { cn } from '@/lib/utils';
 
-export function BackendStatus({ className }) {
-  const [status, setStatus] = useState('checking'); // 'checking' | 'online' | 'offline'
+interface BackendStatusProps {
+  className?: string;
+}
+
+export function BackendStatus({ className }: BackendStatusProps) {
+  const [status, setStatus] = useState<'checking' | 'online' | 'offline'>('checking');
 
   useEffect(() => {
     const checkStatus = async () => {
       try {
         await apiClient.get('/api/status');
         setStatus('online');
-      } catch (err) {
+      } catch {
         setStatus('offline');
       }
     };

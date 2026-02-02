@@ -13,12 +13,14 @@ namespace ArasBackend.Services;
 public class WebSessionContext : ISessionContext
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
-    private const string CookieName = "ARAS_SESSION_ID";
-    private const string HeaderName = "X-Session-Name";
+    private readonly string _cookieName;
+    private readonly string _headerName;
 
-    public WebSessionContext(IHttpContextAccessor httpContextAccessor)
+    public WebSessionContext(IHttpContextAccessor httpContextAccessor, IConfiguration configuration)
     {
         _httpContextAccessor = httpContextAccessor;
+        _cookieName = configuration["Aras:SessionCookieName"] ?? "ARAS_SESSION_ID";
+        _headerName = configuration["Aras:SessionHeaderName"] ?? "X-Session-Name";
     }
 
     public string? SessionId => GetSessionId();
@@ -29,13 +31,13 @@ public class WebSessionContext : ISessionContext
         if (context == null) return null;
 
         // 1. Check Header (High Priority - for programmatic clients)
-        if (context.Request.Headers.TryGetValue(HeaderName, out var headerValues))
+        if (context.Request.Headers.TryGetValue(_headerName, out var headerValues))
         {
             var headerValue = headerValues.FirstOrDefault();
             if (!string.IsNullOrEmpty(headerValue)) return headerValue;
         }
 
         // 2. Check Cookie (Fallback - for browser sessions)
-        return context.Request.Cookies[CookieName];
+        return context.Request.Cookies[_cookieName];
     }
 }

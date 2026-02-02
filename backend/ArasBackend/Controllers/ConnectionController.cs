@@ -9,10 +9,12 @@ namespace ArasBackend.Controllers;
 public class ConnectionController : ControllerBase
 {
     private readonly ConnectionAppService _connectionService;
+    private readonly IWebHostEnvironment _env;
 
-    public ConnectionController(ConnectionAppService connectionService)
+    public ConnectionController(ConnectionAppService connectionService, IWebHostEnvironment env)
     {
         _connectionService = connectionService;
+        _env = env;
     }
 
     [HttpPost("connect")]
@@ -23,10 +25,15 @@ public class ConnectionController : ControllerBase
         // Side-Effect: Set Cookie in the Presentation Layer
         if (response.Success && !string.IsNullOrEmpty(response.SessionName))
         {
+            var isSecure = _env.IsProduction();
+            
+            // Guardrail: Warn if we are somehow in production but potentially insecure (though IsProduction forces true here, this documents intent)
+            // Or if we decided to allow override in future. For now, strict IsProduction.
+            
             var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
-                Secure = false, // Allow HTTP for localhost, set to true in Production
+                Secure = isSecure, 
                 SameSite = SameSiteMode.Lax
             };
             

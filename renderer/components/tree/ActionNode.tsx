@@ -4,17 +4,17 @@ import { Button } from '@/components/ui/button.jsx'
 import { StatusIndicator } from '@/components/ui/StatusIndicator.jsx'
 import { Draggable } from '@hello-pangea/dnd'
 import { cn } from '@/lib/utils'
-import type { Action } from '@/types/plan'
+import type { Action, Test } from '@/types/plan'
 
 interface ActionNodeProps {
   action: Action & { status?: string };
   index: number;
-  selectedItem: any; // Type for selectedItem not fully defined yet, can imply { actionID?: string }
-  onSelect: (item: any) => void;
-  onEdit?: (item: any) => void;
+  selectedItem: Test | Action | null;
+  onSelect: (item: Test | Action) => void;
+  onEdit?: (item: Test | Action) => void;
   onDeleteAction: (id: string) => void;
   onRunAction?: (action: Action) => void;
-  onToggleEnabled: (item: any) => void;
+  onToggleEnabled: (item: Test | Action) => void;
 }
 
 const ActionNode = React.memo<ActionNodeProps>(function ActionNode({
@@ -27,7 +27,7 @@ const ActionNode = React.memo<ActionNodeProps>(function ActionNode({
   onRunAction,
   onToggleEnabled
 }) {
-  const isSelected = selectedItem?.actionID === action.actionID
+  const isSelected = selectedItem && 'actionID' in selectedItem && selectedItem.actionID === action.actionID
 
   return (
     <Draggable draggableId={action.actionID} index={index}>

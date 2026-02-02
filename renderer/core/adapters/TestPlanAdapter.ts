@@ -1,9 +1,7 @@
-// renderer/core/adapters/TestPlanAdapter.ts
 import * as StorageService from "./StorageService";
 import { getTestPlansFldrPath } from "../ipc/appSettings";
-import { generateTestId, generateActionId } from "@/lib/idGenerator";
-import actionSchemas from "@/core/schemas/action-schemas.json";
-import type { TestPlan, Test, Action } from "@/types/plan";
+import { generateTestId } from "@/lib/idGenerator";
+import type { TestPlan, Test } from "@/types/plan";
 
 export async function getFolderPath(): Promise<string | null> {
   return await getTestPlansFldrPath();
@@ -19,18 +17,23 @@ export async function getPlans(): Promise<TestPlan[]> {
     for (const f of files) {
       try {
         const raw = await StorageService.readFile(folder, f);
-        let json: any;
+        let json: unknown;
         try {
           json = JSON.parse(raw);
-        } catch (parseError: any) {
+        } catch (parseError: unknown) {
+          const msg = parseError instanceof Error ? parseError.message : String(parseError);
           console.warn(
-            `Skipping invalid JSON file: ${f} - ${parseError.message}`,
+            `Skipping invalid JSON file: ${f} - ${msg}`,
           );
           continue;
         }
-        const filename = f.replace(/\\/g, "/").split("/").pop();
-        plans.push({ ...json, __id: f, __filename: filename });
-      } catch (err) {
+        
+        // Basic schema validation could go here, for now we cast safely-ish
+        if (typeof json === 'object' && json !== null) {
+           const filename = f.replace(/\\/g, "/").split("/").pop();
+           plans.push({ ...(json as TestPlan), __id: f, __filename: filename });
+        }
+      } catch (err: unknown) {
         console.error("Failed reading plan", f, err);
       }
     }
@@ -40,7 +43,7 @@ export async function getPlans(): Promise<TestPlan[]> {
       ),
     );
     return plans;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error listing plans:", error);
     return [];
   }
@@ -85,10 +88,10 @@ export async function getPlan(filename: string): Promise<TestPlan> {
   const filePath = filename;
   const raw = await StorageService.readFile(folder, filePath);
 
-  let data: any;
+  let data: unknown;
   try {
     data = JSON.parse(raw);
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof SyntaxError) {
       throw new Error(
         `Invalid JSON in test plan "${filename}": ${error.message}`,
@@ -96,8 +99,12 @@ export async function getPlan(filename: string): Promise<TestPlan> {
     }
     throw error;
   }
+  
+  if (typeof data !== 'object' || data === null) {
+      throw new Error(`Invalid test plan format in "${filename}"`);
+  }
 
-  return { ...data, __id: filePath, __filename: filename };
+  return { ...(data as TestPlan), __id: filePath, __filename: filename };
 }
 
 export async function updatePlan(filename: string, data: Partial<TestPlan>): Promise<TestPlan> {

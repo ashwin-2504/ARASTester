@@ -17,118 +17,118 @@ public class ItemController : ControllerBase
     }
 
     [HttpPost("query")]
-    public ActionResult<ItemResponse> Query(QueryRequest request) => Ok(_itemService.QueryItems(request));
+    public async Task<ActionResult<ItemResponse>> Query(QueryRequest request, CancellationToken cancellationToken) => Ok(await _itemService.QueryItems(request, cancellationToken));
 
     [HttpPost("get-by-id")]
-    public ActionResult<ItemResponse> GetById(GetByIdRequest request) => Ok(_itemService.GetItemById(request));
+    public async Task<ActionResult<ItemResponse>> GetById(GetByIdRequest request, CancellationToken cancellationToken) => Ok(await _itemService.GetItemById(request, cancellationToken));
 
     [HttpPost("get-by-keyed-name")]
-    public ActionResult<ItemResponse> GetByKeyedName(GetByKeyedNameRequest request) => Ok(_itemService.GetItemByKeyedName(request));
+    public async Task<ActionResult<ItemResponse>> GetByKeyedName(GetByKeyedNameRequest request, CancellationToken cancellationToken) => Ok(await _itemService.GetItemByKeyedName(request, cancellationToken));
 
     [HttpPost("create")]
-    public ActionResult<ItemResponse> Create(CreateItemRequest request) => Ok(_itemService.CreateItem(request));
+    public async Task<ActionResult<ItemResponse>> Create(CreateItemRequest request, CancellationToken cancellationToken) => Ok(await _itemService.CreateItem(request, cancellationToken));
 
     [HttpPost("update")]
-    public ActionResult<ItemResponse> Update(UpdateItemRequest request) => Ok(_itemService.UpdateItem(request));
+    public async Task<ActionResult<ItemResponse>> Update(UpdateItemRequest request, CancellationToken cancellationToken) => Ok(await _itemService.UpdateItem(request, cancellationToken));
 
     [HttpPost("delete")]
-    public ActionResult<ItemResponse> Delete(DeleteItemRequest request) => Ok(_itemService.DeleteItem(request));
+    public async Task<ActionResult<ItemResponse>> Delete(DeleteItemRequest request, CancellationToken cancellationToken) => Ok(await _itemService.DeleteItem(request, cancellationToken));
 
     [HttpPost("purge")]
-    public ActionResult<ItemResponse> Purge(DeleteItemRequest request) => Ok(_itemService.PurgeItem(request));
+    public async Task<ActionResult<ItemResponse>> Purge(DeleteItemRequest request, CancellationToken cancellationToken) => Ok(await _itemService.PurgeItem(request, cancellationToken));
 
     [HttpPost("lock")]
-    public ActionResult<ItemResponse> Lock(LockRequest request) => Ok(_itemService.LockItem(request));
+    public async Task<ActionResult<ItemResponse>> Lock(LockRequest request, CancellationToken cancellationToken) => Ok(await _itemService.LockItem(request, cancellationToken));
 
     [HttpPost("unlock")]
-    public ActionResult<ItemResponse> Unlock(LockRequest request) => Ok(_itemService.UnlockItem(request));
+    public async Task<ActionResult<ItemResponse>> Unlock(LockRequest request, CancellationToken cancellationToken) => Ok(await _itemService.UnlockItem(request, cancellationToken));
 
     [HttpPost("check-lock")]
-    public ActionResult<ItemResponse> CheckLock(LockRequest request) => Ok(_itemService.CheckLockStatus(request));
+    public async Task<ActionResult<ItemResponse>> CheckLock(LockRequest request, CancellationToken cancellationToken) => Ok(await _itemService.CheckLockStatus(request, cancellationToken));
 
     [HttpPost("promote")]
-    public ActionResult<ItemResponse> Promote(PromoteRequest request) => Ok(_itemService.PromoteItem(request));
+    public async Task<ActionResult<ItemResponse>> Promote(PromoteRequest request, CancellationToken cancellationToken) => Ok(await _itemService.PromoteItem(request, cancellationToken));
 
     [HttpPost("get-state")]
-    public ActionResult<ItemResponse> GetState(GetByIdRequest request) => Ok(_itemService.GetCurrentState(request));
+    public async Task<ActionResult<ItemResponse>> GetState(GetByIdRequest request, CancellationToken cancellationToken) => Ok(await _itemService.GetCurrentState(request, cancellationToken));
 
     [HttpPost("add-relationship")]
-    public ActionResult<ItemResponse> AddRelationship(AddRelationshipRequest request) => Ok(_itemService.AddRelationship(request));
+    public async Task<ActionResult<ItemResponse>> AddRelationship(AddRelationshipRequest request, CancellationToken cancellationToken) => Ok(await _itemService.AddRelationship(request, cancellationToken));
 
     [HttpPost("get-relationships")]
-    public ActionResult<ItemResponse> GetRelationships(GetRelationshipsRequest request) => Ok(_itemService.GetRelationships(request));
+    public async Task<ActionResult<ItemResponse>> GetRelationships(GetRelationshipsRequest request, CancellationToken cancellationToken) => Ok(await _itemService.GetRelationships(request, cancellationToken));
 
     [HttpPost("delete-relationship")]
-    public ActionResult<ItemResponse> DeleteRelationship(DeleteRelationshipRequest request) => Ok(_itemService.DeleteRelationship(request));
+    public async Task<ActionResult<ItemResponse>> DeleteRelationship(DeleteRelationshipRequest request, CancellationToken cancellationToken) => Ok(await _itemService.DeleteRelationship(request, cancellationToken));
 
     [HttpPost("apply-aml")]
-    public ActionResult<ItemResponse> ApplyAml(ApplyAmlRequest request) => Ok(_itemService.ApplyAML(request));
+    public async Task<ActionResult<ItemResponse>> ApplyAml(ApplyAmlRequest request, CancellationToken cancellationToken) => Ok(await _itemService.ApplyAML(request, cancellationToken));
 
     [HttpPost("apply-sql")]
-    public ActionResult<ItemResponse> ApplySql(ApplySqlRequest request) => Ok(_itemService.ApplySQL(request));
+    public async Task<ActionResult<ItemResponse>> ApplySql(ApplySqlRequest request, CancellationToken cancellationToken) => Ok(await _itemService.ApplySQL(request, cancellationToken));
 
     [HttpPost("apply-method")]
-    public ActionResult<ItemResponse> ApplyMethod(ApplyMethodRequest request) => Ok(_itemService.ApplyMethod(request));
+    public async Task<ActionResult<ItemResponse>> ApplyMethod(ApplyMethodRequest request, CancellationToken cancellationToken) => Ok(await _itemService.ApplyMethod(request, cancellationToken));
 
     // Assertions
     [HttpPost("assert-exists")]
-    public ActionResult<AssertionResponse> AssertExists(AssertExistsRequest request) => Ok(_itemService.AssertItemExists(request));
+    public async Task<ActionResult<AssertionResponse>> AssertExists(AssertExistsRequest request, CancellationToken cancellationToken) => Ok(await _itemService.AssertItemExists(request, cancellationToken));
 
     [HttpPost("assert-not-exists")]
-    public ActionResult<AssertionResponse> AssertNotExists(AssertExistsRequest request) => Ok(_itemService.AssertItemNotExists(request));
+    public async Task<ActionResult<AssertionResponse>> AssertNotExists(AssertExistsRequest request, CancellationToken cancellationToken) => Ok(await _itemService.AssertItemNotExists(request, cancellationToken));
 
     [HttpPost("assert-property")]
-    public ActionResult<AssertionResponse> AssertProperty(AssertPropertyRequest request) => Ok(_itemService.AssertPropertyValue(request));
+    public async Task<ActionResult<AssertionResponse>> AssertProperty(AssertPropertyRequest request, CancellationToken cancellationToken) => Ok(await _itemService.AssertPropertyValue(request, cancellationToken));
 
     [HttpPost("assert-state")]
-    public ActionResult<AssertionResponse> AssertState(AssertStateRequest request) => Ok(_itemService.AssertState(request));
+    public async Task<ActionResult<AssertionResponse>> AssertState(AssertStateRequest request, CancellationToken cancellationToken) => Ok(await _itemService.AssertState(request, cancellationToken));
 
     // Workflow Operations
     [HttpPost("start-workflow")]
-    public ActionResult<ItemResponse> StartWorkflow(StartWorkflowRequest request) => Ok(_itemService.StartWorkflow(request));
+    public async Task<ActionResult<ItemResponse>> StartWorkflow(StartWorkflowRequest request, CancellationToken cancellationToken) => Ok(await _itemService.StartWorkflow(request, cancellationToken));
 
     [HttpGet("assigned-activities")]
-    public ActionResult<ItemResponse> GetAssignedActivities() => Ok(_itemService.GetAssignedActivities());
+    public async Task<ActionResult<ItemResponse>> GetAssignedActivities(CancellationToken cancellationToken) => Ok(await _itemService.GetAssignedActivities(cancellationToken));
 
     [HttpPost("complete-activity")]
-    public ActionResult<ItemResponse> CompleteActivity(CompleteActivityRequest request) => Ok(_itemService.CompleteActivity(request));
+    public async Task<ActionResult<ItemResponse>> CompleteActivity(CompleteActivityRequest request, CancellationToken cancellationToken) => Ok(await _itemService.CompleteActivity(request, cancellationToken));
 
     // Additional Assertions
     [HttpPost("assert-property-contains")]
-    public ActionResult<AssertionResponse> AssertPropertyContains(AssertPropertyContainsRequest request) => Ok(_itemService.AssertPropertyContains(request));
+    public async Task<ActionResult<AssertionResponse>> AssertPropertyContains(AssertPropertyContainsRequest request, CancellationToken cancellationToken) => Ok(await _itemService.AssertPropertyContains(request, cancellationToken));
 
     [HttpPost("assert-count")]
-    public ActionResult<AssertionResponse> AssertCount(AssertCountRequest request) => Ok(_itemService.AssertCount(request));
+    public async Task<ActionResult<AssertionResponse>> AssertCount(AssertCountRequest request, CancellationToken cancellationToken) => Ok(await _itemService.AssertCount(request, cancellationToken));
 
     [HttpPost("assert-locked")]
-    public ActionResult<AssertionResponse> AssertLocked(LockRequest request) => Ok(_itemService.AssertLocked(request));
+    public async Task<ActionResult<AssertionResponse>> AssertLocked(LockRequest request, CancellationToken cancellationToken) => Ok(await _itemService.AssertLocked(request, cancellationToken));
 
     [HttpPost("assert-unlocked")]
-    public ActionResult<AssertionResponse> AssertUnlocked(LockRequest request) => Ok(_itemService.AssertUnlocked(request));
+    public async Task<ActionResult<AssertionResponse>> AssertUnlocked(LockRequest request, CancellationToken cancellationToken) => Ok(await _itemService.AssertUnlocked(request, cancellationToken));
 
     // File Operations
     [HttpPost("upload-file")]
-    public ActionResult<ItemResponse> UploadFile(UploadFileRequest request) => Ok(_itemService.UploadFile(request));
+    public async Task<ActionResult<ItemResponse>> UploadFile(UploadFileRequest request, CancellationToken cancellationToken) => Ok(await _itemService.UploadFile(request, cancellationToken));
 
     [HttpPost("download-file")]
-    public ActionResult<ItemResponse> DownloadFile(DownloadFileRequest request) => Ok(_itemService.DownloadFile(request));
+    public async Task<ActionResult<ItemResponse>> DownloadFile(DownloadFileRequest request, CancellationToken cancellationToken) => Ok(await _itemService.DownloadFile(request, cancellationToken));
 
     [HttpPost("verify-file-exists")]
-    public ActionResult<AssertionResponse> VerifyFileExists(VerifyFileExistsRequest request) => Ok(_itemService.VerifyFileExists(request));
+    public async Task<ActionResult<AssertionResponse>> VerifyFileExists(VerifyFileExistsRequest request, CancellationToken cancellationToken) => Ok(await _itemService.VerifyFileExists(request, cancellationToken));
 
     // Utility Operations
     [HttpPost("generate-id")]
-    public ActionResult<ItemResponse> GenerateId() => Ok(_itemService.GenerateID());
+    public async Task<ActionResult<ItemResponse>> GenerateId(CancellationToken cancellationToken) => Ok(await _itemService.GenerateID(cancellationToken));
 
     [HttpPost("get-next-sequence")]
-    public ActionResult<ItemResponse> GetNextSequence(GetNextSequenceRequest request) => Ok(_itemService.GetNextSequence(request));
+    public async Task<ActionResult<ItemResponse>> GetNextSequence(GetNextSequenceRequest request, CancellationToken cancellationToken) => Ok(await _itemService.GetNextSequence(request, cancellationToken));
 
     [HttpPost("wait")]
     public async Task<ActionResult<ItemResponse>> Wait(WaitRequest request, CancellationToken cancellationToken) => Ok(await _itemService.Wait(request, cancellationToken));
 
     [HttpPost("set-variable")]
-    public ActionResult<ItemResponse> SetVariable(SetVariableRequest request) => Ok(_itemService.SetVariable(request));
+    public async Task<ActionResult<ItemResponse>> SetVariable(SetVariableRequest request, CancellationToken cancellationToken) => Ok(await _itemService.SetVariable(request, cancellationToken));
 
     [HttpPost("log-message")]
-    public ActionResult<ItemResponse> LogMessage(LogMessageRequest request) => Ok(_itemService.LogMessage(request));
+    public async Task<ActionResult<ItemResponse>> LogMessage(LogMessageRequest request, CancellationToken cancellationToken) => Ok(await _itemService.LogMessage(request, cancellationToken));
 }

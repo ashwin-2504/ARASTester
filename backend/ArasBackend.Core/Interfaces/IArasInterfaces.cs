@@ -15,49 +15,49 @@ public interface IArasSessionManager
 
 public interface IArasGateway
 {
-    ItemResponse QueryItems(QueryRequest request);
-    ItemResponse GetItemById(GetByIdRequest request);
-    ItemResponse GetItemByKeyedName(GetByKeyedNameRequest request);
-    ItemResponse CreateItem(CreateItemRequest request);
-    ItemResponse UpdateItem(UpdateItemRequest request);
-    ItemResponse DeleteItem(DeleteItemRequest request);
-    ItemResponse PurgeItem(DeleteItemRequest request);
+    Task<ItemResponse> QueryItems(QueryRequest request, CancellationToken cancellationToken = default);
+    Task<ItemResponse> GetItemById(GetByIdRequest request, CancellationToken cancellationToken = default);
+    Task<ItemResponse> GetItemByKeyedName(GetByKeyedNameRequest request, CancellationToken cancellationToken = default);
+    Task<ItemResponse> CreateItem(CreateItemRequest request, CancellationToken cancellationToken = default);
+    Task<ItemResponse> UpdateItem(UpdateItemRequest request, CancellationToken cancellationToken = default);
+    Task<ItemResponse> DeleteItem(DeleteItemRequest request, CancellationToken cancellationToken = default);
+    Task<ItemResponse> PurgeItem(DeleteItemRequest request, CancellationToken cancellationToken = default);
     
-    ItemResponse LockItem(LockRequest request);
-    ItemResponse UnlockItem(LockRequest request);
-    ItemResponse CheckLockStatus(LockRequest request);
+    Task<ItemResponse> LockItem(LockRequest request, CancellationToken cancellationToken = default);
+    Task<ItemResponse> UnlockItem(LockRequest request, CancellationToken cancellationToken = default);
+    Task<ItemResponse> CheckLockStatus(LockRequest request, CancellationToken cancellationToken = default);
     
-    ItemResponse AddRelationship(AddRelationshipRequest request);
-    ItemResponse GetRelationships(GetRelationshipsRequest request);
-    ItemResponse DeleteRelationship(DeleteRelationshipRequest request);
+    Task<ItemResponse> AddRelationship(AddRelationshipRequest request, CancellationToken cancellationToken = default);
+    Task<ItemResponse> GetRelationships(GetRelationshipsRequest request, CancellationToken cancellationToken = default);
+    Task<ItemResponse> DeleteRelationship(DeleteRelationshipRequest request, CancellationToken cancellationToken = default);
     
-    ItemResponse PromoteItem(PromoteRequest request);
-    ItemResponse GetCurrentState(GetByIdRequest request);
+    Task<ItemResponse> PromoteItem(PromoteRequest request, CancellationToken cancellationToken = default);
+    Task<ItemResponse> GetCurrentState(GetByIdRequest request, CancellationToken cancellationToken = default);
 
-    ItemResponse StartWorkflow(StartWorkflowRequest request);
-    ItemResponse GetAssignedActivities();
-    ItemResponse CompleteActivity(CompleteActivityRequest request);
+    Task<ItemResponse> StartWorkflow(StartWorkflowRequest request, CancellationToken cancellationToken = default);
+    Task<ItemResponse> GetAssignedActivities(CancellationToken cancellationToken = default);
+    Task<ItemResponse> CompleteActivity(CompleteActivityRequest request, CancellationToken cancellationToken = default);
     
-    ItemResponse ApplyAML(ApplyAmlRequest request);
-    ItemResponse ApplySQL(ApplySqlRequest request);
-    ItemResponse ApplyMethod(ApplyMethodRequest request);
+    Task<ItemResponse> ApplyAML(ApplyAmlRequest request, CancellationToken cancellationToken = default);
+    Task<ItemResponse> ApplySQL(ApplySqlRequest request, CancellationToken cancellationToken = default);
+    Task<ItemResponse> ApplyMethod(ApplyMethodRequest request, CancellationToken cancellationToken = default);
     
-    AssertionResponse AssertItemExists(AssertExistsRequest request);
-    AssertionResponse AssertItemNotExists(AssertExistsRequest request);
-    AssertionResponse AssertPropertyValue(AssertPropertyRequest request);
-    AssertionResponse AssertPropertyContains(AssertPropertyContainsRequest request);
-    AssertionResponse AssertState(AssertStateRequest request);
-    AssertionResponse AssertCount(AssertCountRequest request);
-    AssertionResponse AssertLocked(LockRequest request);
-    AssertionResponse AssertUnlocked(LockRequest request);
+    Task<AssertionResponse> AssertItemExists(AssertExistsRequest request, CancellationToken cancellationToken = default);
+    Task<AssertionResponse> AssertItemNotExists(AssertExistsRequest request, CancellationToken cancellationToken = default);
+    Task<AssertionResponse> AssertPropertyValue(AssertPropertyRequest request, CancellationToken cancellationToken = default);
+    Task<AssertionResponse> AssertPropertyContains(AssertPropertyContainsRequest request, CancellationToken cancellationToken = default);
+    Task<AssertionResponse> AssertState(AssertStateRequest request, CancellationToken cancellationToken = default);
+    Task<AssertionResponse> AssertCount(AssertCountRequest request, CancellationToken cancellationToken = default);
+    Task<AssertionResponse> AssertLocked(LockRequest request, CancellationToken cancellationToken = default);
+    Task<AssertionResponse> AssertUnlocked(LockRequest request, CancellationToken cancellationToken = default);
 
-    ItemResponse UploadFile(UploadFileRequest request);
-    ItemResponse DownloadFile(DownloadFileRequest request);
-    AssertionResponse VerifyFileExists(VerifyFileExistsRequest request);
+    Task<ItemResponse> UploadFile(UploadFileRequest request, CancellationToken cancellationToken = default);
+    Task<ItemResponse> DownloadFile(DownloadFileRequest request, CancellationToken cancellationToken = default);
+    Task<AssertionResponse> VerifyFileExists(VerifyFileExistsRequest request, CancellationToken cancellationToken = default);
 
-    ItemResponse GenerateID();
-    ItemResponse GetNextSequence(GetNextSequenceRequest request);
+    Task<ItemResponse> GenerateID(CancellationToken cancellationToken = default);
+    Task<ItemResponse> GetNextSequence(GetNextSequenceRequest request, CancellationToken cancellationToken = default);
     Task<ItemResponse> Wait(WaitRequest request, CancellationToken cancellationToken = default);
-    ItemResponse SetVariable(SetVariableRequest request);
-    ItemResponse LogMessage(LogMessageRequest request);
+    Task<ItemResponse> SetVariable(SetVariableRequest request, CancellationToken cancellationToken = default);
+    Task<ItemResponse> LogMessage(LogMessageRequest request, CancellationToken cancellationToken = default);
 }

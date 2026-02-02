@@ -42,9 +42,17 @@ public class ArasGateway : IArasGateway
         return _sessionManager.Execute(action);
     }
 
-    public ItemResponse QueryItems(QueryRequest request)
+    private Task<T> RunAsync<T>(Func<T> action, CancellationToken cancellationToken)
     {
-        return ExecuteIom(inn =>
+        // Offload to thread pool.
+        // Note: Aras IOM is not cancellable once started, but we can prevent starting if token is already cancelled.
+        // Task.Run(..., cancellationToken) checks the token before scheduling.
+        return Task.Run(action, cancellationToken);
+    }
+
+    public Task<ItemResponse> QueryItems(QueryRequest request, CancellationToken cancellationToken = default)
+    {
+        return RunAsync(() => ExecuteIom(inn =>
         {
             var item = inn.newItem(request.ItemType, "get");
             if (!string.IsNullOrEmpty(request.Select)) item.setAttribute("select", request.Select);
@@ -67,12 +75,12 @@ public class ArasGateway : IArasGateway
                 }
             }
             return item.apply();
-        }, "Query successful");
+        }, "Query successful"), cancellationToken);
     }
 
-    public ItemResponse GetItemById(GetByIdRequest request)
+    public Task<ItemResponse> GetItemById(GetByIdRequest request, CancellationToken cancellationToken = default)
     {
-        return ExecuteIom(inn => 
+        return RunAsync(() => ExecuteIom(inn =>
         {
             var item = inn.newItem(request.ItemType, "get");
             item.setID(request.Id);
@@ -81,12 +89,12 @@ public class ArasGateway : IArasGateway
                 item.setAttribute("select", request.Select);
             }
             return item.apply();
-        }, "Item retrieved");
+        }, "Item retrieved"), cancellationToken);
     }
 
-    public ItemResponse GetItemByKeyedName(GetByKeyedNameRequest request)
+    public Task<ItemResponse> GetItemByKeyedName(GetByKeyedNameRequest request, CancellationToken cancellationToken = default)
     {
-        return ExecuteIom(inn =>
+        return RunAsync(() => ExecuteIom(inn =>
         {
             var item = inn.newItem(request.ItemType, "get");
             item.setProperty("keyed_name", request.KeyedName);
@@ -95,76 +103,75 @@ public class ArasGateway : IArasGateway
                 item.setAttribute("select", request.Select);
             }
             return item.apply();
-        }, "Item retrieved");
+        }, "Item retrieved"), cancellationToken);
     }
 
-    public ItemResponse CreateItem(CreateItemRequest request)
+    public Task<ItemResponse> CreateItem(CreateItemRequest request, CancellationToken cancellationToken = default)
     {
-        return ExecuteIom(inn =>
+        return RunAsync(() => ExecuteIom(inn =>
         {
             var item = inn.newItem(request.ItemType, "add");
             foreach (var prop in request.Properties)
                 item.setProperty(prop.Key, prop.Value);
             return item.apply();
-        }, "Item created successfully");
+        }, "Item created successfully"), cancellationToken);
     }
 
-    public ItemResponse UpdateItem(UpdateItemRequest request)
+    public Task<ItemResponse> UpdateItem(UpdateItemRequest request, CancellationToken cancellationToken = default)
     {
-        return ExecuteIom(inn =>
+        return RunAsync(() => ExecuteIom(inn =>
         {
             var item = inn.newItem(request.ItemType, "edit");
             item.setID(request.Id);
             foreach (var prop in request.Properties)
                 item.setProperty(prop.Key, prop.Value);
             return item.apply();
-        }, "Item updated successfully");
+        }, "Item updated successfully"), cancellationToken);
     }
 
-    public ItemResponse DeleteItem(DeleteItemRequest request)
+    public Task<ItemResponse> DeleteItem(DeleteItemRequest request, CancellationToken cancellationToken = default)
     {
-        return ExecuteIom(inn =>
+        return RunAsync(() => ExecuteIom(inn =>
         {
             var item = inn.newItem(request.ItemType, "delete");
             item.setID(request.Id);
             return item.apply();
-        }, "Item deleted successfully");
+        }, "Item deleted successfully"), cancellationToken);
     }
 
-    public ItemResponse PurgeItem(DeleteItemRequest request)
+    public Task<ItemResponse> PurgeItem(DeleteItemRequest request, CancellationToken cancellationToken = default)
     {
-        return ExecuteIom(inn =>
+        return RunAsync(() => ExecuteIom(inn =>
         {
             var item = inn.newItem(request.ItemType, "purge");
             item.setID(request.Id);
             return item.apply();
-        }, "Item purged successfully");
+        }, "Item purged successfully"), cancellationToken);
     }
 
-    public ItemResponse LockItem(LockRequest request)
+    public Task<ItemResponse> LockItem(LockRequest request, CancellationToken cancellationToken = default)
     {
-        return ExecuteIom(inn =>
+        return RunAsync(() => ExecuteIom(inn =>
         {
             var item = inn.newItem(request.ItemType, "lock");
             item.setID(request.Id);
             return item.apply();
-        }, "Item locked successfully");
+        }, "Item locked successfully"), cancellationToken);
     }
 
-    public ItemResponse UnlockItem(LockRequest request)
+    public Task<ItemResponse> UnlockItem(LockRequest request, CancellationToken cancellationToken = default)
     {
-        return ExecuteIom(inn =>
+        return RunAsync(() => ExecuteIom(inn =>
         {
             var item = inn.newItem(request.ItemType, "unlock");
             item.setID(request.Id);
             return item.apply();
-        }, "Item unlocked successfully");
+        }, "Item unlocked successfully"), cancellationToken);
     }
 
-    public ItemResponse CheckLockStatus(LockRequest request)
+    public Task<ItemResponse> CheckLockStatus(LockRequest request, CancellationToken cancellationToken = default)
     {
-        // Custom logic for CheckLockStatus as it returns specific Data structure
-        return _sessionManager.Execute(inn =>
+        return RunAsync(() => _sessionManager.Execute(inn =>
         {
             var item = inn.newItem(request.ItemType, "get");
             item.setID(request.Id);
@@ -181,12 +188,12 @@ public class ArasGateway : IArasGateway
                 Message = string.IsNullOrEmpty(lockedById) ? "Item is unlocked" : "Item is locked",
                 Data = new { isLocked = !string.IsNullOrEmpty(lockedById), lockedById }
             };
-        });
+        }), cancellationToken);
     }
 
-    public ItemResponse AddRelationship(AddRelationshipRequest request)
+    public Task<ItemResponse> AddRelationship(AddRelationshipRequest request, CancellationToken cancellationToken = default)
     {
-        return ExecuteIom(inn =>
+        return RunAsync(() => ExecuteIom(inn =>
         {
             var rel = inn.newItem(request.RelationshipType, "add");
             rel.setProperty("source_id", request.ParentId);
@@ -198,12 +205,12 @@ public class ArasGateway : IArasGateway
                     rel.setProperty(prop.Key, prop.Value);
             }
             return rel.apply();
-        }, "Relationship created successfully");
+        }, "Relationship created successfully"), cancellationToken);
     }
 
-    public ItemResponse GetRelationships(GetRelationshipsRequest request)
+    public Task<ItemResponse> GetRelationships(GetRelationshipsRequest request, CancellationToken cancellationToken = default)
     {
-        return ExecuteIom(inn =>
+        return RunAsync(() => ExecuteIom(inn =>
         {
             var rel = inn.newItem(request.RelationshipType, "get");
             rel.setProperty("source_id", request.Id);
@@ -211,22 +218,22 @@ public class ArasGateway : IArasGateway
                 rel.setAttribute("select", request.Select);
             
             return rel.apply();
-        }, "Relationships retrieved");
+        }, "Relationships retrieved"), cancellationToken);
     }
 
-    public ItemResponse DeleteRelationship(DeleteRelationshipRequest request)
+    public Task<ItemResponse> DeleteRelationship(DeleteRelationshipRequest request, CancellationToken cancellationToken = default)
     {
-        return ExecuteIom(inn =>
+        return RunAsync(() => ExecuteIom(inn =>
         {
             var rel = inn.newItem(request.RelationshipType, "delete");
             rel.setID(request.RelationshipId);
             return rel.apply();
-        }, "Relationship deleted successfully");
+        }, "Relationship deleted successfully"), cancellationToken);
     }
 
-    public ItemResponse PromoteItem(PromoteRequest request)
+    public Task<ItemResponse> PromoteItem(PromoteRequest request, CancellationToken cancellationToken = default)
     {
-        return ExecuteIom(inn =>
+        return RunAsync(() => ExecuteIom(inn =>
         {
             var item = inn.newItem(request.ItemType, "promoteItem");
             item.setID(request.Id);
@@ -234,12 +241,12 @@ public class ArasGateway : IArasGateway
             if (!string.IsNullOrEmpty(request.Comments))
                 item.setProperty("comments", request.Comments);
             return item.apply();
-        }, $"Item promoted to {request.TargetState}");
+        }, $"Item promoted to {request.TargetState}"), cancellationToken);
     }
 
-    public ItemResponse GetCurrentState(GetByIdRequest request)
+    public Task<ItemResponse> GetCurrentState(GetByIdRequest request, CancellationToken cancellationToken = default)
     {
-         return _sessionManager.Execute(inn =>
+         return RunAsync(() => _sessionManager.Execute(inn =>
         {
             var item = inn.newItem(request.ItemType, "get");
             item.setID(request.Id);
@@ -257,32 +264,35 @@ public class ArasGateway : IArasGateway
                 Message = $"Current state: {state}",
                 Data = new { state }
             };
-        });
+        }), cancellationToken);
     }
 
-    public ItemResponse ApplyAML(ApplyAmlRequest request)
+    public Task<ItemResponse> ApplyAML(ApplyAmlRequest request, CancellationToken cancellationToken = default)
     {
-        var aml = request.Aml?.Trim();
-        if (!string.IsNullOrEmpty(aml) && !aml.StartsWith("<AML>", StringComparison.OrdinalIgnoreCase))
+        return RunAsync(() =>
         {
-            aml = $"<AML>{aml}</AML>";
-        }
-        return ExecuteIom(inn => inn.applyAML(aml), "AML executed successfully");
+            var aml = request.Aml?.Trim();
+            if (!string.IsNullOrEmpty(aml) && !aml.StartsWith("<AML>", StringComparison.OrdinalIgnoreCase))
+            {
+                aml = $"<AML>{aml}</AML>";
+            }
+            return ExecuteIom(inn => inn.applyAML(aml), "AML executed successfully");
+        }, cancellationToken);
     }
 
-    public ItemResponse ApplySQL(ApplySqlRequest request)
+    public Task<ItemResponse> ApplySQL(ApplySqlRequest request, CancellationToken cancellationToken = default)
     {
-        return ExecuteIom(inn => inn.applySQL(request.Sql), "SQL executed successfully");
+        return RunAsync(() => ExecuteIom(inn => inn.applySQL(request.Sql), "SQL executed successfully"), cancellationToken);
     }
 
-    public ItemResponse ApplyMethod(ApplyMethodRequest request)
+    public Task<ItemResponse> ApplyMethod(ApplyMethodRequest request, CancellationToken cancellationToken = default)
     {
-        return ExecuteIom(inn => inn.applyMethod(request.MethodName, request.Body ?? ""), "Method executed successfully");
+        return RunAsync(() => ExecuteIom(inn => inn.applyMethod(request.MethodName, request.Body ?? ""), "Method executed successfully"), cancellationToken);
     }
 
-    public AssertionResponse AssertItemExists(AssertExistsRequest request)
+    public Task<AssertionResponse> AssertItemExists(AssertExistsRequest request, CancellationToken cancellationToken = default)
     {
-        return ExecuteAssertion(inn =>
+        return RunAsync(() => ExecuteAssertion(inn =>
         {
             var item = inn.newItem(request.ItemType, "get");
             foreach (var kvp in request.Criteria)
@@ -297,12 +307,12 @@ public class ArasGateway : IArasGateway
                 Message = passed ? $"Found {count} matching item(s)" : "No matching items found",
                 ActualValue = count.ToString(), ExpectedValue = ">0"
             };
-        });
+        }), cancellationToken);
     }
 
-    public AssertionResponse AssertItemNotExists(AssertExistsRequest request)
+    public Task<AssertionResponse> AssertItemNotExists(AssertExistsRequest request, CancellationToken cancellationToken = default)
     {
-        return ExecuteAssertion(inn =>
+        return RunAsync(() => ExecuteAssertion(inn =>
         {
             var item = inn.newItem(request.ItemType, "get");
             foreach (var kvp in request.Criteria)
@@ -317,12 +327,12 @@ public class ArasGateway : IArasGateway
                 Message = passed ? "No matching items found (as expected)" : $"Found {count} matching item(s) - expected none",
                 ActualValue = count.ToString(), ExpectedValue = "0"
             };
-        });
+        }), cancellationToken);
     }
 
-    public AssertionResponse AssertPropertyValue(AssertPropertyRequest request)
+    public Task<AssertionResponse> AssertPropertyValue(AssertPropertyRequest request, CancellationToken cancellationToken = default)
     {
-        return ExecuteAssertion(inn =>
+        return RunAsync(() => ExecuteAssertion(inn =>
         {
             var item = inn.getItemById(request.ItemType, request.Id);
             if (item.isError()) return new AssertionResponse { Success = false, Passed = false, Message = item.getErrorString() };
@@ -335,12 +345,12 @@ public class ArasGateway : IArasGateway
                 Message = passed ? "Property value matches" : $"Expected '{request.Expected}' but got '{actual}'",
                 ActualValue = actual, ExpectedValue = request.Expected
             };
-        });
+        }), cancellationToken);
     }
 
-    public AssertionResponse AssertState(AssertStateRequest request)
+    public Task<AssertionResponse> AssertState(AssertStateRequest request, CancellationToken cancellationToken = default)
     {
-        return ExecuteAssertion(inn =>
+        return RunAsync(() => ExecuteAssertion(inn =>
         {
             var item = inn.getItemById(request.ItemType, request.Id);
             if (item.isError()) return new AssertionResponse { Success = false, Passed = false, Message = item.getErrorString() };
@@ -353,12 +363,12 @@ public class ArasGateway : IArasGateway
                 Message = passed ? "State matches" : $"Expected state '{request.ExpectedState}' but got '{actual}'",
                 ActualValue = actual, ExpectedValue = request.ExpectedState
             };
-        });
+        }), cancellationToken);
     }
 
-    public ItemResponse StartWorkflow(StartWorkflowRequest request)
+    public Task<ItemResponse> StartWorkflow(StartWorkflowRequest request, CancellationToken cancellationToken = default)
     {
-        return ExecuteIom(inn =>
+        return RunAsync(() => ExecuteIom(inn =>
         {
             if (!string.IsNullOrEmpty(request.WorkflowMap))
             {
@@ -368,12 +378,12 @@ public class ArasGateway : IArasGateway
             var item = inn.newItem(request.ItemType, "startWorkflow");
             item.setID(request.Id);
             return item.apply();
-        }, "Workflow started");
+        }, "Workflow started"), cancellationToken);
     }
 
-    public ItemResponse GetAssignedActivities()
+    public Task<ItemResponse> GetAssignedActivities(CancellationToken cancellationToken = default)
     {
-        return ExecuteIom(inn =>
+        return RunAsync(() => ExecuteIom(inn =>
         {
             // Get current user's ID for filtering activities
             var userId = inn.getUserID();
@@ -381,12 +391,12 @@ public class ArasGateway : IArasGateway
             q.setProperty("related_id", userId);
             q.setProperty("is_current", "1");
             return q.apply();
-        }, "Assigned activities retrieved");
+        }, "Assigned activities retrieved"), cancellationToken);
     }
 
-    public ItemResponse CompleteActivity(CompleteActivityRequest request)
+    public Task<ItemResponse> CompleteActivity(CompleteActivityRequest request, CancellationToken cancellationToken = default)
     {
-        return ExecuteIom(inn =>
+        return RunAsync(() => ExecuteIom(inn =>
         {
             var userId = inn.getUserID();
             var findAssign = inn.newItem("Activity Assignment", "get");
@@ -408,12 +418,12 @@ public class ArasGateway : IArasGateway
             complete.setProperty("complete", "1");
 
             return complete.apply();
-        }, "Activity completed");
+        }, "Activity completed"), cancellationToken);
     }
 
-    public AssertionResponse AssertPropertyContains(AssertPropertyContainsRequest request)
+    public Task<AssertionResponse> AssertPropertyContains(AssertPropertyContainsRequest request, CancellationToken cancellationToken = default)
     {
-        return ExecuteAssertion(inn =>
+        return RunAsync(() => ExecuteAssertion(inn =>
         {
             var item = inn.getItemById(request.ItemType, request.Id);
             if (item.isError()) return new AssertionResponse { Success = false, Passed = false, Message = item.getErrorString() };
@@ -426,12 +436,12 @@ public class ArasGateway : IArasGateway
                 Message = passed ? "Property contains expected text" : $"Expected to contain '{request.Contains}' but got '{actual}'",
                 ActualValue = actual, ExpectedValue = $"Contains '{request.Contains}'"
             };
-        });
+        }), cancellationToken);
     }
 
-    public AssertionResponse AssertCount(AssertCountRequest request)
+    public Task<AssertionResponse> AssertCount(AssertCountRequest request, CancellationToken cancellationToken = default)
     {
-        return ExecuteAssertion(inn =>
+        return RunAsync(() => ExecuteAssertion(inn =>
         {
             var item = inn.newItem(request.ItemType, "get");
             foreach (var kvp in request.Criteria)
@@ -446,12 +456,12 @@ public class ArasGateway : IArasGateway
                 Message = passed ? "Count matches" : $"Expected {request.ExpectedCount} items, found {count}",
                 ActualValue = count.ToString(), ExpectedValue = request.ExpectedCount.ToString()
             };
-        });
+        }), cancellationToken);
     }
 
-    public AssertionResponse AssertLocked(LockRequest request)
+    public Task<AssertionResponse> AssertLocked(LockRequest request, CancellationToken cancellationToken = default)
     {
-        return ExecuteAssertion(inn =>
+        return RunAsync(() => ExecuteAssertion(inn =>
         {
             var item = inn.getItemById(request.ItemType, request.Id);
             if (item.isError()) return new AssertionResponse { Success = false, Passed = false, Message = item.getErrorString() };
@@ -464,12 +474,12 @@ public class ArasGateway : IArasGateway
                 Message = passed ? "Item is locked" : "Item is not locked",
                 ActualValue = passed ? "Locked" : "Unlocked", ExpectedValue = "Locked"
             };
-        });
+        }), cancellationToken);
     }
 
-    public AssertionResponse AssertUnlocked(LockRequest request)
+    public Task<AssertionResponse> AssertUnlocked(LockRequest request, CancellationToken cancellationToken = default)
     {
-        return ExecuteAssertion(inn =>
+        return RunAsync(() => ExecuteAssertion(inn =>
         {
             var item = inn.getItemById(request.ItemType, request.Id);
             if (item.isError()) return new AssertionResponse { Success = false, Passed = false, Message = item.getErrorString() };
@@ -482,23 +492,23 @@ public class ArasGateway : IArasGateway
                 Message = passed ? "Item is unlocked" : $"Item is locked by {lockedBy}",
                 ActualValue = passed ? "Unlocked" : "Locked", ExpectedValue = "Unlocked"
             };
-        });
+        }), cancellationToken);
     }
 
-    public ItemResponse UploadFile(UploadFileRequest request)
+    public Task<ItemResponse> UploadFile(UploadFileRequest request, CancellationToken cancellationToken = default)
     {
-        return ExecuteIom(inn =>
+        return RunAsync(() => ExecuteIom(inn =>
         {
             var item = inn.newItem(request.ItemType, "edit");
             item.setID(request.Id);
             item.setFileProperty(request.PropertyName, request.FilePath);
             return item.apply();
-        }, "File uploaded");
+        }, "File uploaded"), cancellationToken);
     }
 
-    public ItemResponse DownloadFile(DownloadFileRequest request)
+    public Task<ItemResponse> DownloadFile(DownloadFileRequest request, CancellationToken cancellationToken = default)
     {
-        return ExecuteIom(inn =>
+        return RunAsync(() => ExecuteIom(inn =>
         {
             var item = inn.getItemById(request.ItemType, request.Id);
             if (item.isError()) return item;
@@ -514,12 +524,12 @@ public class ArasGateway : IArasGateway
             if (string.IsNullOrEmpty(dir)) dir = request.SavePath; // Fallback if no dir component
 
             return fileItem.checkout(dir);
-        }, "File downloaded");
+        }, "File downloaded"), cancellationToken);
     }
 
-    public AssertionResponse VerifyFileExists(VerifyFileExistsRequest request)
+    public Task<AssertionResponse> VerifyFileExists(VerifyFileExistsRequest request, CancellationToken cancellationToken = default)
     {
-        return ExecuteAssertion(inn =>
+        return RunAsync(() => ExecuteAssertion(inn =>
         {
             var item = inn.getItemById(request.ItemType, request.Id);
             if (item.isError()) return new AssertionResponse { Success = false, Passed = false, Message = item.getErrorString() };
@@ -533,29 +543,29 @@ public class ArasGateway : IArasGateway
                 Message = passed ? "File property is set" : "File property is empty",
                 ActualValue = fileId, ExpectedValue = "Valid File ID"
             };
-        });
+        }), cancellationToken);
     }
 
-    public ItemResponse GenerateID()
+    public Task<ItemResponse> GenerateID(CancellationToken cancellationToken = default)
     {
-        return ExecuteIom(inn =>
+        return RunAsync(() => ExecuteIom(inn =>
         {
              var id = inn.getNewID();
              var res = inn.newItem("Result");
              res.setProperty("id", id);
              return res;
-        }, "ID Generated");
+        }, "ID Generated"), cancellationToken);
     }
 
-    public ItemResponse GetNextSequence(GetNextSequenceRequest request)
+    public Task<ItemResponse> GetNextSequence(GetNextSequenceRequest request, CancellationToken cancellationToken = default)
     {
-        return ExecuteIom(inn =>
+        return RunAsync(() => ExecuteIom(inn =>
         {
             var seq = inn.getNextSequence(request.SequenceName);
             var res = inn.newItem("Result");
             res.setProperty("sequence", seq);
             return res;
-        }, "Sequence retrieved");
+        }, "Sequence retrieved"), cancellationToken);
     }
 
     public async Task<ItemResponse> Wait(WaitRequest request, CancellationToken cancellationToken = default)
@@ -564,15 +574,21 @@ public class ArasGateway : IArasGateway
         return new ItemResponse { Success = true, Message = $"Waited {request.Duration}ms" };
     }
 
-    public ItemResponse SetVariable(SetVariableRequest request)
+    public Task<ItemResponse> SetVariable(SetVariableRequest request, CancellationToken cancellationToken = default)
     {
-        _sessionManager.SetSessionVariable(request.VariableName, request.Value);
-        return new ItemResponse { Success = true, Message = $"Variable '{request.VariableName}' set" };
+        return RunAsync(() =>
+        {
+            _sessionManager.SetSessionVariable(request.VariableName, request.Value);
+            return new ItemResponse { Success = true, Message = $"Variable '{request.VariableName}' set" };
+        }, cancellationToken);
     }
 
-    public ItemResponse LogMessage(LogMessageRequest request)
+    public Task<ItemResponse> LogMessage(LogMessageRequest request, CancellationToken cancellationToken = default)
     {
-        _sessionManager.AddSessionLog(request.Message);
-        return new ItemResponse { Success = true, Message = "Message logged" };
+        return RunAsync(() =>
+        {
+            _sessionManager.AddSessionLog(request.Message);
+            return new ItemResponse { Success = true, Message = "Message logged" };
+        }, cancellationToken);
     }
 }

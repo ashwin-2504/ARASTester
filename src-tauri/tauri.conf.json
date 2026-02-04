@@ -31,9 +31,6 @@
       },
       "path": {
         "all": true
-      },
-      "process": {
-        "command": true
       }
     },
     "bundle": {

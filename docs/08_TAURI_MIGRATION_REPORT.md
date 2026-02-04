@@ -42,7 +42,22 @@ The Electron responsibilities above map cleanly to Tauri equivalents:
 
 ---
 
-## 3. Proposed Migration Plan (Phased)
+## 3. Tauri Scaffold Mapping (Concrete File Targets)
+
+When introducing Tauri, the following project areas become the new “desktop shell” owners:
+
+| Concern | Current Location | Tauri Location (Target) |
+| --- | --- | --- |
+| Shell entrypoint | `main.js` | `src-tauri/src/main.rs` |
+| IPC definition | `preload.ts` + `ipcMain.handle` | `src-tauri/src/commands.rs` + `#[tauri::command]` |
+| Runtime config | `package.json` (`main`, `build`) | `src-tauri/tauri.conf.json` |
+| Backend resource bundle | `build.extraResources` | `tauri.conf.json` `bundle.resources` |
+
+This mapping is intended to preserve existing behaviors: window config and dev/prod URL switching from `main.js`, filesystem handling via `preload.ts`, and backend packaging via `package.json`’s `build` section. 【F:main.js†L91-L214】【F:preload.ts†L1-L23】【F:package.json†L7-L63】
+
+---
+
+## 4. Proposed Migration Plan (Phased)
 
 ### Phase 0 — Alignment & Inventory
 
@@ -62,6 +77,7 @@ The Electron responsibilities above map cleanly to Tauri equivalents:
 1. **Swap `window.api` calls** to Tauri `invoke` calls in the renderer.
 2. **Retain the same API contract** to keep surface-level changes minimal (same method names and return types).
 3. **Move settings storage** to Tauri’s path utilities (e.g., `app_data_dir`) while preserving the `Settings/settings.json` layout for compatibility. This mirrors the Electron behavior that uses `app.getPath("userData")`. 【F:main.js†L214-L233】【F:main.js†L341-L369】
+4. **Add a compatibility wrapper** that keeps the `window.api` shape while internally routing to Tauri `invoke` (optional but minimizes churn). The current renderer expects `window.api` methods defined in `preload.ts`. 【F:preload.ts†L1-L23】
 
 ### Phase 3 — Backend Process & Packaging
 
@@ -79,30 +95,33 @@ The Electron responsibilities above map cleanly to Tauri equivalents:
 
 ---
 
-## 4. Technical Gaps & Risks
+## 5. Technical Gaps & Risks
 
 1. **Filesystem security parity**: The current Electron implementation uses `resolveSafePath` and an `authorizedDirs` allowlist to reduce traversal and scope access. This logic must be replicated in Rust commands to avoid regressions. 【F:main.js†L241-L320】
 2. **Backend lifecycle**: The backend currently starts automatically when the Electron app launches and is killed on `app.will-quit`. Equivalent lifecycle hooks are required in Tauri to avoid orphaned processes. 【F:main.js†L214-L240】
 3. **Dev workflows**: Electron dev mode expects a Vite server (`http://localhost:5173`) and opens DevTools. Tauri’s dev workflow should be aligned to avoid breaking existing frontend iteration. 【F:main.js†L108-L128】
+4. **Permission model differences**: Electron’s IPC uses a custom `authorizedDirs` allowlist with manual checks. Tauri’s permissions model (allowlist + command permissions) needs to be explicitly configured to avoid widening access beyond the current Electron constraints. 【F:main.js†L241-L320】
 
 ---
 
-## 5. Recommended Next Steps
+## 6. Recommended Next Steps
 
 1. **Create a Tauri spike branch** that scaffolds Tauri without removing Electron.
 2. **Implement file I/O commands** in Rust with the same constraints as `resolveSafePath`.
 3. **Bundle backend sidecar** and validate auto-start/stop behavior.
 4. **Update documentation** once the sidecar and IPC parity are verified.
+5. **Add a migration test plan** focused on file I/O, settings persistence, and backend startup so parity is validated in the same areas Electron currently owns. 【F:main.js†L141-L369】【F:preload.ts†L1-L23】
 
 ---
 
-## 6. Migration Checklist (1:1 Surface Area)
+## 7. Migration Checklist (1:1 Surface Area)
 
 - [ ] Window setup and dev/prod URL switching.
 - [ ] IPC surface parity for `window.api` functions. 【F:preload.ts†L8-L23】
 - [ ] Backend process spawn and environment parity. 【F:main.js†L141-L214】
 - [ ] File system authorization logic ported. 【F:main.js†L241-L320】
 - [ ] Packaging with backend resources. 【F:package.json†L24-L63】
+- [ ] Permissions model mirrors Electron allowlist behavior. 【F:main.js†L241-L320】
 
 ---
 

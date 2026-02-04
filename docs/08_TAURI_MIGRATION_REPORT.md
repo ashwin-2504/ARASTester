@@ -42,7 +42,18 @@ The Electron responsibilities above map cleanly to Tauri equivalents:
 
 ---
 
-## 3. Tauri Scaffold Mapping (Concrete File Targets)
+## 3. Current Migration Status (Repository Changes)
+
+The repository now includes an initial Tauri scaffold so that the desktop shell can begin migrating in parallel with Electron. The scaffold includes:
+
+- `src-tauri/Cargo.toml` and `src-tauri/build.rs` for the Rust entrypoint and build setup.
+- `src-tauri/src/main.rs` with a minimal Tauri `Builder`.
+- `src-tauri/src/commands.rs` with a placeholder `ping` command.
+- `src-tauri/tauri.conf.json` configured for the Vite dev server and build output. 【F:src-tauri/Cargo.toml†L1-L18】【F:src-tauri/build.rs†L1-L3】【F:src-tauri/src/main.rs†L1-L10】【F:src-tauri/src/commands.rs†L1-L4】【F:src-tauri/tauri.conf.json†L1-L40】
+
+---
+
+## 4. Tauri Scaffold Mapping (Concrete File Targets)
 
 When introducing Tauri, the following project areas become the new “desktop shell” owners:
 
@@ -57,7 +68,7 @@ This mapping is intended to preserve existing behaviors: window config and dev/p
 
 ---
 
-## 4. Proposed Migration Plan (Phased)
+## 5. Proposed Migration Plan (Phased)
 
 ### Phase 0 — Alignment & Inventory
 
@@ -95,7 +106,7 @@ This mapping is intended to preserve existing behaviors: window config and dev/p
 
 ---
 
-## 5. Technical Gaps & Risks
+## 6. Technical Gaps & Risks
 
 1. **Filesystem security parity**: The current Electron implementation uses `resolveSafePath` and an `authorizedDirs` allowlist to reduce traversal and scope access. This logic must be replicated in Rust commands to avoid regressions. 【F:main.js†L241-L320】
 2. **Backend lifecycle**: The backend currently starts automatically when the Electron app launches and is killed on `app.will-quit`. Equivalent lifecycle hooks are required in Tauri to avoid orphaned processes. 【F:main.js†L214-L240】
@@ -104,7 +115,7 @@ This mapping is intended to preserve existing behaviors: window config and dev/p
 
 ---
 
-## 6. Recommended Next Steps
+## 7. Recommended Next Steps
 
 1. **Create a Tauri spike branch** that scaffolds Tauri without removing Electron.
 2. **Implement file I/O commands** in Rust with the same constraints as `resolveSafePath`.
@@ -114,7 +125,7 @@ This mapping is intended to preserve existing behaviors: window config and dev/p
 
 ---
 
-## 7. Migration Checklist (1:1 Surface Area)
+## 8. Migration Checklist (1:1 Surface Area)
 
 - [ ] Window setup and dev/prod URL switching.
 - [ ] IPC surface parity for `window.api` functions. 【F:preload.ts†L8-L23】

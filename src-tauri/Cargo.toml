@@ -1,0 +1,17 @@
+[package]
+name = "arastester-tauri"
+version = "0.1.0"
+description = "Tauri shell for ARASTester"
+authors = ["ARASTester Maintainers"]
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "1.5" }
+
+[dependencies]
+tauri = { version = "1.5", features = ["dialog-open", "fs-all", "path-all", "process-command-api"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]

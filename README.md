@@ -125,6 +125,7 @@ For detailed technical documentation, see the [docs](docs/01_SYSTEM_OVERVIEW.md)
 - [Backend Details](docs/05_BACKEND.md)
 - [Security & Failures](docs/06_SECURITY_AND_FAILURES.md)
 - [Non-Goals & Gaps](docs/07_NON_GOALS_AND_GAPS.md)
+- [Electron → Tauri Migration Report](docs/08_TAURI_MIGRATION_REPORT.md)
 - [API Reference](docs/API_REFERENCE.md)
 
 ---

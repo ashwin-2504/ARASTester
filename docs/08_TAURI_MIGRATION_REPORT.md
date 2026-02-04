@@ -44,11 +44,12 @@ The Electron responsibilities above map cleanly to Tauri equivalents:
 
 ## 3. Current Migration Status (Repository Changes)
 
-The repository now includes a Tauri scaffold and a first pass at IPC parity for file and settings operations. The new pieces include:
+The repository now includes a Tauri scaffold, IPC parity commands, and a renderer bridge that maps `window.api` to Tauri `invoke` calls when running in a Tauri shell. The new pieces include:
 
 - `src-tauri/Cargo.toml` and `src-tauri/build.rs` for the Rust entrypoint and build setup.
 - `src-tauri/src/main.rs` with a Tauri `Builder` that registers command handlers and initializes an allowlist state.
 - `src-tauri/src/commands.rs` with commands that map to the current Electron IPC surface area (`pick_folder`, file I/O, settings read/write).
+- `renderer/core/ipc/tauriBridge.ts` to preserve the `window.api` contract in the renderer when running under Tauri. 【F:renderer/core/ipc/tauriBridge.ts†L1-L62】
 - `src-tauri/tauri.conf.json` configured for the Vite dev server and build output. 【F:src-tauri/Cargo.toml†L1-L17】【F:src-tauri/build.rs†L1-L3】【F:src-tauri/src/main.rs†L1-L24】【F:src-tauri/src/commands.rs†L1-L164】【F:src-tauri/tauri.conf.json†L1-L42】
 
 ---
@@ -89,7 +90,7 @@ This mapping is intended to preserve existing behaviors: window config and dev/p
 2. **Retain the same API contract** to keep surface-level changes minimal (same method names and return types).
 3. **Move settings storage** to Tauri’s path utilities (e.g., `app_data_dir`) while preserving the `Settings/settings.json` layout for compatibility. This mirrors the Electron behavior that uses `app.getPath("userData")`. 【F:main.js†L214-L233】【F:main.js†L341-L369】
 4. **Add a compatibility wrapper** that keeps the `window.api` shape while internally routing to Tauri `invoke` (optional but minimizes churn). The current renderer expects `window.api` methods defined in `preload.ts`. 【F:preload.ts†L1-L23】
-5. **Wire commands to the renderer** once Tauri is enabled so IPC parity can be validated against the existing `window.api` surface area. 【F:src-tauri/src/commands.rs†L1-L164】
+5. **Wire commands to the renderer** once Tauri is enabled so IPC parity can be validated against the existing `window.api` surface area (initial bridge implemented). 【F:renderer/core/ipc/tauriBridge.ts†L1-L62】【F:src-tauri/src/commands.rs†L1-L164】
 
 ### Phase 3 — Backend Process & Packaging
 
@@ -118,8 +119,8 @@ This mapping is intended to preserve existing behaviors: window config and dev/p
 
 ## 7. Recommended Next Steps
 
-1. **Create a Tauri spike branch** that scaffolds Tauri without removing Electron.
-2. **Validate file I/O commands** in Rust with the same constraints as `resolveSafePath` (ensure parity with Electron). 【F:src-tauri/src/commands.rs†L31-L174】
+1. **Validate file I/O commands** in Rust with the same constraints as `resolveSafePath` (ensure parity with Electron). 【F:src-tauri/src/commands.rs†L31-L174】
+2. **Verify renderer bridge coverage** by testing `pickFolder`, file I/O, and settings flows under Tauri. 【F:renderer/core/ipc/tauriBridge.ts†L1-L62】
 3. **Bundle backend sidecar** and validate auto-start/stop behavior.
 4. **Update documentation** once the sidecar and IPC parity are verified.
 5. **Add a migration test plan** focused on file I/O, settings persistence, and backend startup so parity is validated in the same areas Electron currently owns. 【F:main.js†L141-L369】【F:preload.ts†L1-L23】

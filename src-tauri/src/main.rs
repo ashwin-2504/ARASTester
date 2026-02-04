@@ -42,7 +42,7 @@ fn main() {
         .spawn()
         .map_err(|err| err.to_string())?;
 
-      backend_state.set(child.clone());
+      backend_state.set(child);
       tauri::async_runtime::spawn(async move {
         while let Some(event) = rx.recv().await {
           if let CommandEvent::Error(error) = event {

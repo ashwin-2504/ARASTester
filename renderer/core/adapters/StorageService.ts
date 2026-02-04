@@ -1,6 +1,6 @@
 // renderer/services/StorageService.ts
 
-export async function pickFolder(): Promise<string | null> {
+export async function pickFolder(): Promise<{ canceled: boolean; filePaths: string[] }> {
   return await window.api.pickFolder();
 }
 

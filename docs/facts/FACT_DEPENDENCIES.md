@@ -11,14 +11,14 @@
 ### Production Dependencies
 | Package | Version |
 |---------|---------|
-| @hello-pangea/dnd | ^16.5.0 |
+| @hello-pangea/dnd | ^18.0.1 |
 | @radix-ui/react-dialog | ^1.1.15 |
 | @radix-ui/react-dropdown-menu | ^2.1.16 |
 | @radix-ui/react-scroll-area | ^1.2.10 |
 | @radix-ui/react-slot | ^1.2.4 |
 | class-variance-authority | ^0.7.1 |
 | clsx | ^2.1.1 |
-| framer-motion | ^12.26.2 |
+| immer | ^11.1.3 |
 | lucide-react | ^0.554.0 |
 | react | ^19.2.0 |
 | react-dom | ^19.2.0 |
@@ -30,12 +30,19 @@
 ### Dev Dependencies
 | Package | Version |
 |---------|---------|
+| @types/node | ^25.0.9 |
+| @types/react | ^19.2.9 |
+| @types/react-dom | ^19.2.3 |
+| @typescript-eslint/eslint-plugin | ^8.54.0 |
+| @typescript-eslint/parser | ^8.54.0 |
 | @vitejs/plugin-react | ^5.1.1 |
 | autoprefixer | ^10.4.22 |
-| electron | ^39.2.1 |
-| electron-builder | ^26.4.0 |
+| eslint | ^8.57.1 |
+| eslint-plugin-react | ^7.37.5 |
+| eslint-plugin-react-hooks | ^7.0.1 |
 | postcss | ^8.5.6 |
 | tailwindcss | ^3.4.17 |
+| typescript | ^5.9.3 |
 | vite | ^7.2.2 |
 
 ---

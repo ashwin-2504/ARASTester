@@ -1,7 +1,7 @@
 export {};
 
 export interface IPCApi {
-  pickFolder: () => Promise<Electron.OpenDialogReturnValue>;
+  pickFolder: () => Promise<{ canceled: boolean; filePaths: string[] }>;
   readFile: (baseDir: string, relativePath: string) => Promise<string>;
   writeFile: (baseDir: string, relativePath: string, data: unknown) => Promise<void>;
   listJsonFiles: (baseDir: string, relativePath: string) => Promise<string[]>;

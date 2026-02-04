@@ -10,18 +10,18 @@
 flowchart LR
     %% --- Styles ---
     classDef react fill:#e1f5fe,stroke:#0277bd,stroke-width:2px,color:#01579b;
-    classDef electron fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,stroke-dasharray: 5 5,color:#f57f17;
+    classDef tauri fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,stroke-dasharray: 5 5,color:#f57f17;
     classDef dotnet fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#4a148c;
     classDef external fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#b71c1c;
     classDef storage fill:#eceff1,stroke:#546e7a,stroke-width:2px,color:#37474f;
 
     %% --- Desktop App ---
-    subgraph Desktop ["🖥️ Electron Desktop App"]
+    subgraph Desktop ["🖥️ Tauri Desktop App"]
         direction TB
 
-        subgraph MainProcess ["Main Process (Node.js)"]
-            Main["main.js"]:::electron
-            Preload["preload.js"]:::electron
+        subgraph MainProcess ["Tauri Core (Rust)"]
+            Main["src-tauri/src/main.rs"]:::tauri
+            Commands["src-tauri/src/commands.rs"]:::tauri
             FS[("Local FS<br/>(JSON Plans)")]:::storage
         end
 
@@ -49,16 +49,15 @@ flowchart LR
         ARAS[("ARAS Innovator<br/>Server")]:::external
     end
 
-    %% --- Relations: Electron Internals ---
+    %% --- Relations: Tauri Internals ---
     UI -->|"User Action"| Executor
     Executor --> Store
     Executor -->|"Trigger"| API
-    UI <-->|"IPC"| Preload
-    Preload <-->|"IPC"| Main
-    Main <-->|"Read/Write"| FS
+    UI <-->|"invoke"| Commands
+    Commands <-->|"Read/Write"| FS
 
     %% --- Relations: System Startup ---
-    Main -.->|"spawn(dotnet)"| Backend
+    Main -.->|"spawn(sidecar)"| Backend
 
     %% --- Relations: HTTP Flow ---
     API ==>|"REST (localhost:5000)"| Middleware
@@ -75,7 +74,7 @@ flowchart LR
 | Flow                 | Path                                             | Protocol     |
 | -------------------- | ------------------------------------------------ | ------------ |
 | **Action Execution** | UI → ActionExecutor → apiClient → Backend → ARAS | HTTP → IOM   |
-| **File Operations**  | UI → IPC → Main Process → File System            | Electron IPC |
+| **File Operations**  | UI → invoke → Tauri Commands → File System       | Tauri invoke |
 | **State Updates**    | Backend Response → apiClient → Zustand → UI      | HTTP + React |
 
 ---
@@ -95,17 +94,17 @@ index.html (entry)
 
 **Source**: [index.html](../index.html), [main.jsx](../renderer/app/main.jsx)
 
-### 1.2 Entry Point Chain (Electron Main Process)
+### 1.2 Entry Point Chain (Tauri Core)
 
 ```
-main.js (entry per package.json "main")
-    └── requires: electron (app, BrowserWindow, ipcMain, dialog, Menu)
-    └── requires: child_process (spawn)
-    └── spawns: backend/ArasBackend/bin/Debug/net8.0/win-x64/ArasBackend.exe
+src-tauri/src/main.rs
+    └── uses: tauri::Builder
+    └── registers: #[tauri::command] handlers
+    └── spawns: backend sidecar (ArasBackend)
     └── loads: http://localhost:5173 (dev) OR dist/index.html (prod)
 ```
 
-**Source**: [main.js](../main.js)
+**Source**: [src-tauri/src/main.rs](../src-tauri/src/main.rs)
 
 ### 1.3 Entry Point Chain (Backend)
 
@@ -203,8 +202,8 @@ HTTP Request
 | From                | To           | Protocol      | Evidence                                       |
 | ------------------- | ------------ | ------------- | ---------------------------------------------- |
 | Frontend (Renderer) | Backend      | HTTP REST     | API endpoints in FACT_PUBLIC_INTERFACES.md     |
-| Frontend (Renderer) | Main Process | Electron IPC  | IPC handlers in main.js (FACT_ENTRY_POINTS.md) |
-| Main Process        | Backend      | Process spawn | spawn() call in main.js Line 68                |
+| Frontend (Renderer) | Tauri Core | Tauri invoke  | Tauri commands in src-tauri/src/commands.rs |
+| Tauri Core          | Backend      | Process spawn | Sidecar spawn in src-tauri/src/main.rs |
 
 ---
 

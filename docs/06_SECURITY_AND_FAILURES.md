@@ -29,15 +29,15 @@
 | script-src | 'self' |
 | object-src | 'none' |
 
-### 1.3 Electron Security Settings
+### 1.3 Tauri Security Settings
 
-**File**: `main.js`
+**Files**: `src-tauri/tauri.conf.json`, `src-tauri/src/commands.rs`
 
-| Setting          | Value      |
-| ---------------- | ---------- |
-| contextIsolation | true       |
-| nodeIntegration  | false      |
-| preload          | preload.js |
+| Setting            | Value                                                    |
+| ------------------ | -------------------------------------------------------- |
+| Allowlist          | Explicit allowlist for dialog/fs/path APIs               |
+| IPC surface        | Restricted to explicit `#[tauri::command]` handlers      |
+| Filesystem control | Custom allowlist + `resolve_safe_path` checks for file I/O |
 
 ### 1.4 HTTPS Redirection
 

@@ -6,43 +6,37 @@
 
 ---
 
-## Electron Entry Point
+## Tauri Entry Point
 
-### File: `main.js`
-**Path**: `c:\Projects\ARASTester\main.js`
-**Role**: Electron main process entry (declared in `package.json` as `"main": "main.js"`)
+### File: `src-tauri/src/main.rs`
+**Path**: `c:\Projects\ARASTester\src-tauri\src\main.rs`
+**Role**: Tauri core entrypoint (builder and sidecar launcher)
 
 **Explicit Configuration Values**:
 | Configuration | Value | Line |
 |---------------|-------|------|
-| Window Width | 1200 | 11 |
-| Window Height | 800 | 12 |
-| Context Isolation | true | 16 |
-| Node Integration | false | 17 |
-| Dev Mode URL | http://localhost:5173 | 26 |
-| Production Load File | dist/index.html | 31 |
-| Backend Startup Delay | 1500ms | 96 |
-| Backend URL (arg) | http://localhost:5000 | 68 |
-| Backend Exe (Dev) | backend/ArasBackend/bin/Debug/net8.0/win-x64/ArasBackend.exe | 48 |
-| Backend Exe (Prod) | {resourcesPath}/backend/ArasBackend.exe | 46 |
+| Window Width | 1200 | tauri.conf.json |
+| Window Height | 800 | tauri.conf.json |
+| Dev Mode URL | http://localhost:5173 | tauri.conf.json |
+| Production Load Dir | dist | tauri.conf.json |
+| Backend URL (arg) | http://localhost:5000 | main.rs |
+| Backend Sidecar | backend/ArasBackend | tauri.conf.json |
 
-**Electron APIs Used** (explicitly imported, line 2):
-- `app`
-- `BrowserWindow`
-- `ipcMain`
-- `dialog`
-- `Menu`
+**Tauri APIs Used**:
+- `tauri::Builder`
+- `tauri::api::process::Command`
+- `#[tauri::command]` handlers (see commands.rs)
 
-**IPC Handlers Registered**:
-| Channel | Line |
+**Command Handlers Registered**:
+| Command | Notes |
 |---------|------|
-| dialog:pickFolder | 108 |
-| fs:readFile | 117 |
-| fs:writeFile | 121 |
-| fs:listJsonFiles | 126 |
-| fs:deleteFile | 134 |
-| settings:read | 142 |
-| settings:write | 153 |
+| pick_folder | Folder selection + allowlist |
+| read_file | Safe file read |
+| write_file | Safe file write |
+| list_json_files | JSON list |
+| delete_file | Safe file delete |
+| settings_read | Settings read |
+| settings_write | Settings write |
 
 ---
 
@@ -73,6 +67,7 @@
 | ReactDOM | 2 |
 | App (from ./App) | 3 |
 | ../globals.css | 4 |
+| @/core/ipc/tauriBridge | 5 |
 
 **Root Render Target**: `document.getElementById('root')` (line 12)
 

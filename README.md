@@ -83,7 +83,7 @@ Save and manage multiple ARAS connection profiles. Link specific profiles to ind
 
 **Full App Dev**
 
-- Starts both Backend (.NET) and Frontend (Electron/React)
+- Starts both Backend (.NET) and Frontend (Tauri/React)
 
 ```bash
 npm run dev
@@ -97,19 +97,11 @@ npm run dev
 npm run dev:server
 ```
 
-**Electron Dev**
-
-- Starts only the Electron shell
-
-```bash
-npm run dev:electron
-```
-
 ## 💻 Technology Stack
 
 - **Frontend**: React 19, Vite, Tailwind CSS, Radix UI
 - **Backend**: ASP.NET Core (.NET 8), Aras.IOM SDK (Clean Architecture)
-- **Desktop**: Electron 39
+- **Desktop**: Tauri
 - **State Management**: Zustand, Immer, Local JSON Storage
 
 ---

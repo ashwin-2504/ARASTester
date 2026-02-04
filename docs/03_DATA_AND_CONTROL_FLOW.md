@@ -59,23 +59,23 @@ ConnectionResponse { Success, Message, ServerInfo }
 
 **Source**: FACT_PUBLIC_INTERFACES.md, ConnectionController.cs Lines 18-23
 
-### 1.3 Electron IPC Flow
+### 1.3 Tauri Command Flow
 
 ```
 Renderer Process (React)
     │ invokes: window.api.readFile(baseDir, relativePath)
     ▼
-    preload.js (contextBridge.exposeInMainWorld)
-    │ calls: ipcRenderer.invoke("fs:readFile", baseDir, relativePath)
+    tauriBridge.ts (window.api compatibility)
+    │ calls: window.__TAURI__.invoke("read_file", { baseDir, relativePath })
     ▼
-main.js (ipcMain.handle)
-    │ handler: "fs:readFile"
+src-tauri/src/commands.rs
+    │ handler: read_file
     │ calls: resolveSafePath(baseDir, relativePath)
     │     ├── validates: baseDir in Set[authorizedDirs]
-    │     ├── resolves: canonicalBase = realpathSync(baseDir)
+    │     ├── resolves: canonicalBase = canonicalize(baseDir)
     │     ├── normalizes: relativePath matches [..] or isAbsolute
     │     └── confirms: canonicalTarget.startsWith(canonicalBase)
-    │ calls: fs.promises.readFile(safePath, "utf-8")
+    │ calls: fs::read_to_string(safePath)
     ▼
 File System
     │
@@ -83,7 +83,7 @@ File System
 Returns: file content string
 ```
 
-**Source**: main.js
+**Source**: src-tauri/src/commands.rs, renderer/core/ipc/tauriBridge.ts
 
 ---
 
@@ -93,7 +93,7 @@ Returns: file content string
 | ---------- | -------------------------------- | --------- | ------------ |
 | Item CRUD  | UI → API → Gateway → ARAS        | Confirmed | ✅ Traceable |
 | Connection | UI → API → SessionManager → ARAS | Confirmed | ✅ Traceable |
-| File I/O   | Renderer → IPC → Main → FS       | Confirmed | ✅ Traceable |
+| File I/O   | Renderer → invoke → Commands → FS | Confirmed | ✅ Traceable |
 
 ---
 

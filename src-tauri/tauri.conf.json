@@ -37,7 +37,8 @@
       "active": true,
       "targets": ["nsis"],
       "identifier": "com.gopale.arastester",
-      "resources": ["../dist-backend"]
+      "resources": ["../dist-backend"],
+      "externalBin": ["backend/ArasBackend"]
     }
   }
 }

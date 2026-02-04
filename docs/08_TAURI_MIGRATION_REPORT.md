@@ -44,13 +44,14 @@ The Electron responsibilities above map cleanly to Tauri equivalents:
 
 ## 3. Current Migration Status (Repository Changes)
 
-The repository now includes a Tauri scaffold, IPC parity commands, and a renderer bridge that maps `window.api` to Tauri `invoke` calls when running in a Tauri shell. The new pieces include:
+The repository now includes a Tauri scaffold, IPC parity commands, a renderer bridge, and a backend sidecar launcher. The new pieces include:
 
 - `src-tauri/Cargo.toml` and `src-tauri/build.rs` for the Rust entrypoint and build setup.
 - `src-tauri/src/main.rs` with a Tauri `Builder` that registers command handlers and initializes an allowlist state.
 - `src-tauri/src/commands.rs` with commands that map to the current Electron IPC surface area (`pick_folder`, file I/O, settings read/write).
 - `renderer/core/ipc/tauriBridge.ts` to preserve the `window.api` contract in the renderer when running under Tauri. 【F:renderer/core/ipc/tauriBridge.ts†L1-L62】
-- `src-tauri/tauri.conf.json` configured for the Vite dev server and build output. 【F:src-tauri/Cargo.toml†L1-L17】【F:src-tauri/build.rs†L1-L3】【F:src-tauri/src/main.rs†L1-L24】【F:src-tauri/src/commands.rs†L1-L164】【F:src-tauri/tauri.conf.json†L1-L42】
+- `src-tauri/src/main.rs` launching the backend sidecar via `Command::new_sidecar`. 【F:src-tauri/src/main.rs†L1-L50】
+- `src-tauri/tauri.conf.json` configured for the Vite dev server, build output, and sidecar bundling. 【F:src-tauri/Cargo.toml†L1-L17】【F:src-tauri/build.rs†L1-L3】【F:src-tauri/src/main.rs†L1-L50】【F:src-tauri/src/commands.rs†L1-L164】【F:src-tauri/tauri.conf.json†L1-L43】
 
 ---
 
@@ -94,11 +95,11 @@ This mapping is intended to preserve existing behaviors: window config and dev/p
 
 ### Phase 3 — Backend Process & Packaging
 
-1. **Sidecar backend**: bundle the .NET backend exe using Tauri “sidecar” definitions or spawn via Rust. This replaces the Electron `child_process.spawn` usage. 【F:main.js†L141-L214】
+1. **Sidecar backend**: bundle the .NET backend exe using Tauri “sidecar” definitions or spawn via Rust. This replaces the Electron `child_process.spawn` usage (initial sidecar spawn now in place). 【F:main.js†L141-L214】【F:src-tauri/src/main.rs†L1-L50】
 2. **Pass runtime port config** with environment variables or command args, preserving the current `BACKEND_PORT` default handling. 【F:main.js†L182-L206】
 3. **Migrate packaging**:
    - Replace `electron-builder` configuration with `tauri.conf.json` bundling settings.
-   - Ensure `dist-backend` artifacts are included in the Tauri bundle (similar to `extraResources` today). 【F:package.json†L24-L63】
+   - Ensure `dist-backend` artifacts are included in the Tauri bundle (similar to `extraResources` today). 【F:package.json†L24-L63】【F:src-tauri/tauri.conf.json†L1-L43】
 
 ### Phase 4 — Decommission Electron
 
@@ -121,7 +122,7 @@ This mapping is intended to preserve existing behaviors: window config and dev/p
 
 1. **Validate file I/O commands** in Rust with the same constraints as `resolveSafePath` (ensure parity with Electron). 【F:src-tauri/src/commands.rs†L31-L174】
 2. **Verify renderer bridge coverage** by testing `pickFolder`, file I/O, and settings flows under Tauri. 【F:renderer/core/ipc/tauriBridge.ts†L1-L62】
-3. **Bundle backend sidecar** and validate auto-start/stop behavior.
+3. **Validate backend sidecar** auto-start/stop behavior with lifecycle hooks. 【F:src-tauri/src/main.rs†L1-L64】
 4. **Update documentation** once the sidecar and IPC parity are verified.
 5. **Add a migration test plan** focused on file I/O, settings persistence, and backend startup so parity is validated in the same areas Electron currently owns. 【F:main.js†L141-L369】【F:preload.ts†L1-L23】
 

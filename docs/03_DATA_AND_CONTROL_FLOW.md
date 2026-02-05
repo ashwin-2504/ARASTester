@@ -1,6 +1,6 @@
 # 03_DATA_AND_CONTROL_FLOW
 
-**Code Snapshot**: 2026-02-02
+**Code Snapshot**: 2026-02-05
 
 ---
 

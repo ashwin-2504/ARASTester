@@ -8,7 +8,7 @@ export interface ApiOptions {
 
 // Recursive type for JSON-compatible data
 type JsonValue = string | number | boolean | null | JsonArray | JsonObject;
-interface JsonArray extends Array<JsonValue> {}
+type JsonArray = Array<JsonValue>
 interface JsonObject {
   [key: string]: JsonValue;
 }
@@ -156,7 +156,7 @@ export const apiClient = {
       // Check for HTTP errors
       if (!response.ok) {
         throw new ApiError(
-          (result as any).message || (result as any).Message || `HTTP ${response.status}`,
+          (result).message || (result).Message || `HTTP ${response.status}`,
           response.status,
           result
         );
@@ -199,7 +199,7 @@ export const apiClient = {
 
       if (!response.ok) {
         throw new ApiError(
-          (result as any).message || (result as any).Message || `HTTP ${response.status}`,
+          (result).message || (result).Message || `HTTP ${response.status}`,
           response.status,
           result
         );

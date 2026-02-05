@@ -1,15 +1,17 @@
+using System.Threading;
+using System.Threading.Tasks;
 using ArasBackend.Core.Models;
 
 namespace ArasBackend.Core.Interfaces;
 
 public interface IArasSessionManager
 {
-    ConnectionResponse Connect(ConnectionRequest request);
-    ConnectionResponse Disconnect();
-    ConnectionResponse DisconnectSession(string sessionName);
-    AllSessionsResponse GetAllSessions();
-    ConnectionResponse ValidateConnection();
-    ConnectionStatusResponse GetStatus();
+    Task<ConnectionResponse> Connect(ConnectionRequest request, CancellationToken cancellationToken = default);
+    Task<ConnectionResponse> Disconnect(CancellationToken cancellationToken = default);
+    Task<ConnectionResponse> DisconnectSession(string sessionName, CancellationToken cancellationToken = default);
+    Task<AllSessionsResponse> GetAllSessions(CancellationToken cancellationToken = default);
+    Task<ConnectionResponse> ValidateConnection(CancellationToken cancellationToken = default);
+    Task<ConnectionStatusResponse> GetStatus(CancellationToken cancellationToken = default);
     bool IsConnected { get; }
 }
 

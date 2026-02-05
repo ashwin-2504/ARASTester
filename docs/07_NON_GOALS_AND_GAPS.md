@@ -43,6 +43,13 @@
 
 ---
 
+## Related Documentation
+
+- [Enforcement Debt](./08_ENFORCEMENT_DEBT.md) - Details on current linting debt and governance.
+- [Security and Failures](./06_SECURITY_AND_FAILURES.md)
+
+---
+
 ## 2. Known Documentation Gaps
 
 | Gap                                            | Status                                                 |

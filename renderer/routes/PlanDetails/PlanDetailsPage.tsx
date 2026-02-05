@@ -15,7 +15,7 @@ import { usePlanDetails } from './usePlanDetails'
 import { actionRegistry } from '@/core/registries/ActionRegistry'
 import actionSchemas from '@/core/schemas/action-schemas.json'
 import { useEscapeKey } from '@/lib/hooks/useEscapeKey'
-import type { Test, Action } from '@/types/plan'
+import type { Test } from '@/types/plan'
 import { useMediaQuery } from '@/lib/hooks/useMediaQuery'
 
 // New Layout Components
@@ -109,7 +109,11 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDe
     if (isDirty) {
       if (!confirm('You have unsaved changes. Are you sure you want to leave?')) return
     }
-    onBack?.() || onNavigate?.('dashboard')
+    if (onBack) {
+      onBack()
+    } else {
+      onNavigate?.('dashboard')
+    }
   }
 
   useEscapeKey(() => {
@@ -263,7 +267,7 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDe
                     <Button
                       variant="outline"
                       className="text-emerald-500 border-emerald-500 hover:bg-emerald-500/10"
-                      onClick={() => isTest(selectedItem) ? handleRunTest(selectedItem as Test) : handleRunAction(selectedItem as Action)}
+                      onClick={() => isTest(selectedItem) ? handleRunTest(selectedItem) : handleRunAction(selectedItem)}
                       disabled={isRunning}
                     >
                       {isRunning ? (
@@ -285,7 +289,7 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDe
 						<div className="space-y-1.5">
                           <label className="block text-sm font-medium">Test Title</label>
                           <BufferedInput
-                            value={(selectedItem as Test).testTitle}
+                            value={(selectedItem).testTitle}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSelectedItem({ testTitle: e.target.value })}
                           />
                         </div>
@@ -300,7 +304,7 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDe
                                         <button className="w-full flex items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
                                             <span className="truncate">
                                                 {(() => {
-                                                    const pid = (selectedItem as Test).sessionProfileId;
+                                                    const pid = (selectedItem).sessionProfileId;
                                                     if (!pid) return "Default (Active Session)";
                                                     const p = plan.profiles?.find(p => p.id === pid);
                                                     return p ? p.name : "Unknown Profile";
@@ -315,7 +319,7 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDe
                                             className="cursor-pointer"
                                         >
                                             Default (Active Session)
-                                            {!(selectedItem as Test).sessionProfileId && <Check className="ml-auto h-4 w-4" />}
+                                            {!(selectedItem).sessionProfileId && <Check className="ml-auto h-4 w-4" />}
                                         </DropdownMenuItem>
                                         {plan.profiles?.map(p => (
                                             <DropdownMenuItem 
@@ -324,7 +328,7 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDe
                                                 className="cursor-pointer"
                                             >
                                                 {p.name}
-                                                {(selectedItem as Test).sessionProfileId === p.id && <Check className="ml-auto h-4 w-4" />}
+                                                {(selectedItem).sessionProfileId === p.id && <Check className="ml-auto h-4 w-4" />}
                                             </DropdownMenuItem>
                                         ))}
                                     </DropdownMenuContent>
@@ -347,7 +351,7 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDe
                           <input
                             type="checkbox"
                             id="testEnabled"
-                            checked={(selectedItem as Test).isEnabled !== false}
+                            checked={(selectedItem).isEnabled !== false}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSelectedItem({ isEnabled: e.target.checked })}
                             className="rounded border-border text-primary focus:ring-primary h-4 w-4"
                           />
@@ -359,7 +363,7 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDe
                         <div className="space-y-1.5">
                           <label className="block text-sm font-medium">Action Title</label>
                           <BufferedInput
-                            value={(selectedItem as Action).actionTitle}
+                            value={(selectedItem).actionTitle}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSelectedItem({ actionTitle: e.target.value })}
                           />
                         </div>
@@ -369,9 +373,9 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDe
                           <div className="flex gap-3">
                             {/* Category Dropdown */}
                             {(() => {
-                              const currentCatId = actionSchemas.actions.find(a => a.type === (selectedItem as Action).actionType)?.category || actionSchemas.categories[0].id
+                              const currentCatId = actionSchemas.actions.find(a => a.type === (selectedItem).actionType)?.category || actionSchemas.categories[0].id
                               const currentCategory = actionSchemas.categories.find(c => c.id === currentCatId) || actionSchemas.categories[0]
-                              const currentAction = actionSchemas.actions.find(a => a.type === (selectedItem as Action).actionType)
+                              const currentAction = actionSchemas.actions.find(a => a.type === (selectedItem).actionType)
 
                               return (
                                 <>
@@ -435,7 +439,7 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDe
                                                 }}
                                               >
                                                 {a.label}
-                                                {(selectedItem as Action).actionType === a.type && <Check className="ml-auto h-4 w-4" />}
+                                                {(selectedItem).actionType === a.type && <Check className="ml-auto h-4 w-4" />}
                                               </DropdownMenuItem>
                                             ))}
                                         </ScrollArea>
@@ -450,13 +454,13 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDe
 
                         {/* Dynamic Action Editor */}
                         {(() => {
-                          const plugin = actionRegistry.get((selectedItem as Action).actionType)
+                          const plugin = actionRegistry.get((selectedItem).actionType)
                           if (plugin?.Editor) {
                             const Editor = plugin.Editor
                             return (
                               <div className="mt-4 rounded-lg border bg-muted/20 p-4 space-y-4">
                                 <Editor
-                                  params={(selectedItem as Action).params || {}}
+                                  params={(selectedItem).params || {}}
                                   onChange={(newParams: Record<string, unknown>) => updateSelectedItem({ params: newParams })}
                                 />
                               </div>
@@ -468,25 +472,25 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDe
                     )}
 
                     {/* Execution Log */}
-                    {!isTest(selectedItem) && (selectedItem as Action).actionID && logs[(selectedItem as Action).actionID] && (
+                    {!isTest(selectedItem) && (selectedItem).actionID && logs[(selectedItem).actionID] && (
                       <div className="pt-6 border-t mt-6">
                         <h3 className="text-sm font-semibold mb-3">Execution Log</h3>
                         <div className="bg-muted/30 p-4 rounded-md text-sm font-mono">
                           <div className="flex items-center gap-2 mb-2">
-                            <span className={`px-2 py-0.5 rounded text-xs font-bold ${logs[(selectedItem as Action).actionID].status === 'Success' ? 'bg-emerald-500/20 text-emerald-500' :
-                              ['Failed', 'Error'].includes(logs[(selectedItem as Action).actionID].status) ? 'bg-red-500/20 text-red-500' :
+                            <span className={`px-2 py-0.5 rounded text-xs font-bold ${logs[(selectedItem).actionID].status === 'Success' ? 'bg-emerald-500/20 text-emerald-500' :
+                              ['Failed', 'Error'].includes(logs[(selectedItem).actionID].status) ? 'bg-red-500/20 text-red-500' :
                                 'bg-blue-500/20 text-blue-500'
                               }`}>
-                              {logs[(selectedItem as Action).actionID].status}
+                              {logs[(selectedItem).actionID].status}
                             </span>
                             <span className="text-xs text-muted-foreground">
                               {(() => {
-                                const d = new Date(logs[(selectedItem as Action).actionID].timestamp)
+                                const d = new Date(logs[(selectedItem).actionID].timestamp)
                                 return `${d.getDate().toString().padStart(2, '0')}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getFullYear()} ${d.toLocaleTimeString()}`
                               })()}
                             </span>
                           </div>
-                          <JsonViewer data={logs[(selectedItem as Action).actionID].details} />
+                          <JsonViewer data={logs[(selectedItem).actionID].details} />
                         </div>
                       </div>
                     )}

@@ -1,3 +1,9 @@
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Aras.IOM;
 using ArasBackend.Core.Interfaces;
 using ArasBackend.Core.Exceptions;
@@ -10,11 +16,17 @@ public class ArasSessionManager : IArasSessionManager
 {
     private readonly IConnectionStore _connectionStore;
     private readonly ISessionContext _sessionContext;
+    private readonly ILogger<ArasSessionManager> _logger;
+    private const int DefaultTimeoutSeconds = 45;
 
-    public ArasSessionManager(IConnectionStore connectionStore, ISessionContext sessionContext)
+    public ArasSessionManager(
+        IConnectionStore connectionStore, 
+        ISessionContext sessionContext,
+        ILogger<ArasSessionManager> logger)
     {
         _connectionStore = connectionStore;
         _sessionContext = sessionContext;
+        _logger = logger;
     }
 
     private string? GetSessionId()
@@ -40,32 +52,66 @@ public class ArasSessionManager : IArasSessionManager
 
     public ServerInfo? CurrentServerInfo => GetCurrentSession()?.ServerInfo;
 
-    public ConnectionResponse Connect(ConnectionRequest request)
+    public async Task<ConnectionResponse> Connect(ConnectionRequest request, CancellationToken cancellationToken = default)
     {
+        var sw = Stopwatch.StartNew();
+        _logger.LogInformation("Connection attempt started for URL: {Url}, Database: {Database}, User: {User}", 
+            request.Url, request.Database, request.Username);
+
         try
         {
-            // If request defines a specific session name, we use that. 
-            // Otherwise default key.
             var sessionName = !string.IsNullOrEmpty(request.SessionName) 
                 ? request.SessionName 
                 : (GetSessionId() ?? "default");
 
-            // Create Connection
-            var connection = IomFactory.CreateHttpServerConnection(
+            _logger.LogDebug("Target session name: {SessionName}", sessionName);
+
+            // Phase 1: Create Connection Object (Fast)
+            HttpServerConnection connection = IomFactory.CreateHttpServerConnection(
                 request.Url,
                 request.Database,
                 request.Username,
                 request.Password
             );
 
-            var loginResult = connection.Login();
-            
+            _logger.LogInformation("IOM Connection object created in {ElapsedMs}ms. Starting Login()...", sw.ElapsedMilliseconds);
+
+            // Phase 2: Login (Potentially Slow/Blocking)
+            // We use Task.Run to offload the synchronous IOM Login call and WaitAsync for the timeout.
+            var loginTask = Task.Run(() => 
+            {
+                var loginSw = Stopwatch.StartNew();
+                try 
+                {
+                    Item result = connection.Login();
+                    _logger.LogInformation("IOM Login() internal call completed in {ElapsedMs}ms", loginSw.ElapsedMilliseconds);
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "IOM Login() threw an exception after {ElapsedMs}ms", loginSw.ElapsedMilliseconds);
+                    throw;
+                }
+            }, cancellationToken);
+
+            Item loginResult;
+            try 
+            {
+                loginResult = await loginTask.WaitAsync(TimeSpan.FromSeconds(DefaultTimeoutSeconds), cancellationToken);
+            }
+            catch (TimeoutException)
+            {
+                _logger.LogWarning("Connection attempt timed out after {Timeout}s for {Url}", DefaultTimeoutSeconds, request.Url);
+                throw new ArasInfrastructureException($"Connection timed out after {DefaultTimeoutSeconds}s. Please check your network and Aras server status.");
+            }
+
             if (loginResult.isError())
             {
+                _logger.LogWarning("Login failed for {User}: {Error}", request.Username, loginResult.getErrorString());
                 throw new ArasAuthException(loginResult.getErrorString());
             }
 
-            var innovator = loginResult.getInnovator();
+            Innovator innovator = loginResult.getInnovator();
             
             var session = new SessionContext
             {
@@ -80,11 +126,9 @@ public class ArasSessionManager : IArasSessionManager
                 }
             };
 
-            // Store Session
             _connectionStore.AddSession(sessionName, session);
 
-            // NOTE: We do NOT set cookies here anymore. That is a Presentation Layer concern.
-            // We return the SessionName so the Controller can deal with it.
+            _logger.LogInformation("Connected successfully to {Url} in {TotalMs}ms", request.Url, sw.ElapsedMilliseconds);
 
             return new ConnectionResponse
             {
@@ -94,82 +138,92 @@ public class ArasSessionManager : IArasSessionManager
                 SessionName = sessionName
             };
         }
-        catch (ArasException) { throw; }
+        catch (ArasException ex)
+        {
+            _logger.LogError(ex, "Aras specific error during connection after {TotalMs}ms", sw.ElapsedMilliseconds);
+            throw; 
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Connection attempt cancelled by user/client after {TotalMs}ms", sw.ElapsedMilliseconds);
+            throw;
+        }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Unexpected infrastructure error during connection after {TotalMs}ms", sw.ElapsedMilliseconds);
             throw new ArasInfrastructureException($"Connection failed: {ex.Message}");
         }
     }
 
-    public ConnectionResponse Disconnect()
+    public Task<ConnectionResponse> Disconnect(CancellationToken cancellationToken = default)
     {
-        // Disconnects current session context
         var sessionId = GetSessionId();
-        if (string.IsNullOrEmpty(sessionId)) return new ConnectionResponse { Success = true, Message = "Already disconnected" };
+        if (string.IsNullOrEmpty(sessionId)) 
+            return Task.FromResult(new ConnectionResponse { Success = true, Message = "Already disconnected" });
 
-        return DisconnectSession(sessionId);
+        return DisconnectSession(sessionId, cancellationToken);
     }
 
-    public ConnectionResponse DisconnectSession(string sessionName)
+    public Task<ConnectionResponse> DisconnectSession(string sessionName, CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation("Disconnecting session: {SessionName}", sessionName);
         _connectionStore.RemoveSession(sessionName);
-        
-        // NOTE: We do NOT clear cookies here. That is a Presentation Layer concern.
-        
-        return new ConnectionResponse { Success = true, Message = $"Session '{sessionName}' disconnected" };
+        return Task.FromResult(new ConnectionResponse { Success = true, Message = $"Session '{sessionName}' disconnected" });
     }
 
-    public AllSessionsResponse GetAllSessions()
+    public Task<AllSessionsResponse> GetAllSessions(CancellationToken cancellationToken = default)
     {
         var allSessions = _connectionStore.GetAllSessions();
         var currentSessionName = GetSessionId() ?? "";
 
-        // Mark the current one
         foreach (var s in allSessions)
         {
             if (s.Name == currentSessionName) s.IsCurrent = true;
         }
 
-        return new AllSessionsResponse
+        return Task.FromResult(new AllSessionsResponse
         {
              Sessions = allSessions,
              CurrentSession = currentSessionName
-        };
+        });
     }
 
-    public ConnectionStatusResponse GetStatus()
+    public Task<ConnectionStatusResponse> GetStatus(CancellationToken cancellationToken = default)
     {
         var session = GetCurrentSession();
-        return new ConnectionStatusResponse
+        return Task.FromResult(new ConnectionStatusResponse
         {
             IsConnected = session != null,
             Status = session != null ? "Connected" : "Disconnected",
             ServerInfo = session?.ServerInfo
-        };
+        });
     }
 
-    public ConnectionResponse ValidateConnection()
+    public async Task<ConnectionResponse> ValidateConnection(CancellationToken cancellationToken = default)
     {
         var session = GetCurrentSession();
         if (session == null) throw new ArasAuthException("Not connected");
 
-        return Execute(inn =>
+        return await Task.Run(() => 
         {
-            var userId = inn.getUserID();
-            var userItem = inn.getItemById("User", userId);
-            
-            if (userItem.isError())
-                throw new ArasAuthException($"Validation failed: {userItem.getErrorString()}");
-            
-            var userName = userItem.getProperty("keyed_name", "Unknown"); // Or login_name
-            return new ConnectionResponse
+            return Execute(inn =>
             {
-                Success = true,
-                Message = $"Valid. User: {userName}",
-                ServerInfo = session.ServerInfo,
-                SessionName = GetSessionId()
-            };
-        });
+                var userId = inn.getUserID();
+                Item userItem = inn.getItemById("User", userId);
+                
+                if (userItem.isError())
+                    throw new ArasAuthException($"Validation failed: {userItem.getErrorString()}");
+                
+                var userName = userItem.getProperty("keyed_name", "Unknown");
+                return new ConnectionResponse
+                {
+                    Success = true,
+                    Message = $"Valid. User: {userName}",
+                    ServerInfo = session.ServerInfo,
+                    SessionName = GetSessionId()
+                };
+            });
+        }, cancellationToken);
     }
 
     internal T Execute<T>(Func<Innovator, T> action)

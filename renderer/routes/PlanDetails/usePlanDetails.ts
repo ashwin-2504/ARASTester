@@ -393,8 +393,8 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
 
             const isAction = "actionID" in selectedItem;
             const itemId = isAction
-                ? (selectedItem as Action).actionID
-                : (selectedItem as Test).testID;
+                ? (selectedItem).actionID
+                : (selectedItem).testID;
 
             if (!isAction) {
                 // Updating a Test
@@ -420,8 +420,8 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
   const handleToggleEnabled = (item: Test | Action) => {
     const isAction = "actionID" in item;
     const itemId = isAction
-      ? (item as Action).actionID
-      : (item as Test).testID;
+      ? (item).actionID
+      : (item).testID;
 
     // Capture updated item outside setPlan
     let updatedItemCopy: Test | Action | null = null;

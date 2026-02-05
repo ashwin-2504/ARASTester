@@ -18,17 +18,14 @@ public class ConnectionController : ControllerBase
     }
 
     [HttpPost("connect")]
-    public ActionResult<ConnectionResponse> Connect(ConnectionRequest request)
+    public async Task<ActionResult<ConnectionResponse>> Connect(ConnectionRequest request)
     {
-        var response = _connectionService.Connect(request);
+        var response = await _connectionService.Connect(request, HttpContext.RequestAborted);
         
         // Side-Effect: Set Cookie in the Presentation Layer
         if (response.Success && !string.IsNullOrEmpty(response.SessionName))
         {
             var isSecure = _env.IsProduction();
-            
-            // Guardrail: Warn if we are somehow in production but potentially insecure (though IsProduction forces true here, this documents intent)
-            // Or if we decided to allow override in future. For now, strict IsProduction.
             
             var cookieOptions = new CookieOptions
             {
@@ -44,9 +41,9 @@ public class ConnectionController : ControllerBase
     }
 
     [HttpPost("disconnect")]
-    public ActionResult<ConnectionResponse> Disconnect()
+    public async Task<ActionResult<ConnectionResponse>> Disconnect()
     {
-        var response = _connectionService.Disconnect();
+        var response = await _connectionService.Disconnect(HttpContext.RequestAborted);
         
         // Side-Effect: Clear Cookie
         Response.Cookies.Delete("ARAS_SESSION_ID");
@@ -55,12 +52,11 @@ public class ConnectionController : ControllerBase
     }
 
     [HttpPost("disconnect/{sessionName}")]
-    public ActionResult<ConnectionResponse> DisconnectSession(string sessionName)
+    public async Task<ActionResult<ConnectionResponse>> DisconnectSession(string sessionName)
     {
-        var response = _connectionService.DisconnectSession(sessionName);
+        var response = await _connectionService.DisconnectSession(sessionName, HttpContext.RequestAborted);
         
         // If the session being disconnected matches the current cookie, clear the cookie
-        // Note: The Controller can read the cookie to check this
         var currentCookie = Request.Cookies["ARAS_SESSION_ID"];
         if (!string.IsNullOrEmpty(currentCookie) && currentCookie == sessionName)
         {
@@ -71,23 +67,23 @@ public class ConnectionController : ControllerBase
     }
 
     [HttpGet("sessions")]
-    public ActionResult<AllSessionsResponse> GetAllSessions()
+    public async Task<ActionResult<AllSessionsResponse>> GetAllSessions()
     {
-        var response = _connectionService.GetAllSessions();
+        var response = await _connectionService.GetAllSessions(HttpContext.RequestAborted);
         return Ok(response);
     }
 
     [HttpGet("connection-status")]
-    public ActionResult<ConnectionStatusResponse> GetStatus()
+    public async Task<ActionResult<ConnectionStatusResponse>> GetStatus()
     {
-        var response = _connectionService.GetStatus();
+        var response = await _connectionService.GetStatus(HttpContext.RequestAborted);
         return Ok(response);
     }
 
     [HttpGet("validate")]
-    public ActionResult<ConnectionResponse> Validate()
+    public async Task<ActionResult<ConnectionResponse>> Validate()
     {
-        var response = _connectionService.ValidateConnection();
+        var response = await _connectionService.ValidateConnection(HttpContext.RequestAborted);
         return Ok(response);
     }
 }

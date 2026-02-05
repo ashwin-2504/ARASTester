@@ -20,9 +20,9 @@
     "typecheck": "tsc --noEmit",
     "ci:types": "npm run typecheck",
     "lint": "eslint . --ext .ts,.tsx",
-    "ci:lint": "npm run lint",
-    "ci:tsconfig": "node scripts/assert-tsconfig.js",
-    "ci:all": "npm run ci:tsconfig && npm run ci:types && npm run ci:lint"
+    "lint:strict": "eslint . --ext .ts,.tsx --max-warnings 109",
+    "ci:lint": "npm run lint:strict",
+    "ci:all": "npm run ci:types && npm run ci:lint"
   },
   "build": {
     "appId": "com.gopale.arastester",

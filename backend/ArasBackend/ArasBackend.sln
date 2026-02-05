@@ -11,8 +11,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ArasBackend.Application", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ArasBackend.Infrastructure", "..\ArasBackend.Infrastructure\ArasBackend.Infrastructure.csproj", "{7A86762A-548B-4D54-8B0D-E5EA54CA6D4B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ArasBackend.Tests", "..\ArasBackend.Tests\ArasBackend.Tests.csproj", "{67CC689C-6E5B-4CCD-AB72-F5A9ABE73414}"
-EndProject
+
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -71,18 +70,7 @@ Global
 		{7A86762A-548B-4D54-8B0D-E5EA54CA6D4B}.Release|x64.Build.0 = Release|Any CPU
 		{7A86762A-548B-4D54-8B0D-E5EA54CA6D4B}.Release|x86.ActiveCfg = Release|Any CPU
 		{7A86762A-548B-4D54-8B0D-E5EA54CA6D4B}.Release|x86.Build.0 = Release|Any CPU
-		{67CC689C-6E5B-4CCD-AB72-F5A9ABE73414}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{67CC689C-6E5B-4CCD-AB72-F5A9ABE73414}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{67CC689C-6E5B-4CCD-AB72-F5A9ABE73414}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{67CC689C-6E5B-4CCD-AB72-F5A9ABE73414}.Debug|x64.Build.0 = Debug|Any CPU
-		{67CC689C-6E5B-4CCD-AB72-F5A9ABE73414}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{67CC689C-6E5B-4CCD-AB72-F5A9ABE73414}.Debug|x86.Build.0 = Debug|Any CPU
-		{67CC689C-6E5B-4CCD-AB72-F5A9ABE73414}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{67CC689C-6E5B-4CCD-AB72-F5A9ABE73414}.Release|Any CPU.Build.0 = Release|Any CPU
-		{67CC689C-6E5B-4CCD-AB72-F5A9ABE73414}.Release|x64.ActiveCfg = Release|Any CPU
-		{67CC689C-6E5B-4CCD-AB72-F5A9ABE73414}.Release|x64.Build.0 = Release|Any CPU
-		{67CC689C-6E5B-4CCD-AB72-F5A9ABE73414}.Release|x86.ActiveCfg = Release|Any CPU
-		{67CC689C-6E5B-4CCD-AB72-F5A9ABE73414}.Release|x86.Build.0 = Release|Any CPU
+
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

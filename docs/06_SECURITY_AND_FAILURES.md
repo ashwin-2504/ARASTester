@@ -1,6 +1,6 @@
 # 06_SECURITY_AND_FAILURES
 
-**Code Snapshot**: 2026-02-02
+**Code Snapshot**: 2026-02-05
 
 ---
 
@@ -38,6 +38,17 @@
 | contextIsolation | true       |
 | nodeIntegration  | false      |
 | preload          | preload.js |
+
+### 1.4 File System Security (Path Traversal Protection)
+
+**File**: `main.js` (resolveSafePath)
+
+| Mechanism            | Description                                                               |
+| -------------------- | ------------------------------------------------------------------------- |
+| **Allowlist**        | Operations restricted to `APP_DATA` directory by default.                 |
+| **Canonicalization** | Paths resolved via `fs.realpathSync` to defeat symlink/traversal attacks. |
+| **Containment**      | Target path must legally reside within the Authorized Base Directory.     |
+| **Input Validation** | Normalizes paths and rejects `..` or absolute paths before resolution.    |
 
 ### 1.4 HTTPS Redirection
 

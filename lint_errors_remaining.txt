@@ -1,0 +1,88 @@
+﻿
+C:\Projects\ARASTester\renderer\app\App.tsx
+  56:34  error  Promise-returning function provided to attribute where a void return was expected  @typescript-eslint/no-misused-promises
+  57:30  error  Promise-returning function provided to attribute where a void return was expected  @typescript-eslint/no-misused-promises
+
+C:\Projects\ARASTester\renderer\components\BackendStatus.tsx
+  23:5   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  24:34  error  Promise returned in function argument where a void return was expected                                                                                              @typescript-eslint/no-misused-promises
+
+C:\Projects\ARASTester\renderer\components\JsonViewer.tsx
+  27:39  error  Unnecessary escape character: \/                        no-useless-escape
+  82:56  error  'unknown' overrides all other types in this union type  @typescript-eslint/no-redundant-type-constituents
+
+C:\Projects\ARASTester\renderer\components\TestTree.tsx
+  123:81  error  Unsafe argument of type `any` assigned to a parameter of type `string`  @typescript-eslint/no-unsafe-argument
+
+C:\Projects\ARASTester\renderer\components\session\ProfileCard.tsx
+  151:25  error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+  201:19  error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  229:25  error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+  252:29  error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+
+C:\Projects\ARASTester\renderer\components\session\ProfileForm.tsx
+  37:51  error  Async arrow function 'handleSubmit' has no 'await' expression                      @typescript-eslint/require-await
+  51:14  error  '_err' is defined but never used                                                   @typescript-eslint/no-unused-vars
+  67:22  error  Promise-returning function provided to attribute where a void return was expected  @typescript-eslint/no-misused-promises
+
+C:\Projects\ARASTester\renderer\components\session\SessionManager.tsx
+  53:45  error  Unsafe argument of type `any` assigned to a parameter of type `Partial<PlanProfile>`      @typescript-eslint/no-unsafe-argument
+  56:23  error  Unsafe argument of type `any` assigned to a parameter of type `PlanProfile`               @typescript-eslint/no-unsafe-argument
+  61:52  error  Unsafe argument of type `any` assigned to a parameter of type `Partial<SavedSession>`     @typescript-eslint/no-unsafe-argument
+  63:30  error  Unsafe argument of type `any` assigned to a parameter of type `Omit<SavedSession, "id">`  @typescript-eslint/no-unsafe-argument
+
+C:\Projects\ARASTester\renderer\components\tree\TestNode.tsx
+  71:23  error  '_e' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\ARASTester\renderer\components\ui\input.tsx
+  5:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+C:\Projects\ARASTester\renderer\core\api\client.ts
+   11:11  error  An interface declaring no members is equivalent to its supertype        @typescript-eslint/no-empty-object-type
+   67:16  error  'e' is defined but never used                                           @typescript-eslint/no-unused-vars
+   83:16  error  'e' is defined but never used                                           @typescript-eslint/no-unused-vars
+  159:11  error  Unsafe argument of type `any` assigned to a parameter of type `string`  @typescript-eslint/no-unsafe-argument
+  202:11  error  Unsafe argument of type `any` assigned to a parameter of type `string`  @typescript-eslint/no-unsafe-argument
+
+C:\Projects\ARASTester\renderer\core\services\ActionExecutor.ts
+  70:24  error  '_ignored' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  91:43  error  '_plugin' is defined but never used            @typescript-eslint/no-unused-vars
+
+C:\Projects\ARASTester\renderer\layouts\AppShell.tsx
+  9:34  error  '_props' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\ARASTester\renderer\lib\hooks\use-toast.ts
+  20:7  error  'actionTypes' is assigned a value but only used as a type  @typescript-eslint/no-unused-vars
+
+C:\Projects\ARASTester\renderer\routes\Dashboard\DashboardPage.tsx
+   82:25   error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+   98:25   error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+  134:164  error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+
+C:\Projects\ARASTester\renderer\routes\Dashboard\useDashboard.ts
+  35:5   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  42:7   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  48:7   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  65:9   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  80:9   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  82:11  error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  95:9   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+
+C:\Projects\ARASTester\renderer\routes\PlanDetails\PlanDetailsPage.tsx
+   18:21   error  'Action' is defined but never used                                                                                                                                  @typescript-eslint/no-unused-vars
+  112:5    error  Expected an assignment or function call and instead saw an expression                                                                                               @typescript-eslint/no-unused-expressions
+  172:32   error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+  173:34   error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+  174:29   error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+  175:31   error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+  222:25   error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+  235:113  error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  238:31   error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+  266:31   error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+
+C:\Projects\ARASTester\renderer\routes\PlanDetails\usePlanDetails.ts
+  18:50  error  '_onNavigate' is defined but never used                                                                                                                             @typescript-eslint/no-unused-vars
+  61:5   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+
+Γ£û 51 problems (51 errors, 0 warnings)
+

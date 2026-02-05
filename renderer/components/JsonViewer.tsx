@@ -24,7 +24,7 @@ const formatXml = (xml: string): string => {
       if (pad !== 0) {
         pad -= 1;
       }
-    } else if (node.match(/^<\w[^>]*[^\/]>.*$/)) {
+    } else if (node.match(/^<\w[^>]*[^/]>.*$/)) {
       indent = 1;
     } else {
       indent = 0;
@@ -83,7 +83,7 @@ const JsonViewer: React.FC<JsonViewerProps> = ({ data }) => {
     if (obj === null) return <span className="text-rose-400">null</span>;
     if (typeof obj !== 'object') return renderValue(obj);
 
-    const keys = Object.keys(obj as object);
+    const keys = Object.keys(obj);
     if (keys.length === 0) return <span>{'{ }'}</span>;
 
     return (

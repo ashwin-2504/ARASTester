@@ -12,10 +12,10 @@ public class ConnectionAppService
         _sessionManager = sessionManager;
     }
 
-    public ConnectionResponse Connect(ConnectionRequest request) => _sessionManager.Connect(request);
-    public ConnectionResponse Disconnect() => _sessionManager.Disconnect();
-    public ConnectionResponse DisconnectSession(string sessionName) => _sessionManager.DisconnectSession(sessionName);
-    public AllSessionsResponse GetAllSessions() => _sessionManager.GetAllSessions();
-    public ConnectionStatusResponse GetStatus() => _sessionManager.GetStatus();
-    public ConnectionResponse ValidateConnection() => _sessionManager.ValidateConnection();
+    public Task<ConnectionResponse> Connect(ConnectionRequest request, CancellationToken cancellationToken = default) => _sessionManager.Connect(request, cancellationToken);
+    public Task<ConnectionResponse> Disconnect(CancellationToken cancellationToken = default) => _sessionManager.Disconnect(cancellationToken);
+    public Task<ConnectionResponse> DisconnectSession(string sessionName, CancellationToken cancellationToken = default) => _sessionManager.DisconnectSession(sessionName, cancellationToken);
+    public Task<AllSessionsResponse> GetAllSessions(CancellationToken cancellationToken = default) => _sessionManager.GetAllSessions(cancellationToken);
+    public Task<ConnectionStatusResponse> GetStatus(CancellationToken cancellationToken = default) => _sessionManager.GetStatus(cancellationToken);
+    public Task<ConnectionResponse> ValidateConnection(CancellationToken cancellationToken = default) => _sessionManager.ValidateConnection(cancellationToken);
 }

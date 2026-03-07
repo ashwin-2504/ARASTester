@@ -1,6 +1,7 @@
 import React from 'react'
 import { Outlet } from 'react-router-dom'
 import { Toaster } from '@/components/ui/toaster'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 interface AppShellProps {
   children?: React.ReactNode;
@@ -18,6 +19,7 @@ export default function AppShell(_props: AppShellProps) {
           <Outlet />
       </div>
       <Toaster />
+      <ConfirmDialog />
     </div>
   )
 }

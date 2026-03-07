@@ -1,0 +1,62 @@
+[
+  {
+    "name": "c:\\Projects\\ARASTester\\backend\\ArasBackend.Infrastructure\\Gateways\\ArasGateway.cs",
+    "lines": 597
+  },
+  {
+    "name": "c:\\Projects\\ARASTester\\renderer\\routes\\PlanDetails\\usePlanDetails.ts",
+    "lines": 519
+  },
+  {
+    "name": "c:\\Projects\\ARASTester\\renderer\\routes\\PlanDetails\\PlanDetailsPage.tsx",
+    "lines": 505
+  },
+  {
+    "name": "c:\\Projects\\ARASTester\\main.js",
+    "lines": 426
+  },
+  {
+    "name": "c:\\Projects\\ARASTester\\dev-runner.js",
+    "lines": 413
+  },
+  {
+    "name": "c:\\Projects\\ARASTester\\backend\\ArasBackend.Core\\Models\\ArasModels.cs",
+    "lines": 326
+  },
+  {
+    "name": "c:\\Projects\\ARASTester\\backend\\ArasBackend.Infrastructure\\Services\\ArasSessionManager.cs",
+    "lines": 272
+  },
+  {
+    "name": "c:\\Projects\\ARASTester\\renderer\\components\\session\\ProfileCard.tsx",
+    "lines": 265
+  },
+  {
+    "name": "c:\\Projects\\ARASTester\\renderer\\components\\schema\\FieldRenderer.tsx",
+    "lines": 225
+  },
+  {
+    "name": "c:\\Projects\\ARASTester\\renderer\\stores\\useSessionStore.ts",
+    "lines": 217
+  },
+  {
+    "name": "c:\\Projects\\ARASTester\\renderer\\core\\api\\client.ts",
+    "lines": 215
+  },
+  {
+    "name": "c:\\Projects\\ARASTester\\renderer\\components\\tree\\TestNode.tsx",
+    "lines": 214
+  },
+  {
+    "name": "c:\\Projects\\ARASTester\\renderer\\components\\ui\\dropdown-menu.tsx",
+    "lines": 199
+  },
+  {
+    "name": "c:\\Projects\\ARASTester\\renderer\\lib\\hooks\\use-toast.ts",
+    "lines": 194
+  },
+  {
+    "name": "c:\\Projects\\ARASTester\\renderer\\components\\TestTree.tsx",
+    "lines": 190
+  }
+]

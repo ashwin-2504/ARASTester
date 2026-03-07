@@ -14,37 +14,43 @@ export async function getPlans(): Promise<TestPlan[]> {
   try {
     const files = await StorageService.listJsonFiles(folder);
 
-    const results = await mapConcurrent(files, 20, async (f): Promise<TestPlan | null> => {
-      try {
-        const raw = await StorageService.readFile(folder, f);
-        let json: unknown;
+    const results = await mapConcurrent(
+      files,
+      20,
+      async (f): Promise<TestPlan | null> => {
         try {
-          json = JSON.parse(raw);
-        } catch (parseError: unknown) {
-          const msg =
-            parseError instanceof Error
-              ? parseError.message
-              : String(parseError);
-          console.warn(`Skipping invalid JSON file: ${f} - ${msg}`);
+          const raw = await StorageService.readFile(folder, f);
+          let json: unknown;
+          try {
+            json = JSON.parse(raw);
+          } catch (parseError: unknown) {
+            const msg =
+              parseError instanceof Error
+                ? parseError.message
+                : String(parseError);
+            console.warn(`Skipping invalid JSON file: ${f} - ${msg}`);
+            return null;
+          }
+
+          // Basic schema validation could go here, for now we cast safely-ish
+          if (typeof json === "object" && json !== null) {
+            const filename = f.replace(/\\/g, "/").split("/").pop();
+            return { ...(json as TestPlan), __id: f, __filename: filename };
+          }
+          return null;
+        } catch (err: unknown) {
+          console.error("Failed reading plan", f, err);
           return null;
         }
-
-        // Basic schema validation could go here, for now we cast safely-ish
-        if (typeof json === "object" && json !== null) {
-          const filename = f.replace(/\\/g, "/").split("/").pop();
-          return { ...(json as TestPlan), __id: f, __filename: filename };
-        }
-        return null;
-      } catch (err: unknown) {
-        console.error("Failed reading plan", f, err);
-        return null;
-      }
-    });
+      },
+    );
 
     const plans = results.filter((p): p is TestPlan => p !== null);
 
     plans.sort((a, b) =>
-      (b.updated || b.created || "").localeCompare(a.updated || a.created || ""),
+      (b.updated || b.created || "").localeCompare(
+        a.updated || a.created || "",
+      ),
     );
     return plans;
   } catch (error: unknown) {
@@ -74,7 +80,10 @@ async function mapConcurrent<T, R>(
   return results;
 }
 
-export async function createPlan(title: string, description: string): Promise<TestPlan> {
+export async function createPlan(
+  title: string,
+  description: string,
+): Promise<TestPlan> {
   const folder = await getFolderPath();
   if (!folder) throw new Error("No test plan folder set.");
 
@@ -124,15 +133,18 @@ export async function getPlan(filename: string): Promise<TestPlan> {
     }
     throw error;
   }
-  
-  if (typeof data !== 'object' || data === null) {
-      throw new Error(`Invalid test plan format in "${filename}"`);
+
+  if (typeof data !== "object" || data === null) {
+    throw new Error(`Invalid test plan format in "${filename}"`);
   }
 
   return { ...(data as TestPlan), __id: filePath, __filename: filename };
 }
 
-export async function updatePlan(filename: string, data: Partial<TestPlan>): Promise<TestPlan> {
+export async function updatePlan(
+  filename: string,
+  data: Partial<TestPlan>,
+): Promise<TestPlan> {
   const folder = await getFolderPath();
   if (!folder) throw new Error("No folder set");
   const filePath = filename;

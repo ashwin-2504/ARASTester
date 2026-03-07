@@ -1,491 +1,101 @@
-import { useState, useEffect, useCallback } from "react";
-import { produce } from "immer";
-import * as TestPlanAdapter from "@/core/adapters/TestPlanAdapter";
-import { ActionExecutor } from "@/core/services/ActionExecutor";
-import { actionRegistry } from "@/core/registries/ActionRegistry";
+import { useEffect, useCallback } from "react";
 import { apiClient } from "@/core/api/client";
-import { generateTestId, generateActionId } from "@/lib/idGenerator";
 import { confirm } from "@/lib/hooks/useConfirmDialog";
-import { useSessionStore } from "@/stores/useSessionStore";
-import type { TestPlan, Test, Action, PlanProfile } from "@/types/plan";
-
-export interface ExecutionLog {
-  status: string;
-  timestamp: string;
-  details?: unknown;
-}
+import { usePlanState } from "./hooks/usePlanState";
+import { usePlanExecution } from "./hooks/usePlanExecution";
+import { usePlanSelection } from "./hooks/usePlanSelection";
+import type { Test, Action } from "@/types/plan";
 
 export function usePlanDetails(filename: string, _onNavigate?: (path: string) => void) {
-  const [plan, setPlan] = useState<TestPlan | (Partial<TestPlan> & { testPlan: Test[] })>({ testPlan: [] });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedItem, setSelectedItem] = useState<Test | Action | null>(null);
-  const [isDirty, setIsDirty] = useState(false);
-  const [logs, setLogs] = useState<Record<string, ExecutionLog>>({});
-  const [saveStatus, setSaveStatus] = useState("");
-  const [initializingTestId, setInitializingTestId] = useState<string | null>(null);
-  const [isRunning, setIsRunning] = useState(false);
+  const {
+    plan, loading, error, isDirty, saveStatus,
+    loadPlan, handleSave, addTest, addAction, deleteTest, deleteAction, 
+    updateItem, reorderTests, moveAction,
+    addProfile, updateProfile, deleteProfile
+  } = usePlanState(filename);
 
-  // Ensure unique IDs for all items (backfill for legacy data)
-  const ensureIds = (data: TestPlan): TestPlan => {
-    if (!data.testPlan) return data;
-    data.testPlan.forEach((t) => {
-      if (!t.testID) t.testID = generateTestId();
-      if (t.testActions) {
-        t.testActions.forEach((a) => {
-          if (!a.actionID) a.actionID = generateActionId();
-        });
-      }
-    });
-    if (!data.profiles) data.profiles = [];
-    return data;
-  };
+  const {
+    selectedItem, setSelectedItem
+  } = usePlanSelection(plan);
 
-  const loadPlan = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await TestPlanAdapter.getPlan(filename);
-      setPlan(ensureIds(data));
-      setIsDirty(false);
-      setError(null);
-      setSelectedItem(null);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  }, [filename]);
+  const {
+    logs, isRunning, initializingTestId, runTest, runAll, runAction
+  } = usePlanExecution(plan);
 
   useEffect(() => {
-    loadPlan();
-
     // Cleanup: cancel pending API requests when leaving
     return () => {
       apiClient.cancelAll();
     };
-  }, [loadPlan]);
+  }, []);
 
-  const handleSave = async () => {
-    try {
-      await TestPlanAdapter.updatePlan(filename, plan as TestPlan);
-      setIsDirty(false);
-      setSaveStatus("Saved!");
-      setTimeout(() => setSaveStatus(""), 2000);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setError(msg);
-    }
-  };
-
-  const handleAddTest = () => {
-    const newTest: Test = {
-      testTitle: "New Test",
-      testID: generateTestId(),
-      isEnabled: true,
-      testActions: [],
-    };
-    
-    setPlan((prev) => 
-      produce(prev, (draft) => {
-        if (!draft.testPlan) draft.testPlan = [];
-        draft.testPlan.push(newTest);
-      })
-    );
-    setIsDirty(true);
+  const handleAddTest = useCallback(() => {
+    const newTest = addTest();
     setSelectedItem(newTest);
-  };
+  }, [addTest, setSelectedItem]);
 
-  const handleAddAction = (test: Test) => {
-    const defaultType = actionRegistry.getAll()[0]?.type || "Custom";
-    const plugin = actionRegistry.get(defaultType);
-    const newAction: Action = {
-      actionTitle: "New Action",
-      actionType: defaultType,
-      actionID: generateActionId(),
-      isEnabled: true,
-      params: plugin ? JSON.parse(JSON.stringify(plugin.defaultParams)) : {},
-    };
-
-    const testId = test.testID;
-
-    setPlan((prev) =>
-      produce(prev, (draft) => {
-        const targetTest = draft.testPlan.find((t) => t.testID === testId);
-        if (!targetTest) return;
-        if (!targetTest.testActions) targetTest.testActions = [];
-        targetTest.testActions.push(newAction);
-      })
-    );
-    setIsDirty(true);
+  const handleAddAction = useCallback((test: Test) => {
+    const newAction = addAction(test.testID);
     setSelectedItem(newAction);
-  };
+  }, [addAction, setSelectedItem]);
 
-  const handleDeleteTest = async (testId: string) => {
+  const handleDeleteTest = useCallback(async (testId: string) => {
     const confirmed = await confirm({
       title: "Delete Test",
       description: "Delete this test and all its actions?",
       confirmText: "Delete",
       variant: "destructive",
     });
-    if (!confirmed) return;
-
-    setPlan((prev) => ({
-      ...prev,
-      testPlan: prev.testPlan.filter((t) => t.testID !== testId),
-    }));
-    
-    // Check if selected item is the deleted test
-    if (selectedItem && 'testID' in selectedItem && selectedItem.testID === testId) {
+    if (confirmed) {
+      deleteTest(testId);
+      if (selectedItem && 'testID' in selectedItem && selectedItem.testID === testId) {
         setSelectedItem(null);
+      }
     }
-    setIsDirty(true);
-  };
+  }, [deleteTest, selectedItem, setSelectedItem]);
 
-  const handleDeleteAction = async (actionId: string) => {
+  const handleDeleteAction = useCallback(async (actionId: string) => {
     const confirmed = await confirm({
       title: "Delete Action",
       description: "Delete this action?",
       confirmText: "Delete",
       variant: "destructive",
     });
-    if (!confirmed) return;
-
-    setPlan((prev) =>
-      produce(prev, (draft) => {
-        draft.testPlan.forEach((t) => {
-          if (t.testActions) {
-            t.testActions = t.testActions.filter((a) => a.actionID !== actionId);
-          }
-        });
-      })
-    );
-    
-    // Check if selected item is the deleted action
-    if (selectedItem && 'actionID' in selectedItem && selectedItem.actionID === actionId) {
+    if (confirmed) {
+      deleteAction(actionId);
+      if (selectedItem && 'actionID' in selectedItem && selectedItem.actionID === actionId) {
         setSelectedItem(null);
+      }
     }
-    setIsDirty(true);
-  };
+  }, [deleteAction, selectedItem, setSelectedItem]);
 
-  // Helper for reordering list
-  const reorder = <T>(list: T[], startIndex: number, endIndex: number): T[] => {
-    const result = Array.from(list);
-    const [removed] = result.splice(startIndex, 1);
-    result.splice(endIndex, 0, removed);
-    return result;
-  };
-
-  const handleMoveTest = (sourceIndex: number, destinationIndex: number) => {
-    setPlan((prev) => {
-      const newTests = reorder(prev.testPlan, sourceIndex, destinationIndex);
-      return { ...prev, testPlan: newTests };
-    });
-    setIsDirty(true);
-  };
-
-  const handleMoveAction = (
-    sourceTestId: string,
-    sourceIndex: number,
-    destTestId: string,
-    destIndex: number,
-  ) => {
-    let movedAction: Action | null = null;
-
-    setPlan(
-      produce((draft) => {
-        const sourceTest = draft.testPlan.find(
-          (t: Test) => t.testID === sourceTestId,
-        );
-        const destTest = draft.testPlan.find((t: Test) => t.testID === destTestId);
-
-        if (!sourceTest || !destTest) return;
-        if (
-          !sourceTest.testActions ||
-          sourceIndex < 0 ||
-          sourceIndex >= sourceTest.testActions.length
-        )
-          return;
-
-        // Remove from source
-        [movedAction] = sourceTest.testActions.splice(sourceIndex, 1);
-        if (!movedAction) return;
-
-        // Insert at destination
-        if (!destTest.testActions) destTest.testActions = [];
-        destTest.testActions.splice(destIndex, 0, movedAction);
-      }),
-    );
-
-    setIsDirty(true);
-
-    // Update selectedItem if the moved action was selected
-    if (movedAction && selectedItem && 'actionID' in selectedItem && selectedItem.actionID === (movedAction as Action).actionID) {
-      setSelectedItem(movedAction);
-    }
-  };
-
-  const _runActionInternal = async (action: Action, sessionName?: string) => {
-    setLogs((prev) => ({
-      ...prev,
-      [action.actionID]: {
-        status: "Running...",
-        timestamp: new Date().toISOString(),
-      },
-    }));
-
-    const result = await ActionExecutor.execute(action, sessionName);
-
-    setLogs((prev) => ({
-      ...prev,
-      [action.actionID]: {
-        status: result.success ? "Success" : "Failed",
-        details: result,
-        timestamp: new Date().toISOString(),
-      },
-    }));
-  };
-
-  // Profile Management
-  const handleAddProfile = (profile: PlanProfile) => {
-    setPlan((prev) =>
-      produce(prev, (draft) => {
-        if (!draft.profiles) draft.profiles = [];
-        draft.profiles.push(profile);
-      })
-    );
-    setIsDirty(true);
-  };
-
-  const handleUpdateProfile = (id: string, updates: Partial<PlanProfile>) => {
-    setPlan((prev) =>
-      produce(prev, (draft) => {
-        const profile = draft.profiles?.find((p) => p.id === id);
-        if (profile) Object.assign(profile, updates);
-      })
-    );
-    setIsDirty(true);
-  };
-
-  const handleDeleteProfile = (id: string) => {
-    setPlan((prev) =>
-      produce(prev, (draft) => {
-        if (draft.profiles) {
-          draft.profiles = draft.profiles.filter((p) => p.id !== id);
-        }
-      })
-    );
-    setIsDirty(true);
-  };
-
-  const ensureSession = async (profileId: string): Promise<string | undefined> => {
-    const profile = plan.profiles?.find((p) => p.id === profileId);
-    if (!profile) return undefined;
-
-    // Check if session with this name exists
-    const store = useSessionStore.getState();
+  const handleToggleEnabled = useCallback((item: Test | Action) => {
+    const id = 'testID' in item ? item.testID : item.actionID;
+    const nextEnabled = item.isEnabled === false; // Toggle
+    updateItem(id, { isEnabled: nextEnabled });
     
-    // Check if session with this name exists
-    const existing = store.activeSessions.find((s) => s.name === profile.name);
-    if (existing) return existing.name;
-
-    // Not active, try to login
-    if (import.meta.env.DEV) {
-       console.log(`🔌 Auto-connecting session: ${profile.name}`);
+    // Sync selection
+    if (selectedItem) {
+        const sId = 'testID' in selectedItem ? selectedItem.testID : selectedItem.actionID;
+        if (sId === id) {
+            setSelectedItem({ ...selectedItem, isEnabled: nextEnabled } as Test | Action);
+        }
     }
-    if (!profile.password) {
-      console.warn("Cannot auto-connect: Password missing in profile");
-      return undefined; // Fallback to prompt or fail?
-    }
+  }, [updateItem, selectedItem, setSelectedItem]);
 
-    try {
-      const result = await store.login({
-        url: profile.url,
-        database: profile.database,
-        username: profile.username,
-        password: profile.password,
-        sessionName: profile.name,
-      });
-
-      if (result.success) {
-        return result.sessionName || profile.name;
-      } else {
-        console.error("Auto-connect failed:", result.message);
-        return undefined;
-      }
-    } catch (err) {
-      console.error("Auto-connect error:", err);
-      return undefined;
-    }
-  };
-
-  const _runTestInternal = async (test: Test) => {
-    let sessionName: string | undefined = undefined;
-
-    // Resolve session if profile ID is present
-    if (test.sessionProfileId) {
-      setInitializingTestId(test.testID);
-      try {
-        sessionName = await ensureSession(test.sessionProfileId);
-      } finally {
-        setInitializingTestId(null);
-      }
-    }
-
-    if (import.meta.env.DEV) {
-      console.log(`▶️ Running: ${test.testTitle} [Session: ${sessionName || "Default"}]`);
-    }
-
-    for (const action of test.testActions || []) {
-      if (action.isEnabled !== false) await _runActionInternal(action, sessionName);
-    }
-  };
-
-  const handleRunAction = async (action: Action, sessionName?: string) => {
-    if (isRunning) return;
-    setIsRunning(true);
-    try {
-      await _runActionInternal(action, sessionName);
-    } finally {
-      setIsRunning(false);
-    }
-  };
-
-  const handleRunTest = async (test: Test) => {
-    if (isRunning) return;
-    setIsRunning(true);
-    try {
-      await _runTestInternal(test);
-    } finally {
-      setIsRunning(false);
-    }
-  };
-
-  const handleRunAll = async () => {
-    if (isRunning) return;
+  const handleRunAll = useCallback(async () => {
     if (isDirty) await handleSave();
+    await runAll();
+  }, [isDirty, handleSave, runAll]);
+
+  const handleUpdateSelectedItem = useCallback((updates: Partial<Test> | Partial<Action>) => {
+    if (!selectedItem) return;
+    const id = 'testID' in selectedItem ? selectedItem.testID : selectedItem.actionID;
+    updateItem(id, updates);
     
-    setIsRunning(true);
-    try {
-      for (const test of plan.testPlan || []) {
-        if (test.isEnabled !== false) await _runTestInternal(test);
-      }
-    } finally {
-      setIsRunning(false);
-    }
-  };
-
-  const updateSelectedItem = (updates: Partial<Test> | Partial<Action>) => {
-    // 1. Immediate optimistic update for UI responsiveness
-    setSelectedItem((prev) => {
-      if (!prev) return null;
-      // Detailed merge is safer, but shallow merge works if updates are full replacements of properties
-      return { ...prev, ...updates } as Test | Action;
-    });
-    
-    setIsDirty(true);
-
-    // 2. Update the master plan state
-      // Determine the ID to find the item in the plan
-    setPlan((prevPlan) => {
-        return produce(prevPlan, (draft: TestPlan) => {
-            if (!selectedItem) return;
-
-            const isAction = "actionID" in selectedItem;
-            const itemId = isAction
-                ? (selectedItem).actionID
-                : (selectedItem).testID;
-
-            if (!isAction) {
-                // Updating a Test
-                const test = draft.testPlan.find((t: Test) => t.testID === itemId);
-                if (test) {
-                    Object.assign(test, updates);
-                }
-            } else {
-                // Updating an Action
-                for (const test of draft.testPlan) {
-                    if (!test.testActions) continue;
-                    const action = test.testActions.find((a: Action) => a.actionID === itemId);
-                    if (action) {
-                        Object.assign(action, updates);
-                        break;
-                    }
-                }
-            }
-        });
-    });
-  };
-
-  const handleToggleEnabled = (item: Test | Action) => {
-    const isAction = "actionID" in item;
-    const itemId = isAction
-      ? (item).actionID
-      : (item).testID;
-
-    // Capture updated item outside setPlan
-    let updatedItemCopy: Test | Action | null = null;
-    let shouldUpdateSelected = false;
-
-    setPlan((prevPlan) => {
-      const newPlan = produce(prevPlan, (draft: TestPlan) => {
-        if (!isAction) {
-          // Toggle Test
-          const test = draft.testPlan.find((t: Test) => t.testID === itemId);
-          if (test) {
-            test.isEnabled = test.isEnabled === false;
-          }
-        } else {
-          // Toggle Action
-          for (const test of draft.testPlan) {
-            if (!test.testActions) continue;
-            const action = test.testActions.find(
-              (a: Action) => a.actionID === itemId,
-            );
-            if (action) {
-              action.isEnabled = action.isEnabled === false;
-              break;
-            }
-          }
-        }
-      });
-
-      // Find the updated item from the NEW (non-proxy) state
-      let updatedItem: Test | Action | null = null;
-      if (!isAction) {
-        updatedItem = newPlan.testPlan.find((t) => t.testID === itemId) || null;
-      } else {
-        for (const test of newPlan.testPlan) {
-          if (!test.testActions) continue;
-          const action = test.testActions.find((a) => a.actionID === itemId);
-          if (action) {
-            updatedItem = action;
-            break;
-          }
-        }
-      }
-
-      // Check if we should update selectedItem
-      if (updatedItem) {
-        shouldUpdateSelected = isAction
-          ? (selectedItem as Action)?.actionID === itemId
-          : (selectedItem as Test)?.testID === itemId;
-
-        if (shouldUpdateSelected) {
-          // Create a plain copy to ensure no proxy references
-          updatedItemCopy = JSON.parse(JSON.stringify(updatedItem));
-        }
-      }
-
-      return newPlan;
-    });
-
-    // Update selectedItem synchronously after setPlan
-    if (shouldUpdateSelected && updatedItemCopy) {
-      setSelectedItem(updatedItemCopy);
-    }
-    setIsDirty(true);
-  };
+    // Also update local selectedItem state for immediate UI feedback
+    setSelectedItem(prev => prev ? ({ ...prev, ...updates } as Test | Action) : null);
+  }, [selectedItem, updateItem, setSelectedItem]);
 
   return {
     plan,
@@ -504,15 +114,15 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
     handleAddAction,
     handleDeleteTest,
     handleDeleteAction,
-    handleMoveTest,
-    handleMoveAction,
+    handleMoveTest: reorderTests,
+    handleMoveAction: moveAction,
     handleRunAll,
-    handleRunTest,
-    handleRunAction,
-    updateSelectedItem,
+    handleRunTest: runTest,
+    handleRunAction: runAction,
+    updateSelectedItem: handleUpdateSelectedItem,
     handleToggleEnabled,
-    handleAddProfile,
-    handleUpdateProfile,
-    handleDeleteProfile,
+    handleAddProfile: addProfile,
+    handleUpdateProfile: updateProfile,
+    handleDeleteProfile: deleteProfile,
   };
 }

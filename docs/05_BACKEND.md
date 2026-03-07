@@ -13,6 +13,7 @@
 | Aras.IOM                                              | 15.0.1                | ArasBackend, Infrastructure |
 | Swashbuckle.AspNetCore                                | 6.4.0                 | ArasBackend                 |
 | Microsoft.Extensions.DependencyInjection.Abstractions | 10.0.2                | Application, Infrastructure |
+| Microsoft.Extensions.Logging.Abstractions             | 8.0.0                 | Infrastructure              |
 | Microsoft.AspNetCore.Http.Abstractions                | 2.2.0                 | ArasBackend (Web host)      |
 
 ---

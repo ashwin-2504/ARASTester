@@ -17,7 +17,7 @@ public class ArasSessionManager : IArasSessionManager
     private readonly IConnectionStore _connectionStore;
     private readonly ISessionContext _sessionContext;
     private readonly ILogger<ArasSessionManager> _logger;
-    private const int DefaultTimeoutSeconds = 45;
+    private const int DefaultTimeoutSeconds = 120;
 
     public ArasSessionManager(
         IConnectionStore connectionStore, 
@@ -73,6 +73,7 @@ public class ArasSessionManager : IArasSessionManager
                 request.Username,
                 request.Password
             );
+            connection.Timeout = DefaultTimeoutSeconds * 1000; // IOM expects milliseconds
 
             _logger.LogInformation("IOM Connection object created in {ElapsedMs}ms. Starting Login()...", sw.ElapsedMilliseconds);
 

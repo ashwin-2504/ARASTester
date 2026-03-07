@@ -12,7 +12,7 @@
 | react-dom                     | ^19.2.0  | DOM Rendering         |
 | react-router-dom              | ^7.12.0  | Routing               |
 | zustand                       | ^5.0.10  | State Management      |
-| @hello-pangea/dnd             | ^16.5.0  | Drag and Drop         |
+| @hello-pangea/dnd             | ^18.0.1  | Drag and Drop         |
 | @radix-ui/react-dialog        | ^1.1.15  | Dialog Component      |
 | @radix-ui/react-dropdown-menu | ^2.1.16  | Dropdown Menu         |
 | @radix-ui/react-scroll-area   | ^1.2.10  | Scroll Area           |
@@ -21,6 +21,10 @@
 | tailwindcss-animate           | ^1.0.7   | Animations            |
 | tailwindcss                   | ^3.4.17  | CSS Framework         |
 | vite                          | ^7.2.2   | Build Tool            |
+| immer                         | ^11.1.3  | Immutable State       |
+| clsx                          | ^2.1.1   | Class utilities       |
+| tailwind-merge                | ^3.4.0   | Tailwind utilities    |
+| class-variance-authority      | ^0.7.1   | Variant management    |
 
 ---
 
@@ -59,8 +63,9 @@ renderer/
 │   ├── PlanDetails/        # 2 files
 │   └── Settings/           # 1 file
 ├── stores/
-│   ├── usePlanCacheStore.js
-│   └── useUiStore.js
+│   ├── usePlanCacheStore.ts
+│   ├── useSessionStore.ts
+│   └── useUiStore.ts
 └── globals.css
 ```
 
@@ -103,11 +108,11 @@ sequenceDiagram
 
 > **Note on Pending State**: Between the API call and the final store update, the UI remains in a "Loading/Pending" state (`isLoading=true`). It does **not** show the session as "Connected" until the re-sync completes. Stale state is temporarily visible but disabled/overlaid by the loading indicator.
 
-#### useUiStore (`renderer/stores/useUiStore.js`)
+#### useUiStore (`renderer/stores/useUiStore.ts`)
 
 UI state management for layout controls (Sidebar toggles).
 
-#### usePlanCacheStore (`renderer/stores/usePlanCacheStore.js`)
+#### usePlanCacheStore (`renderer/stores/usePlanCacheStore.ts`)
 
 Caches loaded test plans in memory.
 

@@ -130,12 +130,12 @@ The following namespaces and folder groupings exist. **No architectural meaning 
 
 ### 2.1 Backend Namespace Structure
 
-| Folder                             | Namespace                                                                | Project File                      |
-| ---------------------------------- | ------------------------------------------------------------------------ | --------------------------------- |
-| backend/ArasBackend                | ArasBackend.Controllers, ArasBackend.Services                            | ArasBackend.csproj                |
-| backend/ArasBackend.Core           | ArasBackend.Core.Models, ArasBackend.Core.Interfaces                     | ArasBackend.Core.csproj           |
-| backend/ArasBackend.Application    | ArasBackend.Application.Services, ArasBackend.Application.Interfaces     | ArasBackend.Application.csproj    |
-| backend/ArasBackend.Infrastructure | ArasBackend.Infrastructure.Gateways, ArasBackend.Infrastructure.Services | ArasBackend.Infrastructure.csproj |
+| Folder                             | Namespace                                                                         | Project File                      |
+| ---------------------------------- | --------------------------------------------------------------------------------- | --------------------------------- |
+| backend/ArasBackend                | ArasBackend.Controllers, ArasBackend.Services                                     | ArasBackend.csproj                |
+| backend/ArasBackend.Core           | ArasBackend.Core.Models, ArasBackend.Core.Interfaces, ArasBackend.Core.Exceptions | ArasBackend.Core.csproj           |
+| backend/ArasBackend.Application    | ArasBackend.Application.Services, ArasBackend.Application.Interfaces              | ArasBackend.Application.csproj    |
+| backend/ArasBackend.Infrastructure | ArasBackend.Infrastructure.Gateways, ArasBackend.Infrastructure.Services          | ArasBackend.Infrastructure.csproj |
 
 **Source**: Namespace declarations in each file
 

@@ -14,9 +14,11 @@ public static class DependencyInjection
         services.AddScoped<ArasSessionManager>();
         services.AddScoped<IArasSessionManager>(sp => sp.GetRequiredService<ArasSessionManager>());
         
-        // Gateway depends on SessionManager, providing the scoped instance
-        services.AddScoped<IArasGateway, ArasGateway>();
-        
+        services.AddScoped<IItemGateway, ItemGateway>();
+        services.AddScoped<IWorkflowGateway, WorkflowGateway>();
+        services.AddScoped<IAssertionGateway, AssertionGateway>();
+        services.AddScoped<IFileGateway, FileGateway>();
+        services.AddScoped<IUtilityGateway, UtilityGateway>();        
         return services;
     }
 }

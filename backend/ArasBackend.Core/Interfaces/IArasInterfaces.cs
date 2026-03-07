@@ -14,8 +14,7 @@ public interface IArasSessionManager
     Task<ConnectionStatusResponse> GetStatus(CancellationToken cancellationToken = default);
     bool IsConnected { get; }
 }
-
-public interface IArasGateway
+public interface IItemGateway
 {
     Task<ItemResponse> QueryItems(QueryRequest request, CancellationToken cancellationToken = default);
     Task<ItemResponse> GetItemById(GetByIdRequest request, CancellationToken cancellationToken = default);
@@ -35,15 +34,17 @@ public interface IArasGateway
     
     Task<ItemResponse> PromoteItem(PromoteRequest request, CancellationToken cancellationToken = default);
     Task<ItemResponse> GetCurrentState(GetByIdRequest request, CancellationToken cancellationToken = default);
+}
 
+public interface IWorkflowGateway
+{
     Task<ItemResponse> StartWorkflow(StartWorkflowRequest request, CancellationToken cancellationToken = default);
     Task<ItemResponse> GetAssignedActivities(CancellationToken cancellationToken = default);
     Task<ItemResponse> CompleteActivity(CompleteActivityRequest request, CancellationToken cancellationToken = default);
-    
-    Task<ItemResponse> ApplyAML(ApplyAmlRequest request, CancellationToken cancellationToken = default);
-    Task<ItemResponse> ApplySQL(ApplySqlRequest request, CancellationToken cancellationToken = default);
-    Task<ItemResponse> ApplyMethod(ApplyMethodRequest request, CancellationToken cancellationToken = default);
-    
+}
+
+public interface IAssertionGateway
+{
     Task<AssertionResponse> AssertItemExists(AssertExistsRequest request, CancellationToken cancellationToken = default);
     Task<AssertionResponse> AssertItemNotExists(AssertExistsRequest request, CancellationToken cancellationToken = default);
     Task<AssertionResponse> AssertPropertyValue(AssertPropertyRequest request, CancellationToken cancellationToken = default);
@@ -52,11 +53,20 @@ public interface IArasGateway
     Task<AssertionResponse> AssertCount(AssertCountRequest request, CancellationToken cancellationToken = default);
     Task<AssertionResponse> AssertLocked(LockRequest request, CancellationToken cancellationToken = default);
     Task<AssertionResponse> AssertUnlocked(LockRequest request, CancellationToken cancellationToken = default);
+    Task<AssertionResponse> VerifyFileExists(VerifyFileExistsRequest request, CancellationToken cancellationToken = default);
+}
 
+public interface IFileGateway
+{
     Task<ItemResponse> UploadFile(UploadFileRequest request, CancellationToken cancellationToken = default);
     Task<ItemResponse> DownloadFile(DownloadFileRequest request, CancellationToken cancellationToken = default);
-    Task<AssertionResponse> VerifyFileExists(VerifyFileExistsRequest request, CancellationToken cancellationToken = default);
+}
 
+public interface IUtilityGateway
+{
+    Task<ItemResponse> ApplyAML(ApplyAmlRequest request, CancellationToken cancellationToken = default);
+    Task<ItemResponse> ApplySQL(ApplySqlRequest request, CancellationToken cancellationToken = default);
+    Task<ItemResponse> ApplyMethod(ApplyMethodRequest request, CancellationToken cancellationToken = default);
     Task<ItemResponse> GenerateID(CancellationToken cancellationToken = default);
     Task<ItemResponse> GetNextSequence(GetNextSequenceRequest request, CancellationToken cancellationToken = default);
     Task<ItemResponse> Wait(WaitRequest request, CancellationToken cancellationToken = default);

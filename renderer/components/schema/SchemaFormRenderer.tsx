@@ -2,10 +2,12 @@ import React, { useMemo } from 'react';
 import FieldRenderer from './FieldRenderer';
 import type { ActionSchema } from '@/types/plan';
 
+type SchemaParams = Record<string, unknown>;
+
 interface SchemaFormRendererProps {
   schema: ActionSchema;
-  params: Record<string, any>;
-  onChange: (params: Record<string, any>) => void;
+  params: SchemaParams;
+  onChange: (params: SchemaParams) => void;
   showValidation?: boolean;
 }
 
@@ -59,7 +61,7 @@ const SchemaFormRenderer: React.FC<SchemaFormRendererProps> = ({ schema, params 
     );
   }
 
-  const handleFieldChange = (fieldName: string, value: any) => {
+  const handleFieldChange = (fieldName: string, value: unknown) => {
     const newParams = {
       ...params,
       [fieldName]: value
@@ -86,7 +88,7 @@ const SchemaFormRenderer: React.FC<SchemaFormRendererProps> = ({ schema, params 
               key={field.name || `simple-${index}`}
               field={field}
               value={params[field.name]}
-              onChange={(value: any) => handleFieldChange(field.name, value)}
+              onChange={(value) => handleFieldChange(field.name, value)}
               error={showValidation ? validationErrors[field.name] : undefined}
             />
           ))}
@@ -101,7 +103,7 @@ const SchemaFormRenderer: React.FC<SchemaFormRendererProps> = ({ schema, params 
               key={field.name || `complex-${index}`}
               field={field}
               value={params[field.name]}
-              onChange={(value: any) => handleFieldChange(field.name, value)}
+              onChange={(value) => handleFieldChange(field.name, value)}
               error={showValidation ? validationErrors[field.name] : undefined}
             />
           ))}

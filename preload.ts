@@ -6,6 +6,9 @@ import { contextBridge, ipcRenderer, OpenDialogReturnValue } from "electron";
 // For now, we rely on the implementation matching the declaration.
 
 contextBridge.exposeInMainWorld("api", {
+  getRuntimeConfig: (): Promise<{ apiBaseUrl: string }> =>
+    ipcRenderer.invoke("app:getRuntimeConfig"),
+
   pickFolder: (): Promise<OpenDialogReturnValue> => ipcRenderer.invoke("dialog:pickFolder"),
   
   readFile: (baseDir: string, relativePath: string): Promise<string> =>
@@ -20,7 +23,7 @@ contextBridge.exposeInMainWorld("api", {
   deleteFile: (baseDir: string, relativePath: string): Promise<void> =>
     ipcRenderer.invoke("fs:deleteFile", baseDir, relativePath),
 
-  // Settings API
+  // Settings API 
   settings: {
     read: (): Promise<Record<string, unknown>> => ipcRenderer.invoke("settings:read"),
     write: (data: Record<string, unknown>): Promise<boolean> => ipcRenderer.invoke("settings:write", data),

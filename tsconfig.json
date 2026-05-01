@@ -23,7 +23,8 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["renderer/*"]
+      "@/*": ["renderer/*"],
+      "lucide-react": ["renderer/lib/lucide-react.tsx"]
     }
   },
   "include": [

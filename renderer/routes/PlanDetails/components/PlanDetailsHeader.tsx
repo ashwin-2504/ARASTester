@@ -1,4 +1,3 @@
-import React from 'react'
 import { ChevronLeft, RotateCcw, Save, Play, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -26,23 +25,26 @@ export const PlanDetailsHeader = ({
   onSave
 }: PlanDetailsHeaderProps) => {
   return (
-    <header className="flex-none h-auto min-h-[4rem] border-b px-6 py-4 flex flex-col gap-4 md:flex-row md:items-center justify-between bg-card/50 min-w-0">
-      <div className="flex items-center gap-4 min-w-0 flex-1">
+    <header className="flex min-h-[5.5rem] flex-none min-w-0 flex-col justify-between gap-4 border-b border-border/80 bg-panel/70 px-5 py-4 backdrop-blur md:flex-row md:items-center md:px-6">
+      <div className="flex min-w-0 flex-1 items-center gap-4">
         <button
           onClick={onBack}
-          className="p-2 -ml-2 rounded-full hover:bg-muted text-muted-foreground transition-colors flex-shrink-0"
+          className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
         >
           <ChevronLeft className="h-5 w-5" />
         </button>
-        <h1 className="text-xl font-bold tracking-tight truncate" title={title || filename}>
-          {title || filename}
-        </h1>
+        <div className="min-w-0 space-y-1">
+          <div className="app-section-label">Plan Editor</div>
+          <h1 className="truncate text-2xl font-semibold tracking-tight" title={title || filename}>
+            {title || filename}
+          </h1>
+        </div>
       </div>
-      <div className="flex items-center gap-3 flex-shrink-0 flex-wrap whitespace-nowrap">
-        {saveStatus && <span className="text-sm text-emerald-500 font-medium whitespace-nowrap">{saveStatus}</span>}
+      <div className="flex flex-shrink-0 flex-wrap items-center gap-3 whitespace-nowrap">
+        {saveStatus && <span className="app-inline-status app-inline-status--success">{saveStatus}</span>}
         <Button
           variant="outline"
-          className="text-emerald-500 border-emerald-500 hover:bg-emerald-500/10 whitespace-nowrap"
+          className="border-success/40 text-success hover:bg-success/10 hover:text-success"
           onClick={onRunAll}
           disabled={isRunning}
         >

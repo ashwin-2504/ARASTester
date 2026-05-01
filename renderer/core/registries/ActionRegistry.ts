@@ -68,8 +68,8 @@ class ActionRegistry {
       Editor: (props: { params?: Record<string, unknown>, onChange?: (p: Record<string, unknown>) => void }) =>
         React.createElement(SchemaFormRenderer, {
           schema: schema,
-          params: props.params as Record<string, any>,
-          onChange: props.onChange as any,
+          params: props.params ?? {},
+          onChange: props.onChange ?? (() => undefined),
         }),
       schema: schema, // Keep reference for validation and other uses
     };

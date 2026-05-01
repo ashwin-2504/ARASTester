@@ -145,6 +145,7 @@ function createWindow() {
 const { spawn } = require("child_process");
 
 let backendProcess = null;
+let backendPort = process.env.BACKEND_PORT || "5000";
 
 /**
  * Get the path to the backend executable
@@ -187,8 +188,7 @@ function startBackend() {
     return;
   }
 
-  const port = process.env.BACKEND_PORT || "5000";
-  logFrontend("info", `Starting backend from: ${exePath} on port ${port}`);
+  logFrontend("info", `Starting backend from: ${exePath} on port ${backendPort}`);
 
   // Ensure we pass the environment variable, defaulting to Development if we are in dev mode
   const backendEnv = {
@@ -198,7 +198,7 @@ function startBackend() {
       (process.argv.includes("--dev") ? "Development" : "Production"),
   };
 
-  backendProcess = spawn(exePath, ["--urls", `http://localhost:${port}`], {
+  backendProcess = spawn(exePath, ["--urls", `http://localhost:${backendPort}`], {
     env: backendEnv,
   });
 
@@ -244,6 +244,12 @@ app.whenReady().then(() => {
 
   // Show UI immediately
   createWindow();
+});
+
+ipcMain.handle("app:getRuntimeConfig", async () => {
+  return {
+    apiBaseUrl: `http://localhost:${backendPort}`,
+  };
 });
 
 app.on("will-quit", () => {

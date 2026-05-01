@@ -7,6 +7,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter
 } from '@/components/ui/dialog'
 
@@ -35,7 +36,9 @@ export default function PlanModal({ isOpen, onClose, onSave, plan = null }) {
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{plan ? 'Edit Test Plan' : 'Create New Test Plan'}</DialogTitle>
-          <div className="hidden" id="dialog-desc">Form to create or edit a test plan</div>
+          <DialogDescription>
+            Form to create or edit a test plan.
+          </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">

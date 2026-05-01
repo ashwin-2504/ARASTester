@@ -2,13 +2,15 @@ using System.Threading;
 using System.Threading.Tasks;
 using ArasBackend.Core.Interfaces;
 using ArasBackend.Core.Models;
+using ArasBackend.Infrastructure.Options;
 using ArasBackend.Infrastructure.Services;
+using Microsoft.Extensions.Options;
 
 namespace ArasBackend.Infrastructure.Gateways;
 
 public class ItemGateway : BaseGateway, IItemGateway
 {
-    public ItemGateway(ArasSessionManager sessionManager) : base(sessionManager)
+    public ItemGateway(ArasSessionManager sessionManager, IOptions<GatewayResponseOptions> gatewayResponseOptions) : base(sessionManager, gatewayResponseOptions)
     {
     }
 

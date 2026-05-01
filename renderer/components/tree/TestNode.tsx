@@ -1,6 +1,6 @@
 import React from 'react'
 import { GripVertical, ChevronRight, ChevronDown, Plus, Trash2, Check } from 'lucide-react'
-import { Button } from '@/components/ui/button.jsx'
+import { Button } from '@/components/ui/button'
 import { StatusIndicator } from '@/components/ui/StatusIndicator.jsx'
 import { Draggable, Droppable } from '@hello-pangea/dnd'
 import { cn } from '@/lib/utils'
@@ -8,7 +8,9 @@ import ActionNode from './ActionNode'
 import type { Test, Action } from '@/types/plan'
 
 interface TestNodeProps {
-  test: Test & { status?: string };
+  test: Test;
+  testStatus?: string | null;
+  actionStatusById?: Record<string, string | undefined>;
   index: number;
   isExpanded: boolean;
   onToggleExpand: (id: string) => void;
@@ -21,12 +23,13 @@ interface TestNodeProps {
   onRunTest: (test: Test) => void;
   onRunAction: (action: Action) => void;
   onToggleEnabled: (item: Test | Action) => void;
-  logs?: Record<string, any>;
   draggingType?: string | null;
 }
 
 const TestNode = React.memo<TestNodeProps>(function TestNode({
   test,
+  testStatus,
+  actionStatusById = {},
   index,
   isExpanded,
   onToggleExpand,
@@ -39,7 +42,6 @@ const TestNode = React.memo<TestNodeProps>(function TestNode({
   onRunTest,
   onRunAction,
   onToggleEnabled,
-  logs = {},
   draggingType // Received prop
 }) {
   const isSelected = selectedItem && 'testID' in selectedItem && selectedItem.testID === test.testID
@@ -66,7 +68,7 @@ const TestNode = React.memo<TestNodeProps>(function TestNode({
               // Highlight if selected OR if a child is selected
               isActiveContext
                 ? "bg-emerald-950/40 border-emerald-500/50"
-                : "bg-card/50 border-transparent hover:bg-emerald-950/20 hover:border-emerald-500/20"
+                : "bg-card/50 border-border/50 hover:bg-emerald-950/20 hover:border-emerald-500/30"
             )}
             onClick={(_e: React.MouseEvent) => {
               if (!isExpanded) onToggleExpand(test.testID)
@@ -116,7 +118,7 @@ const TestNode = React.memo<TestNodeProps>(function TestNode({
 
             <div className="flex items-center ml-auto gap-1 transition-opacity">
               <StatusIndicator
-                status={test.status} // Will be computed in parent or passed down
+                status={testStatus}
                 onRun={() => onRunTest && onRunTest(test)}
                 className="h-8 w-8"
                 iconClassName="h-4 w-4"
@@ -177,7 +179,8 @@ const TestNode = React.memo<TestNodeProps>(function TestNode({
                   {test.testActions && test.testActions.map((action, idx) => (
                     <ActionNode
                       key={action.actionID}
-                      action={{ ...action, status: logs[action.actionID]?.status }}
+                      action={action}
+                      status={actionStatusById[action.actionID]}
                       index={idx}
                       selectedItem={selectedItem}
                       onRunAction={onRunAction}

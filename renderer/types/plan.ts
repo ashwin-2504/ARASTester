@@ -1,5 +1,5 @@
 export interface ActionParams {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface Action {
@@ -43,7 +43,7 @@ export interface ActionSchemaField {
   label: string;
   type: 'text' | 'number' | 'password' | 'textarea' | 'select' | 'checkbox' | 'keyvalue' | 'json';
   required?: boolean;
-  default?: any;
+  default?: unknown;
   placeholder?: string;
   helpText?: string;
   options?: { label: string; value: string }[];
@@ -70,7 +70,11 @@ export interface ActionPlugin {
   apiEndpoint?: string;
   apiMethod?: string;
   isClientSide?: boolean;
-  defaultParams: Record<string, any>;
-  Editor: React.ComponentType<any>;
+  defaultParams: Record<string, unknown>;
+  Editor: React.ComponentType<{
+    params?: Record<string, unknown>;
+    onChange?: (params: Record<string, unknown>) => void;
+    showValidation?: boolean;
+  }>;
   schema: ActionSchema;
 }

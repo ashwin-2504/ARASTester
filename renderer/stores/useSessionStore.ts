@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { apiClient } from "@/core/api/client";
+import type { ApiOptions } from "@/core/api/client";
 
 export interface ServerInfo {
   database: string;
@@ -65,8 +66,8 @@ interface SessionState {
   currentSession: SessionInfo | null;
 
   // Actions
-  fetchSessions: () => Promise<void>;
-  login: (credentials: ConnectionRequest) => Promise<ConnectionResponse>;
+  fetchSessions: (apiOptions?: ApiOptions) => Promise<void>;
+  login: (credentials: ConnectionRequest, apiOptions?: ApiOptions) => Promise<ConnectionResponse>;
   logout: (sessionName?: string) => Promise<void>;
   setCurrentSession: (name: string) => void;
 
@@ -101,11 +102,11 @@ export const useSessionStore = create<SessionState>()(
       },
 
       // Actions
-      fetchSessions: async () => {
+      fetchSessions: async (apiOptions = {}) => {
         set({ isLoading: true, error: null });
         try {
           const response =
-            await apiClient.get<AllSessionsResponse>("/api/aras/sessions");
+            await apiClient.get<AllSessionsResponse>("/api/aras/sessions", apiOptions);
           set({
             activeSessions: response.sessions || [],
             currentSessionName: response.currentSession || "default",
@@ -119,7 +120,7 @@ export const useSessionStore = create<SessionState>()(
         }
       },
 
-      login: async (credentials: ConnectionRequest) => {
+      login: async (credentials: ConnectionRequest, apiOptions = {}) => {
         const targetName = credentials.sessionName || "default";
         set((state) => {
           const newSet = new Set(state.connectingSessions);
@@ -131,10 +132,11 @@ export const useSessionStore = create<SessionState>()(
           const response = await apiClient.post<ConnectionResponse>(
             "/api/aras/connect",
             credentials,
+            apiOptions,
           );
 
           if (response.success) {
-            await get().fetchSessions();
+            await get().fetchSessions(apiOptions);
 
             // Update lastAccessedAt for the corresponding saved session
             if (response.sessionName) {

@@ -12,6 +12,7 @@ public class SessionContext
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime LastAccessedAt { get; set; } = DateTime.UtcNow;
     public Dictionary<string, object> Variables { get; } = new();
+    public Queue<string> VariableInsertionOrder { get; } = new();
     public List<string> TestLogs { get; } = new();
 }
 
@@ -23,4 +24,5 @@ public interface IConnectionStore
     SessionContext? GetSession(string name);
     void RemoveSession(string name);
     List<SessionInfo> GetAllSessions();
+    int CleanupExpiredSessions();
 }

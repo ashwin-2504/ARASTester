@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using global::ArasBackend.Application.Services;
 using global::ArasBackend.Core.Models;
+using ArasBackend.Options;
+using Microsoft.Extensions.Options;
 
 namespace ArasBackend.Controllers;
 
@@ -10,10 +12,20 @@ namespace ArasBackend.Controllers;
 public class ItemController : ControllerBase
 {
     private readonly ItemAppService _itemService;
+    private readonly IWebHostEnvironment _environment;
+    private readonly ILogger<ItemController> _logger;
+    private readonly DangerousExecutionOptions _dangerousExecutionOptions;
 
-    public ItemController(ItemAppService itemService)
+    public ItemController(
+        ItemAppService itemService,
+        IWebHostEnvironment environment,
+        ILogger<ItemController> logger,
+        IOptions<DangerousExecutionOptions> dangerousExecutionOptions)
     {
         _itemService = itemService;
+        _environment = environment;
+        _logger = logger;
+        _dangerousExecutionOptions = dangerousExecutionOptions.Value;
     }
 
     [HttpPost("query")]
@@ -62,13 +74,52 @@ public class ItemController : ControllerBase
     public async Task<ActionResult<ItemResponse>> DeleteRelationship(DeleteRelationshipRequest request, CancellationToken cancellationToken) => Ok(await _itemService.DeleteRelationship(request, cancellationToken));
 
     [HttpPost("apply-aml")]
-    public async Task<ActionResult<ItemResponse>> ApplyAml(ApplyAmlRequest request, CancellationToken cancellationToken) => Ok(await _itemService.ApplyAML(request, cancellationToken));
+    public async Task<ActionResult<ItemResponse>> ApplyAml(ApplyAmlRequest request, CancellationToken cancellationToken)
+    {
+        if (!EnsureDangerousExecutionAllowed()) return DangerousExecutionForbidden();
+
+        _logger.LogWarning("Dangerous endpoint invoked: apply-aml. TraceId={TraceId}, PayloadLength={PayloadLength}",
+            HttpContext.TraceIdentifier, request.Aml?.Length ?? 0);
+
+        var response = await _itemService.ApplyAML(request, cancellationToken);
+        _logger.LogInformation("Dangerous endpoint completed: apply-aml. TraceId={TraceId}, Success={Success}",
+            HttpContext.TraceIdentifier, response.Success);
+
+        return Ok(response);
+    }
 
     [HttpPost("apply-sql")]
-    public async Task<ActionResult<ItemResponse>> ApplySql(ApplySqlRequest request, CancellationToken cancellationToken) => Ok(await _itemService.ApplySQL(request, cancellationToken));
+    public async Task<ActionResult<ItemResponse>> ApplySql(ApplySqlRequest request, CancellationToken cancellationToken)
+    {
+        if (!EnsureDangerousExecutionAllowed()) return DangerousExecutionForbidden();
+
+        _logger.LogWarning("Dangerous endpoint invoked: apply-sql. TraceId={TraceId}, PayloadLength={PayloadLength}",
+            HttpContext.TraceIdentifier, request.Sql?.Length ?? 0);
+
+        var response = await _itemService.ApplySQL(request, cancellationToken);
+        _logger.LogInformation("Dangerous endpoint completed: apply-sql. TraceId={TraceId}, Success={Success}",
+            HttpContext.TraceIdentifier, response.Success);
+
+        return Ok(response);
+    }
 
     [HttpPost("apply-method")]
-    public async Task<ActionResult<ItemResponse>> ApplyMethod(ApplyMethodRequest request, CancellationToken cancellationToken) => Ok(await _itemService.ApplyMethod(request, cancellationToken));
+    public async Task<ActionResult<ItemResponse>> ApplyMethod(ApplyMethodRequest request, CancellationToken cancellationToken)
+    {
+        if (!EnsureDangerousExecutionAllowed()) return DangerousExecutionForbidden();
+
+        _logger.LogWarning(
+            "Dangerous endpoint invoked: apply-method. TraceId={TraceId}, MethodName={MethodName}, BodyLength={BodyLength}",
+            HttpContext.TraceIdentifier,
+            request.MethodName,
+            request.Body?.Length ?? 0);
+
+        var response = await _itemService.ApplyMethod(request, cancellationToken);
+        _logger.LogInformation("Dangerous endpoint completed: apply-method. TraceId={TraceId}, Success={Success}",
+            HttpContext.TraceIdentifier, response.Success);
+
+        return Ok(response);
+    }
 
     // Assertions
     [HttpPost("assert-exists")]
@@ -131,4 +182,23 @@ public class ItemController : ControllerBase
 
     [HttpPost("log-message")]
     public async Task<ActionResult<ItemResponse>> LogMessage(LogMessageRequest request, CancellationToken cancellationToken) => Ok(await _itemService.LogMessage(request, cancellationToken));
+
+    private bool EnsureDangerousExecutionAllowed()
+    {
+        if (!_dangerousExecutionOptions.Enabled)
+        {
+            return false;
+        }
+
+        var allowedEnvironments = _dangerousExecutionOptions.AllowedEnvironments ?? Array.Empty<string>();
+        return allowedEnvironments.Contains(_environment.EnvironmentName, StringComparer.OrdinalIgnoreCase);
+    }
+
+    private ActionResult<ItemResponse> DangerousExecutionForbidden()
+    {
+        return StatusCode(StatusCodes.Status403Forbidden, new
+        {
+            message = "Dangerous execution endpoints are disabled for this environment."
+        });
+    }
 }

@@ -33,9 +33,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
 import AppShell from '@/layouts/AppShell'
 import DashboardPage from '@/routes/Dashboard/DashboardPage'
 import PlanDetailsPage from '@/routes/PlanDetails/PlanDetailsPage'
-import SettingsPage from '@/routes/Settings/SettingsPage.jsx' // Assuming SettingsPage is not migrated yet? Or maybe it is?
-// Check if SettingsPage needs migration. Stage 3d includes App Shell. SettingsPage wasn't explicitly mentioned but might be "Routes".
-// I'll assume it exists as .jsx for now.
+import SettingsPage from '@/routes/Settings/SettingsPage'
 import { Toaster } from '@/components/ui/toaster'
 
 export default function App() {

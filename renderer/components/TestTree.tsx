@@ -1,6 +1,6 @@
 import React from 'react'
 import { Plus } from 'lucide-react'
-import { Button } from '@/components/ui/button.jsx' // Explicit extension for non-migrated component
+import { Button } from '@/components/ui/button'
 import { DragDropContext, Droppable, DropResult, DragStart } from '@hello-pangea/dnd'
 import TestNode from './tree/TestNode'
 import type { Test, Action } from '@/types/plan'
@@ -19,7 +19,7 @@ interface TestTreeProps {
   onRunTest: (test: Test) => void;
   onRunAction: (action: Action) => void;
   onToggleEnabled: (item: Test | Action) => void;
-  logs?: Record<string, any>;
+  logs?: Record<string, { status?: string }>;
   initializingTestId?: string | null;
 }
 
@@ -108,29 +108,53 @@ export default function TestTree({
     }
   }
 
-  // Helper to compute test status
-  const getTestStatus = (test: Test): string | null => {
-    // Check if initializing
-    if (initializingTestId === test.testID) return 'Initializing...'
+  const actionStatusById = React.useMemo(() => {
+    const map: Record<string, string | undefined> = {};
+    for (const [actionId, log] of Object.entries(logs)) {
+      map[actionId] = log?.status;
+    }
+    return map;
+  }, [logs]);
 
-    const actions = test.testActions || []
-    if (actions.length === 0) return null
+  const testStatusById = React.useMemo(() => {
+    const map: Record<string, string | null> = {};
+    for (const test of testPlan) {
+      if (initializingTestId === test.testID) {
+        map[test.testID] = "Initializing...";
+        continue;
+      }
 
-    // If any action is running -> Running
-    if (actions.some(a => logs[a.actionID]?.status === 'Running...')) return 'Running...'
+      const actions = test.testActions || [];
+      if (actions.length === 0) {
+        map[test.testID] = null;
+        continue;
+      }
 
-    // If ANY enabled action failed -> Failed
-    if (actions.some(a => a.isEnabled !== false && ['Failed', 'Error'].includes(logs[a.actionID]?.status))) return 'Failed'
+      if (actions.some(a => actionStatusById[a.actionID] === "Running...")) {
+        map[test.testID] = "Running...";
+        continue;
+      }
 
-    // If ALL enabled actions are Success -> Success
-    const enabledActions = actions.filter(a => a.isEnabled !== false)
-    if (enabledActions.length > 0 && enabledActions.every(a => logs[a.actionID]?.status === 'Success')) return 'Success'
+      if (actions.some(a => a.isEnabled !== false && ["Failed", "Error"].includes(actionStatusById[a.actionID] || ""))) {
+        map[test.testID] = "Failed";
+        continue;
+      }
 
-    // If any enabled action is Warning -> Warning
-    if (actions.some(a => a.isEnabled !== false && logs[a.actionID]?.status === 'Warning')) return 'Warning'
+      const enabledActions = actions.filter(a => a.isEnabled !== false);
+      if (enabledActions.length > 0 && enabledActions.every(a => actionStatusById[a.actionID] === "Success")) {
+        map[test.testID] = "Success";
+        continue;
+      }
 
-    return null
-  }
+      if (actions.some(a => a.isEnabled !== false && actionStatusById[a.actionID] === "Warning")) {
+        map[test.testID] = "Warning";
+        continue;
+      }
+
+      map[test.testID] = null;
+    }
+    return map;
+  }, [testPlan, actionStatusById, initializingTestId]);
 
   if (!testPlan || testPlan.length === 0) {
     return (
@@ -156,8 +180,10 @@ export default function TestTree({
               {testPlan.map((test, index) => {
                 return (
                   <TestNode
-                    key={test.testID || index}
-                    test={{ ...test, status: getTestStatus(test) || undefined }} // Pass computed status
+                    key={test.testID}
+                    test={test}
+                    testStatus={testStatusById[test.testID]}
+                    actionStatusById={actionStatusById}
                     index={index}
                     isExpanded={expandedTestIds.includes(test.testID)}
                     onToggleExpand={handleToggleExpand}
@@ -170,7 +196,6 @@ export default function TestTree({
                     onRunTest={onRunTest}
                     onRunAction={onRunAction}
                     onToggleEnabled={onToggleEnabled}
-                    logs={logs} // Pass logs down
                     draggingType={draggingType}
                   />
                 )

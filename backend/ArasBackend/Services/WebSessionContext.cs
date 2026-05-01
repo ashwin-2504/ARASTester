@@ -1,4 +1,6 @@
 using ArasBackend.Application.Interfaces;
+using ArasBackend.Options;
+using Microsoft.Extensions.Options;
 
 namespace ArasBackend.Services;
 
@@ -16,11 +18,11 @@ public class WebSessionContext : ISessionContext
     private readonly string _cookieName;
     private readonly string _headerName;
 
-    public WebSessionContext(IHttpContextAccessor httpContextAccessor, IConfiguration configuration)
+    public WebSessionContext(IHttpContextAccessor httpContextAccessor, IOptions<SessionResolutionOptions> sessionResolutionOptions)
     {
         _httpContextAccessor = httpContextAccessor;
-        _cookieName = configuration["Aras:SessionCookieName"] ?? "ARAS_SESSION_ID";
-        _headerName = configuration["Aras:SessionHeaderName"] ?? "X-Session-Name";
+        _cookieName = sessionResolutionOptions.Value.SessionCookieName;
+        _headerName = sessionResolutionOptions.Value.SessionHeaderName;
     }
 
     public string? SessionId => GetSessionId();

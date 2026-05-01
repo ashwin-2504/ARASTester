@@ -108,25 +108,23 @@ export function ProfileCard({ session, onEdit, onDelete }: ProfileCardProps) {
   return (
     <div
       className={cn(
-        "rounded-xl border transition-all duration-200 overflow-hidden",
-        expanded ? "bg-zinc-900 border-zinc-700" : "bg-zinc-900/50 border-zinc-800 hover:border-zinc-700",
-        isConnected && !expanded && "border-l-4 border-l-emerald-500",
-        isConnecting && !expanded && "border-l-4 border-l-blue-500"
+        "overflow-hidden rounded-2xl border transition-all duration-200",
+        expanded ? "border-borderStrong bg-panelElevated shadow-panel" : "border-border/70 bg-panel shadow-panel hover:border-borderStrong hover:bg-panelElevated",
+        isConnected && !expanded && "border-l-4 border-l-success",
+        isConnecting && !expanded && "border-l-4 border-l-info"
       )}
     >
-      {/* Header / Collapsed View */}
       <div
-        className="p-4 cursor-pointer flex items-center justify-between"
+        className="flex cursor-pointer items-center justify-between p-4"
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center gap-3">
-          {/* Avatar */}
-          <div className="h-10 w-10 full rounded-full bg-violet-600 flex items-center justify-center text-white font-bold text-sm">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/15 text-sm font-bold text-primary">
             {isConnecting ? <Loader2 className="h-5 w-5 animate-spin" /> : getInitials(session.name)}
           </div>
 
           <div>
-            <h3 className="font-semibold text-sm text-zinc-100">
+            <h3 className="text-sm font-semibold text-foreground">
               {session.name}
             </h3>
             <div className="flex items-center gap-1.5 mt-0.5">
@@ -147,7 +145,7 @@ export function ProfileCard({ session, onEdit, onDelete }: ProfileCardProps) {
               <Button
                 size="sm"
                 variant="outline"
-                className="h-8 px-3 text-xs bg-zinc-800 border-zinc-700 hover:bg-zinc-700 hover:text-white"
+                className="h-8 px-3 text-xs"
                 onClick={handleConnect}
                 disabled={isConnecting || !session.password}
                 title={!session.password ? "Password required" : "Connect to session"}
@@ -155,47 +153,45 @@ export function ProfileCard({ session, onEdit, onDelete }: ProfileCardProps) {
                 Connect
               </Button>
             ) : isConnecting ? (
-                <div className="p-2"><Loader2 className="h-4 w-4 text-blue-500 animate-spin" /></div>
+                <div className="p-2"><Loader2 className="h-4 w-4 animate-spin text-info" /></div>
             ) : (
-             <div className="p-2"> <Wifi className="h-4 w-4 text-emerald-500" /></div>
+             <div className="p-2"> <Wifi className="h-4 w-4 text-success" /></div>
             )}
             <div onClick={(e) => { e.stopPropagation(); setExpanded(true); }}>
-              <MoreVertical className="h-4 w-4 text-zinc-500 hover:text-zinc-300" />
+              <MoreVertical className="h-4 w-4 text-muted-foreground hover:text-foreground" />
             </div>
           </div>
         )}
         
         {expanded && (
-             <div className="p-2"> <MoreVertical className="h-4 w-4 text-zinc-500 rotate-90" /></div>
+             <div className="p-2"> <MoreVertical className="h-4 w-4 rotate-90 text-muted-foreground" /></div>
         )}
       </div>
 
-      {/* Expanded Details */}
       {expanded && (
         <div className="px-4 pb-4 space-y-4 animate-in fade-in slide-in-from-top-1">
-          {/* Credentials Section */}
-          <div className="space-y-3 pt-2 border-t border-zinc-800">
+          <div className="space-y-3 border-t border-border/70 pt-2">
             <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-zinc-500 tracking-wider">CREDENTIALS</span>
+                <span className="app-section-label">Credentials</span>
                 <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="h-6 px-2 text-xs text-zinc-500 hover:text-zinc-300"
+                    className="h-7 px-2 text-xs"
                     onClick={(e) => { e.stopPropagation(); onEdit(session); }}
                 >
                     Edit
                 </Button>
             </div>
-            
+
             <div className="relative group">
-              <label className="text-xs text-zinc-500 mb-1 block">Username</label>
+              <label className="mb-1 block text-xs text-muted-foreground">Username</label>
               <Input
                 readOnly
                 value={session.username}
-                className="bg-zinc-950 border-zinc-800 text-zinc-300 pr-8 h-9 text-sm font-mono"
+                className="h-10 pr-8 font-mono text-sm"
               />
               <button
-                className="absolute right-2 top-7 text-zinc-500 hover:text-zinc-300"
+                className="absolute right-2 top-7 text-muted-foreground hover:text-foreground"
                 onClick={(e) => {
                   e.stopPropagation();
                   navigator.clipboard.writeText(session.username);
@@ -206,26 +202,25 @@ export function ProfileCard({ session, onEdit, onDelete }: ProfileCardProps) {
             </div>
 
             <div className="relative group">
-              <label className="text-xs text-zinc-500 mb-1 block">Password</label>
+              <label className="mb-1 block text-xs text-muted-foreground">Password</label>
               <Input
                 readOnly
                 type="text"
                 value={session.password || ""}
                 placeholder="Password"
                 className={cn(
-                  "bg-zinc-950 border-zinc-800 text-zinc-300 pr-8 h-9 text-sm font-mono",
-                  !session.password && "text-zinc-500 italic"
+                  "h-10 pr-8 font-mono text-sm",
+                  !session.password && "italic text-muted-foreground"
                 )}
               />
             </div>
           </div>
 
-          {/* Action Footer */}
           <div className="pt-2">
             {isConnected ? (
               <Button
                 variant="destructive"
-                className="w-full bg-red-500/10 text-red-500 hover:bg-red-500/20 border-red-500/20 border"
+                className="w-full border border-destructive/25 bg-destructive/10 text-destructive hover:bg-destructive/15"
                 onClick={handleDisconnect}
                 disabled={isLoading}
               >
@@ -235,7 +230,7 @@ export function ProfileCard({ session, onEdit, onDelete }: ProfileCardProps) {
               <div className="flex gap-2">
                  <Button
                     variant="ghost"
-                    className="flex-1 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                    className="flex-1 text-destructive hover:bg-destructive/10 hover:text-destructive"
                     onClick={(e) => {
                         e.stopPropagation();
                         if(confirm(`Delete profile ${session.name}?`)) {
@@ -246,9 +241,8 @@ export function ProfileCard({ session, onEdit, onDelete }: ProfileCardProps) {
                  >
                     Delete
                  </Button>
-                  {/* Invariant: Disable only the session currently connecting */}
                   <Button
-                    className="flex-[2] bg-emerald-600 hover:bg-emerald-700 text-white"
+                    className="flex-[2]"
                     onClick={handleConnect}
                     disabled={isConnecting || !session.password}
                   >

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { produce } from "immer";
 import * as TestPlanAdapter from "@/core/adapters/TestPlanAdapter";
 import { generateTestId, generateActionId } from "@/lib/idGenerator";
@@ -17,19 +17,21 @@ export function usePlanState(filename: string) {
   const [error, setError] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const [saveStatus, setSaveStatus] = useState("");
+  const saveStatusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const ensureIds = useCallback((data: TestPlan): TestPlan => {
-    if (!data.testPlan) return data;
-    data.testPlan.forEach((t) => {
-      if (!t.testID) t.testID = generateTestId();
-      if (t.testActions) {
-        t.testActions.forEach((a) => {
-          if (!a.actionID) a.actionID = generateActionId();
-        });
-      }
-    });
-    if (!data.profiles) data.profiles = [];
-    return data;
+    return {
+      ...data,
+      profiles: data.profiles ? [...data.profiles] : [],
+      testPlan: (data.testPlan || []).map((test) => ({
+        ...test,
+        testID: test.testID || generateTestId(),
+        testActions: (test.testActions || []).map((action) => ({
+          ...action,
+          actionID: action.actionID || generateActionId(),
+        })),
+      })),
+    };
   }, []);
 
   const loadPlan = useCallback(async () => {
@@ -50,12 +52,23 @@ export function usePlanState(filename: string) {
     loadPlan();
   }, [loadPlan]);
 
+  useEffect(() => {
+    return () => {
+      if (saveStatusTimeoutRef.current) {
+        clearTimeout(saveStatusTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleSave = async () => {
     try {
-      await TestPlanAdapter.updatePlan(filename, plan as TestPlan);
+      await TestPlanAdapter.updatePlan(filename, plan);
       setIsDirty(false);
       setSaveStatus("Saved!");
-      setTimeout(() => setSaveStatus(""), 2000);
+      if (saveStatusTimeoutRef.current) {
+        clearTimeout(saveStatusTimeoutRef.current);
+      }
+      saveStatusTimeoutRef.current = setTimeout(() => setSaveStatus(""), 2000);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err));
     }
@@ -90,7 +103,10 @@ export function usePlanState(filename: string) {
       const idx = draft.testPlan.findIndex(t => t.testID === testId);
       if (idx !== -1) {
         if (!draft.testPlan[idx].testActions) draft.testPlan[idx].testActions = [];
-        draft.testPlan[idx].testActions!.push(newAction);
+        const testActions = draft.testPlan[idx].testActions;
+        if (testActions) {
+          testActions.push(newAction);
+        }
       }
     }));
     setIsDirty(true);
@@ -126,7 +142,10 @@ export function usePlanState(filename: string) {
       for (const test of draft.testPlan) {
         const actionIdx = test.testActions?.findIndex(a => a.actionID === itemId);
         if (actionIdx !== undefined && actionIdx !== -1) {
-          Object.assign(test.testActions![actionIdx], updates);
+          const testActions = test.testActions;
+          if (testActions) {
+            Object.assign(testActions[actionIdx], updates);
+          }
           return;
         }
       }

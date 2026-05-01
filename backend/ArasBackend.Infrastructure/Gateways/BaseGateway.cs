@@ -1,19 +1,24 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Aras.IOM;
 using ArasBackend.Core.Models;
+using ArasBackend.Infrastructure.Options;
 using ArasBackend.Infrastructure.Services;
+using Microsoft.Extensions.Options;
 
 namespace ArasBackend.Infrastructure.Gateways;
 
 public abstract class BaseGateway
 {
     protected readonly ArasSessionManager _sessionManager;
+    private readonly GatewayResponseOptions _gatewayResponseOptions;
 
-    protected BaseGateway(ArasSessionManager sessionManager)
+    protected BaseGateway(ArasSessionManager sessionManager, IOptions<GatewayResponseOptions> gatewayResponseOptions)
     {
         _sessionManager = sessionManager;
+        _gatewayResponseOptions = gatewayResponseOptions.Value;
     }
 
     protected ItemResponse ExecuteIom(Func<Innovator, Item> action, string successMessage = "Success")
@@ -30,7 +35,7 @@ public abstract class BaseGateway
             {
                 Success = true,
                 Message = successMessage,
-                Data = result.dom?.OuterXml,
+                Data = BuildResponseData(result),
                 ItemCount = result.getItemCount()
             };
         });
@@ -43,9 +48,48 @@ public abstract class BaseGateway
 
     protected Task<T> RunAsync<T>(Func<T> action, CancellationToken cancellationToken)
     {
-        // Offload to thread pool.
-        // Note: Aras IOM is not cancellable once started, but we can prevent starting if token is already cancelled.
-        // Task.Run(..., cancellationToken) checks the token before scheduling.
-        return Task.Run(action, cancellationToken);
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return Task.FromCanceled<T>(cancellationToken);
+        }
+
+        try
+        {
+            return Task.FromResult(action());
+        }
+        catch (Exception ex)
+        {
+            return Task.FromException<T>(ex);
+        }
+    }
+
+    private object BuildResponseData(Item result)
+    {
+        var data = new Dictionary<string, object?>
+        {
+            ["itemType"] = SafeRead(() => result.getType()),
+            ["id"] = SafeRead(() => result.getID()),
+            ["keyedName"] = SafeRead(() => result.getProperty("keyed_name", "")),
+            ["itemCount"] = result.getItemCount()
+        };
+
+        if (_gatewayResponseOptions.IncludeRawXmlData)
+        {
+            data["rawXml"] = result.dom?.OuterXml;
+        }
+
+        return data;
+    }
+
+    private static string SafeRead(Func<string> read)
+    {
+        try
+        {
+            return read();
+        }
+        catch
+        {
+            return string.Empty;
+        }
     }
 }

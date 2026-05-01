@@ -289,7 +289,7 @@ namespace ArasBackend.Core.Models
 
     public class WaitRequest
     {
-        [Range(0, int.MaxValue)]
+        [Range(0, 60000)]
         public int Duration { get; set; }
     }
 

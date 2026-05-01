@@ -6,6 +6,7 @@ const electron_1 = require("electron");
 // so we ensure structural compatibility or define it here too if shared types were available.
 // For now, we rely on the implementation matching the declaration.
 electron_1.contextBridge.exposeInMainWorld("api", {
+    getRuntimeConfig: () => electron_1.ipcRenderer.invoke("app:getRuntimeConfig"),
     pickFolder: () => electron_1.ipcRenderer.invoke("dialog:pickFolder"),
     readFile: (baseDir, relativePath) => electron_1.ipcRenderer.invoke("fs:readFile", baseDir, relativePath),
     writeFile: (baseDir, relativePath, data) => electron_1.ipcRenderer.invoke("fs:writeFile", baseDir, relativePath, data),

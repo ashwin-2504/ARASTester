@@ -1,46 +1,54 @@
+@import "@material-symbols/font-400/rounded.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    /* New Dark + Bright Palette */
-    --background: 225 6% 13%; /* #1E1F22 */
-    --foreground: 240 5% 90%; /* #E3E3E6 */
+    --background: 226 18% 10%;
+    --foreground: 220 17% 92%;
 
-    --card: 228 5% 17%; /* #2A2B2F */
-    --card-foreground: 240 5% 90%; /* #E3E3E6 */
+    --card: 226 16% 13%;
+    --card-foreground: 220 17% 92%;
+    --panel: 226 16% 13%;
+    --panel-foreground: 220 17% 92%;
+    --panel-elevated: 226 15% 16%;
+    --panel-muted: 226 15% 12%;
+    --sidebar: 226 18% 11%;
+    --sidebar-foreground: 220 14% 88%;
 
-    --popover: 228 5% 17%; /* #2A2B2F */
-    --popover-foreground: 240 5% 90%; /* #E3E3E6 */
+    --popover: 226 16% 13%;
+    --popover-foreground: 220 17% 92%;
 
-    --primary: 232 100% 74%; /* #7B8CFF */
-    --primary-foreground: 225 6% 13%; /* Dark text on bright button */
+    --primary: 232 100% 74%;
+    --primary-foreground: 226 18% 10%;
 
-    --secondary: 228 5% 17%; /* #2A2B2F */
-    --secondary-foreground: 240 5% 90%; /* #E3E3E6 */
+    --secondary: 226 15% 16%;
+    --secondary-foreground: 220 17% 92%;
 
-    --muted: 228 5% 17%; /* #2A2B2F */
-    --muted-foreground: 225 2% 67%; /* #A8A9AC */
+    --muted: 226 15% 16%;
+    --muted-foreground: 220 10% 64%;
 
-    --accent: 232 100% 74%; /* #7B8CFF */
+    --accent: 232 90% 68%;
     --accent-foreground: 225 6% 13%;
 
-    --destructive: 358 100% 68%; /* #FF5A5F */
+    --destructive: 358 91% 67%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 230 5% 24%; /* #3A3B40 */
-    --input: 230 5% 24%; /* #3A3B40 */
-    --ring: 232 100% 74%; /* #7B8CFF */
+    --border: 226 13% 24%;
+    --border-strong: 226 13% 29%;
+    --input: 226 13% 24%;
+    --ring: 232 100% 74%;
 
-    --radius: 0.5rem;
+    --success: 151 50% 53%;
+    --success-foreground: 0 0% 100%;
+    --warning: 39 74% 59%;
+    --warning-foreground: 226 18% 10%;
+    --info: 206 70% 59%;
+    --info-foreground: 0 0% 100%;
 
-    /* Custom variables for direct usage if needed */
-    --bg-elevated: 228 5% 17%;
-    --accent-hover: 233 100% 78%; /* #8F9CFF */
-    --success: 151 50% 53%; /* #4CC38A */
-    --warning: 39 74% 59%; /* #E2AD4C */
-    --info: 206 70% 59%; /* #4EA1E0 */
+    --radius: 0.875rem;
   }
 }
 
@@ -48,32 +56,166 @@
   * {
     @apply border-border;
   }
+
+  html {
+    color-scheme: dark;
+  }
+
   body {
-    @apply bg-background text-foreground select-none font-sans leading-relaxed;
+    @apply bg-background text-foreground font-sans leading-relaxed antialiased;
+    user-select: none;
+    text-rendering: optimizeLegibility;
   }
 
   h1 {
-    @apply text-[32px] font-bold;
+    @apply text-[30px] font-semibold tracking-tight;
   }
 
   h2 {
-    @apply text-[24px] font-semibold;
+    @apply text-[24px] font-semibold tracking-tight;
   }
 
   p {
     @apply text-[16px];
   }
 
-  /* Ensure cards and modals have the correct background and border */
-  .card,
-  .modal,
-  .popover {
-    @apply bg-card border border-border;
+  button,
+  input,
+  textarea,
+  select {
+    @apply outline-none;
   }
 }
 
+@layer components {
+  .app-shell {
+    @apply flex h-screen overflow-hidden bg-background text-foreground;
+  }
+
+  .app-page {
+    @apply h-full overflow-y-auto bg-background;
+  }
+
+  .app-page-inner {
+    @apply mx-auto w-full max-w-[1800px] space-y-8 px-4 py-6 sm:px-6 md:px-8 2xl:px-10;
+  }
+
+  .app-page-header {
+    @apply flex min-w-0 flex-col gap-4 md:flex-row md:items-center md:justify-between;
+  }
+
+  .app-page-title {
+    @apply truncate text-3xl font-semibold tracking-tight text-foreground;
+  }
+
+  .app-page-subtitle {
+    @apply text-sm text-muted-foreground;
+  }
+
+  .app-section-label {
+    @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground;
+  }
+
+  .app-field {
+    @apply space-y-2;
+  }
+
+  .app-field-label {
+    @apply block text-sm font-medium text-foreground;
+  }
+
+  .app-field-hint {
+    @apply text-sm text-muted-foreground;
+  }
+
+  .app-surface {
+    @apply rounded-2xl border border-border/80 bg-panel text-panel-foreground shadow-panel;
+  }
+
+  .app-surface-elevated {
+    @apply rounded-2xl border border-border/80 bg-panelElevated text-panel-foreground shadow-panel;
+  }
+
+  .app-surface-muted {
+    @apply rounded-2xl border border-border/70 bg-panelMuted text-panel-foreground;
+  }
+
+  .app-card-interactive {
+    @apply rounded-2xl border border-border/70 bg-panel text-panel-foreground shadow-panel transition-[transform,border-color,box-shadow,background-color] duration-200 hover:-translate-y-0.5 hover:border-primary/45 hover:bg-panelElevated hover:shadow-soft;
+  }
+
+  .app-empty-state {
+    @apply flex flex-col items-center justify-center rounded-2xl border border-dashed border-border/70 bg-panel/70 p-12 text-center text-muted-foreground;
+  }
+
+  .app-dropdown-trigger {
+    @apply flex h-11 w-full items-center justify-between rounded-xl border border-input/80 bg-panelMuted px-4 text-sm text-foreground shadow-inner shadow-black/10 transition-colors hover:border-borderStrong hover:bg-panel focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:ring-offset-2;
+  }
+
+  .app-rail {
+    @apply flex w-14 flex-col items-center gap-3 border-r border-border/80 bg-sidebar px-2 py-4;
+  }
+
+  .app-rail-button {
+    @apply inline-flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground;
+  }
+
+  .app-rail-button[data-active="true"] {
+    @apply bg-primary/10 text-primary shadow-[inset_0_0_0_1px_rgba(123,140,255,0.2)];
+  }
+
+  .app-sidebar-panel {
+    @apply flex h-full w-80 flex-col border-r border-border/80 bg-sidebar text-sidebar-foreground;
+  }
+
+  .app-sidebar-panel__header {
+    @apply flex items-center justify-between border-b border-border/80 px-4 py-4;
+  }
+
+  .app-sidebar-panel__body {
+    @apply flex-1 space-y-4 overflow-y-auto p-4;
+  }
+
+  .app-inline-status {
+    @apply inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold;
+  }
+
+  .app-inline-status--success {
+    @apply border-success/20 bg-success/10 text-success;
+  }
+
+  .app-inline-status--warning {
+    @apply border-warning/20 bg-warning/10 text-warning;
+  }
+
+  .app-inline-status--info {
+    @apply border-info/20 bg-info/10 text-info;
+  }
+
+  .app-inline-status--error {
+    @apply border-destructive/20 bg-destructive/10 text-destructive;
+  }
+
+  .app-icon {
+    @apply inline-flex shrink-0 select-none items-center justify-center align-middle not-italic;
+    line-height: 1;
+    font-size: 20px;
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 20;
+  }
+
+  .app-icon--filled {
+    font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 20;
+  }
+
+  .app-icon--xs { font-size: 14px; }
+  .app-icon--sm { font-size: 16px; }
+  .app-icon--md { font-size: 18px; }
+  .app-icon--lg { font-size: 20px; }
+  .app-icon--xl { font-size: 24px; }
+  .app-icon--2xl { font-size: 32px; }
+}
+
 @layer utilities {
-  /* Custom Scrollbar */
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -93,10 +235,5 @@
 
   ::-webkit-scrollbar-corner {
     @apply bg-transparent;
-  }
-
-  /* Global Gutter Space - reserve space for scrollbar */
-  .scrollbar-stable {
-    scrollbar-gutter: stable;
   }
 }

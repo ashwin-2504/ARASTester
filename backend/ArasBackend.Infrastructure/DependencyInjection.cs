@@ -9,7 +9,9 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services)
     {
+        services.AddOptions();
         services.AddSingleton<IConnectionStore, ConnectionStore>();
+        services.AddHostedService<ConnectionStoreCleanupService>();
         
         services.AddScoped<ArasSessionManager>();
         services.AddScoped<IArasSessionManager>(sp => sp.GetRequiredService<ArasSessionManager>());

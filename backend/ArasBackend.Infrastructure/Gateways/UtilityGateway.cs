@@ -1,16 +1,25 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using ArasBackend.Core.Exceptions;
 using ArasBackend.Core.Interfaces;
 using ArasBackend.Core.Models;
+using ArasBackend.Infrastructure.Options;
 using ArasBackend.Infrastructure.Services;
+using Microsoft.Extensions.Options;
 
 namespace ArasBackend.Infrastructure.Gateways;
 
 public class UtilityGateway : BaseGateway, IUtilityGateway
 {
-    public UtilityGateway(ArasSessionManager sessionManager) : base(sessionManager)
+    private readonly UtilityExecutionOptions _utilityExecutionOptions;
+
+    public UtilityGateway(
+        ArasSessionManager sessionManager,
+        IOptions<GatewayResponseOptions> gatewayResponseOptions,
+        IOptions<UtilityExecutionOptions> utilityExecutionOptions) : base(sessionManager, gatewayResponseOptions)
     {
+        _utilityExecutionOptions = utilityExecutionOptions.Value;
     }
 
     public Task<ItemResponse> ApplyAML(ApplyAmlRequest request, CancellationToken cancellationToken = default)
@@ -60,6 +69,12 @@ public class UtilityGateway : BaseGateway, IUtilityGateway
 
     public async Task<ItemResponse> Wait(WaitRequest request, CancellationToken cancellationToken = default)
     {
+        var maxWaitDuration = Math.Max(1, _utilityExecutionOptions.MaxWaitDurationMs);
+        if (request.Duration > maxWaitDuration)
+        {
+            throw new ArasValidationException($"Wait duration exceeds max allowed value of {maxWaitDuration}ms.");
+        }
+
         await Task.Delay(request.Duration, cancellationToken);
         return new ItemResponse { Success = true, Message = $"Waited {request.Duration}ms" };
     }

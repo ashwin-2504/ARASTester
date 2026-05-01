@@ -23,15 +23,15 @@ public interface IItemGateway
     Task<ItemResponse> UpdateItem(UpdateItemRequest request, CancellationToken cancellationToken = default);
     Task<ItemResponse> DeleteItem(DeleteItemRequest request, CancellationToken cancellationToken = default);
     Task<ItemResponse> PurgeItem(DeleteItemRequest request, CancellationToken cancellationToken = default);
-    
+
     Task<ItemResponse> LockItem(LockRequest request, CancellationToken cancellationToken = default);
     Task<ItemResponse> UnlockItem(LockRequest request, CancellationToken cancellationToken = default);
     Task<ItemResponse> CheckLockStatus(LockRequest request, CancellationToken cancellationToken = default);
-    
+
     Task<ItemResponse> AddRelationship(AddRelationshipRequest request, CancellationToken cancellationToken = default);
     Task<ItemResponse> GetRelationships(GetRelationshipsRequest request, CancellationToken cancellationToken = default);
     Task<ItemResponse> DeleteRelationship(DeleteRelationshipRequest request, CancellationToken cancellationToken = default);
-    
+
     Task<ItemResponse> PromoteItem(PromoteRequest request, CancellationToken cancellationToken = default);
     Task<ItemResponse> GetCurrentState(GetByIdRequest request, CancellationToken cancellationToken = default);
 }

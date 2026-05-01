@@ -1,5 +1,8 @@
 using System.Collections.Concurrent;
 using ArasBackend.Core.Models;
+using ArasBackend.Infrastructure.Options;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace ArasBackend.Infrastructure.Services;
 
@@ -7,14 +10,33 @@ public class ConnectionStore : IConnectionStore
 {
     // Key is session name (e.g., "default", "admin-session")
     private readonly ConcurrentDictionary<string, SessionContext> _sessions = new();
-    private readonly TimeSpan _sessionTimeout = TimeSpan.FromHours(4);
-    private DateTime _lastCleanup = DateTime.UtcNow;
-    private readonly TimeSpan _cleanupInterval = TimeSpan.FromMinutes(30);
+    private readonly TimeSpan _sessionTimeout;
+    private readonly TimeSpan _logoutTimeout;
+    private readonly ILogger<ConnectionStore> _logger;
+
+    public ConnectionStore(IOptions<SessionStoreOptions> sessionStoreOptions, ILogger<ConnectionStore> logger)
+    {
+        var options = sessionStoreOptions.Value;
+        _logger = logger;
+        _sessionTimeout = TimeSpan.FromHours(Math.Max(1, options.SessionTimeoutHours));
+        _logoutTimeout = TimeSpan.FromSeconds(Math.Max(1, options.LogoutTimeoutSeconds));
+    }
 
     public void AddSession(string name, SessionContext session)
     {
-        CleanupExpiredSessions();
-        _sessions[name] = session;
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException("Session name is required.", nameof(name));
+        }
+
+        _sessions.AddOrUpdate(
+            name,
+            session,
+            (_, existingSession) =>
+            {
+                QueueLogout(existingSession, name, "session replacement");
+                return session;
+            });
     }
 
     [Obsolete]
@@ -29,13 +51,11 @@ public class ConnectionStore : IConnectionStore
     public SessionContext? GetSession(string name)
     {
         if (string.IsNullOrEmpty(name)) return null;
-        
-        CleanupExpiredSessions();
-        
+
         if (_sessions.TryGetValue(name, out var session))
         {
             // Check if session is expired
-            if (DateTime.UtcNow - session.LastAccessedAt > _sessionTimeout)
+            if (IsExpired(session))
             {
                 RemoveSession(name);
                 return null;
@@ -52,13 +72,12 @@ public class ConnectionStore : IConnectionStore
         if (string.IsNullOrEmpty(name)) return;
         if (_sessions.TryRemove(name, out var session))
         {
-            try { session.Connection.Logout(); } catch { }
+            QueueLogout(session, name, "session removal");
         }
     }
 
     public List<SessionInfo> GetAllSessions()
     {
-        CleanupExpiredSessions();
         return _sessions.Select(kvp => new SessionInfo
         {
             Name = kvp.Key,
@@ -67,13 +86,10 @@ public class ConnectionStore : IConnectionStore
         }).ToList();
     }
 
-    private void CleanupExpiredSessions()
+    public int CleanupExpiredSessions()
     {
-        if (DateTime.UtcNow - _lastCleanup < _cleanupInterval) return;
-        
-        _lastCleanup = DateTime.UtcNow;
         var expiredSessions = _sessions
-            .Where(kvp => DateTime.UtcNow - kvp.Value.LastAccessedAt > _sessionTimeout)
+            .Where(kvp => IsExpired(kvp.Value))
             .Select(kvp => kvp.Key)
             .ToList();
 
@@ -81,5 +97,32 @@ public class ConnectionStore : IConnectionStore
         {
             RemoveSession(sessionId);
         }
+
+        return expiredSessions.Count;
+    }
+
+    private bool IsExpired(SessionContext session)
+    {
+        return DateTime.UtcNow - session.LastAccessedAt > _sessionTimeout;
+    }
+
+    private void QueueLogout(SessionContext session, string sessionName, string reason)
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var logoutTask = Task.Run(() => session.Connection.Logout());
+                await logoutTask.WaitAsync(_logoutTimeout);
+            }
+            catch (TimeoutException ex)
+            {
+                _logger.LogWarning(ex, "Timed out while logging out session '{SessionName}' during {Reason}", sessionName, reason);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to log out session '{SessionName}' during {Reason}", sessionName, reason);
+            }
+        });
     }
 }

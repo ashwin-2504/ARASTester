@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Play, Loader2 } from 'lucide-react'
 import TestTree from '@/components/TestTree'
+import { Button } from '@/components/ui/button'
 import { usePlanDetails } from './usePlanDetails'
 import { useEscapeKey } from '@/lib/hooks/useEscapeKey'
 import { confirm } from '@/lib/hooks/useConfirmDialog'
@@ -90,17 +91,17 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDe
     return 'testID' in item && !('actionID' in item);
   }
 
-  if (loading) return <div className="flex h-full items-center justify-center text-muted-foreground">Loading...</div>
-  if (error) return <div className="flex h-full items-center justify-center text-red-500">{error}</div>
+  if (loading) return <div className="app-empty-state m-6 h-[calc(100%-3rem)]">Loading...</div>
+  if (error) return <div className="app-empty-state m-6 h-[calc(100%-3rem)] text-destructive">{error}</div>
 
   return (
-    <div className="flex h-full bg-background relative">
+    <div className="app-shell relative h-full">
       <ActivityBar activeView={activeView} onViewChange={handleViewChange} />
 
       {(isSidebarOpen || !isNarrow) && (
         <div 
             className={`
-                bg-zinc-950 border-r border-zinc-800 flex flex-col transition-all duration-300 ease-in-out shadow-2xl z-40
+                z-40 flex flex-col border-r border-border/80 bg-sidebar shadow-2xl transition-all duration-300 ease-in-out
                 ${isNarrow 
                     ? `fixed left-12 top-0 bottom-0 w-80 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}` 
                     : `relative w-80 ${isSidebarOpen ? 'block' : 'hidden'}`
@@ -143,13 +144,13 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDe
 
       {isNarrow && isSidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-30 transition-opacity duration-300 animate-in fade-in" 
+          className="fixed inset-0 z-30 bg-black/55 backdrop-blur-[1px] transition-opacity duration-300 animate-in fade-in" 
           onClick={() => setIsSidebarOpen(false)} 
           style={{ left: '3rem' }}
         />
       )}
 
-      <div className="flex-1 flex flex-col min-w-0 bg-background">
+      <div className="flex min-w-0 flex-1 flex-col bg-background">
           <PlanDetailsHeader 
             title={plan.title}
             filename={filename}
@@ -174,26 +175,27 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDe
             onSave={handleSave}
           />
 
-          <main className="flex-1 overflow-y-auto p-4">
+          <main className="app-page flex-1">
               {!selectedItem ? (
-                <div className="flex flex-col items-center justify-center h-full text-muted-foreground space-y-4">
-                  <div className="w-16 h-16 rounded-2xl bg-zinc-900 flex items-center justify-center">
-                    <Play className="h-8 w-8 text-zinc-700 ml-1" />
+                <div className="app-empty-state m-6 h-[calc(100%-3rem)] space-y-4">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-3xl border border-border/80 bg-panelMuted">
+                    <Play className="ml-1 h-8 w-8 text-muted-foreground" />
                   </div>
                   <p>Select a test or action to view details</p>
                 </div>
               ) : (
-                <div className="max-w-4xl mx-auto space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <div className="flex items-end justify-between border-b pb-4">
-                    <div>
-                      <h2 className="text-2xl font-bold mb-1">{isTest(selectedItem) ? 'Test Details' : 'Action Details'}</h2>
+                <div className="app-page-inner max-w-[1500px] animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="flex flex-col gap-4 border-b border-border/80 pb-4 md:flex-row md:items-end md:justify-between">
+                    <div className="space-y-1">
+                      <div className="app-section-label">{isTest(selectedItem) ? 'Selected Test' : 'Selected Action'}</div>
+                      <h2 className="mb-1 text-2xl font-bold">{isTest(selectedItem) ? 'Test Details' : 'Action Details'}</h2>
                       <p className="text-sm text-muted-foreground">
                         {isTest(selectedItem) ? 'Configure test properties' : 'Configure action behavior and parameters'}
                       </p>
                     </div>
                     <Button
                       variant="outline"
-                      className="text-emerald-500 border-emerald-500 hover:bg-emerald-500/10"
+                      className="border-success/40 text-success hover:bg-success/10 hover:text-success"
                       onClick={() => isTest(selectedItem) ? handleRunTest(selectedItem) : handleRunAction(selectedItem)}
                       disabled={isRunning}
                     >
@@ -211,21 +213,25 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDe
 
                   <div className="space-y-4">
                     {isTest(selectedItem) ? (
-                      <TestEditorPanel 
-                        test={selectedItem}
-                        plan={plan}
-                        onUpdate={updateSelectedItem}
-                        onManageProfiles={() => {
-                          setActiveView("sessions");
-                          setIsSidebarOpen(true);
-                        }}
-                      />
+                      <div className="app-surface space-y-5 p-6">
+                        <TestEditorPanel 
+                          test={selectedItem}
+                          plan={plan}
+                          onUpdate={updateSelectedItem}
+                          onManageProfiles={() => {
+                            setActiveView("sessions");
+                            setIsSidebarOpen(true);
+                          }}
+                        />
+                      </div>
                     ) : (
-                      <ActionEditorPanel 
-                        action={selectedItem as Action}
-                        onUpdate={updateSelectedItem as (updates: Partial<Action>) => void}
-                        logs={logs}
-                      />
+                      <div className="app-surface space-y-5 p-6">
+                        <ActionEditorPanel 
+                          action={selectedItem}
+                          onUpdate={updateSelectedItem as (updates: Partial<Action>) => void}
+                          logs={logs}
+                        />
+                      </div>
                     )}
                   </div>
                 </div>
@@ -235,35 +241,3 @@ export default function PlanDetailsPage({ filename, onNavigate, onBack }: PlanDe
     </div>
   )
 }
-
-// Local Button component to resolve UI dependency mapping
-import { cn } from "@/lib/utils"
-
-const Button = React.forwardRef<HTMLButtonElement, any>(
-  ({ className, variant, size, ...props }, ref) => {
-    const variants: any = {
-      default: "bg-primary text-primary-foreground hover:bg-primary/90 m-1",
-      outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground m-1",
-      ghost: "hover:bg-accent hover:text-accent-foreground m-1",
-    }
-    const sizes: any = {
-      default: "h-10 px-4 py-2",
-      sm: "h-9 rounded-md px-3",
-      lg: "h-11 rounded-md px-8",
-      icon: "h-10 w-10",
-    }
-    return (
-      <button
-        ref={ref}
-        className={cn(
-          "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
-          variants[variant || 'default'],
-          sizes[size || 'default'],
-          className
-        )}
-        {...props}
-      />
-    )
-  }
-)
-Button.displayName = "Button"

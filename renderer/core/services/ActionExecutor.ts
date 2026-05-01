@@ -2,6 +2,7 @@ import { apiClient } from "@/core/api/client";
 import { actionRegistry } from "@/core/registries/ActionRegistry";
 import { useSessionStore } from "@/stores/useSessionStore";
 import type { Action, ActionPlugin } from "@/types/plan";
+import type { ApiOptions } from "@/core/api/client";
 
 export interface ActionResult {
   success: boolean;
@@ -19,7 +20,7 @@ export const ActionExecutor = {
    * @param action - The action object from the test plan
    * @returns Result object { success: boolean, ...details }
    */
-  async execute(action: Action, sessionName?: string): Promise<ActionResult> {
+  async execute(action: Action, sessionName?: string, requestOptions?: ApiOptions): Promise<ActionResult> {
     try {
       const plugin = actionRegistry.get(action.actionType);
 
@@ -30,7 +31,7 @@ export const ActionExecutor = {
 
       // 2. Handle Server-Side Actions via API
       if (plugin?.apiEndpoint) {
-        return await this.executeServerSide(action, plugin, sessionName);
+        return await this.executeServerSide(action, plugin, sessionName, requestOptions);
       }
 
       // 3. Fallback for unknown types
@@ -48,13 +49,21 @@ export const ActionExecutor = {
     }
   },
 
-  async executeServerSide(action: Action, plugin: ActionPlugin, sessionName?: string): Promise<ActionResult> {
+  async executeServerSide(
+    action: Action,
+    plugin: ActionPlugin,
+    sessionName?: string,
+    requestOptions?: ApiOptions
+  ): Promise<ActionResult> {
     try {
       let data: ActionResult;
       
       // Resolve session name: explicit -> store current -> undefined (default)
       const resolvedSessionName = sessionName || useSessionStore.getState().currentSessionName;
-      const options = resolvedSessionName ? { sessionName: resolvedSessionName } : {};
+      const options: ApiOptions = {
+        ...(requestOptions || {}),
+        ...(resolvedSessionName ? { sessionName: resolvedSessionName } : {}),
+      };
       
       if (plugin.apiMethod === "GET") {
         data = await apiClient.get<ActionResult>(plugin.apiEndpoint!, options);
@@ -96,13 +105,16 @@ export const ActionExecutor = {
         return { success: true, message: `Waited ${duration}ms` };
       }
 
-      case "LogMessage":
+      case "LogMessage": {
         // User-visible log action - kept for visibility
+        const logLevel = typeof action.params?.level === "string" ? action.params.level : "info";
+        const logMessage = typeof action.params?.message === "string" ? action.params.message : "";
         console.log(
-          `[${action.params?.level || "info"}]`,
-          action.params?.message,
+          `[${logLevel}]`,
+          logMessage,
         );
-        return { success: true, message: action.params?.message };
+        return { success: true, message: logMessage };
+      }
 
       case "SetVariable":
         // Future: Context variable store integration

@@ -11,10 +11,10 @@ export function Toaster() {
         <div
           key={toast.id}
           className={cn(
-            "pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-md border p-6 shadow-lg transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none",
+            "pointer-events-auto relative flex w-full items-start justify-between gap-4 overflow-hidden rounded-2xl border p-5 shadow-panel transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none",
             toast.variant === 'destructive' 
-              ? "destructive group border-destructive bg-destructive text-destructive-foreground" 
-              : "bg-background text-foreground border-border"
+              ? "group border-destructive/30 bg-destructive/15 text-destructive-foreground" 
+              : "border-border/80 bg-panelElevated text-foreground"
           )}
         >
           <div className="grid gap-1">
@@ -24,7 +24,7 @@ export function Toaster() {
           <button
             onClick={() => dismiss(toast.id)}
             className={cn(
-              "absolute right-2 top-2 rounded-md p-1 opacity-0 transition-opacity hover:text-foreground focus:opacity-100 focus:outline-none focus:ring-2 group-hover:opacity-100",
+              "absolute right-2 top-2 inline-flex h-9 w-9 items-center justify-center rounded-xl opacity-0 transition-colors hover:bg-muted/50 hover:text-foreground focus:opacity-100 focus:outline-none focus:ring-2 group-hover:opacity-100",
               toast.variant === "destructive" ? "text-red-300 hover:text-red-50 focus:ring-red-400 focus:ring-offset-red-600" : "text-foreground/50 hover:text-foreground"
             )}
           >

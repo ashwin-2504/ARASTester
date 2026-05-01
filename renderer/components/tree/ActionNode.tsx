@@ -1,13 +1,14 @@
 import React from 'react'
 import { GripVertical, Trash2, Check } from 'lucide-react'
-import { Button } from '@/components/ui/button.jsx'
+import { Button } from '@/components/ui/button'
 import { StatusIndicator } from '@/components/ui/StatusIndicator.jsx'
 import { Draggable } from '@hello-pangea/dnd'
 import { cn } from '@/lib/utils'
 import type { Action, Test } from '@/types/plan'
 
 interface ActionNodeProps {
-  action: Action & { status?: string };
+  action: Action;
+  status?: string;
   index: number;
   selectedItem: Test | Action | null;
   onSelect: (item: Test | Action) => void;
@@ -19,6 +20,7 @@ interface ActionNodeProps {
 
 const ActionNode = React.memo<ActionNodeProps>(function ActionNode({
   action,
+  status,
   index,
   selectedItem,
   onSelect,
@@ -40,7 +42,7 @@ const ActionNode = React.memo<ActionNodeProps>(function ActionNode({
             "group flex items-center p-2 rounded-lg border transition-colors duration-200 relative mb-1",
             isSelected
               ? "bg-amber-950/40 border-amber-500/50"
-              : "bg-card/30 border-transparent hover:bg-amber-950/20 hover:border-amber-500/20",
+              : "bg-card/30 border-border/50 hover:bg-amber-950/20 hover:border-amber-500/30",
             snapshot.isDragging && "opacity-90 shadow-lg ring-1 ring-amber-500/50"
           )}
           onClick={() => onSelect(action)}
@@ -84,7 +86,7 @@ const ActionNode = React.memo<ActionNodeProps>(function ActionNode({
           </span>
           <div className="flex items-center ml-auto gap-1 transition-opacity">
             <StatusIndicator
-              status={action.status} // Will be passed from parent
+              status={status}
               onRun={() => onRunAction && onRunAction(action)}
               className="h-8 w-8"
               iconClassName="h-4 w-4"

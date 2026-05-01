@@ -8,7 +8,7 @@ export async function readFile(folderPath: string, relativePath: string): Promis
   return await window.api.readFile(folderPath, relativePath);
 }
 
-export async function writeFile(folderPath: string, relativePath: string, data: any): Promise<void> {
+export async function writeFile(folderPath: string, relativePath: string, data: unknown): Promise<void> {
   return await window.api.writeFile(folderPath, relativePath, data);
 }
 

@@ -1,0 +1,152 @@
+{
+  "success": true,
+  "clones": [
+    {
+      "fileA": "renderer\\core\\api\\client.ts",
+      "startA": 285,
+      "fileB": "renderer\\core\\api\\client.ts",
+      "startB": 232,
+      "lines": 13,
+      "tokens": 0
+    },
+    {
+      "fileA": "renderer\\core\\api\\client.ts",
+      "startA": 307,
+      "fileB": "renderer\\core\\api\\client.ts",
+      "startB": 258,
+      "lines": 17,
+      "tokens": 0
+    },
+    {
+      "fileA": "backend\\ArasBackend.Infrastructure\\Gateways\\ItemGateway.cs",
+      "startA": 1,
+      "fileB": "backend\\ArasBackend.Infrastructure\\Gateways\\WorkflowGateway.cs",
+      "startB": 1,
+      "lines": 11,
+      "tokens": 0
+    },
+    {
+      "fileA": "backend\\ArasBackend.Infrastructure\\Gateways\\ItemGateway.cs",
+      "startA": 211,
+      "fileB": "backend\\ArasBackend.Infrastructure\\Gateways\\ItemGateway.cs",
+      "startB": 136,
+      "lines": 7,
+      "tokens": 0
+    },
+    {
+      "fileA": "backend\\ArasBackend.Infrastructure\\Gateways\\FileGateway.cs",
+      "startA": 2,
+      "fileB": "backend\\ArasBackend.Infrastructure\\Gateways\\WorkflowGateway.cs",
+      "startB": 1,
+      "lines": 11,
+      "tokens": 0
+    },
+    {
+      "fileA": "backend\\ArasBackend.Infrastructure\\Gateways\\AssertionGateway.cs",
+      "startA": 1,
+      "fileB": "backend\\ArasBackend.Infrastructure\\Gateways\\WorkflowGateway.cs",
+      "startB": 1,
+      "lines": 11,
+      "tokens": 0
+    },
+    {
+      "fileA": "backend\\ArasBackend.Infrastructure\\Gateways\\AssertionGateway.cs",
+      "startA": 37,
+      "fileB": "backend\\ArasBackend.Infrastructure\\Gateways\\AssertionGateway.cs",
+      "startB": 17,
+      "lines": 11,
+      "tokens": 0
+    },
+    {
+      "fileA": "backend\\ArasBackend.Infrastructure\\Gateways\\AssertionGateway.cs",
+      "startA": 75,
+      "fileB": "backend\\ArasBackend.Infrastructure\\Gateways\\AssertionGateway.cs",
+      "startB": 57,
+      "lines": 8,
+      "tokens": 0
+    },
+    {
+      "fileA": "backend\\ArasBackend.Infrastructure\\Gateways\\AssertionGateway.cs",
+      "startA": 93,
+      "fileB": "backend\\ArasBackend.Infrastructure\\Gateways\\AssertionGateway.cs",
+      "startB": 57,
+      "lines": 9,
+      "tokens": 0
+    },
+    {
+      "fileA": "backend\\ArasBackend.Infrastructure\\Gateways\\AssertionGateway.cs",
+      "startA": 111,
+      "fileB": "backend\\ArasBackend.Infrastructure\\Gateways\\AssertionGateway.cs",
+      "startB": 17,
+      "lines": 11,
+      "tokens": 0
+    },
+    {
+      "fileA": "backend\\ArasBackend.Infrastructure\\Gateways\\AssertionGateway.cs",
+      "startA": 131,
+      "fileB": "backend\\ArasBackend.Infrastructure\\Gateways\\AssertionGateway.cs",
+      "startB": 57,
+      "lines": 8,
+      "tokens": 0
+    },
+    {
+      "fileA": "backend\\ArasBackend.Infrastructure\\Gateways\\AssertionGateway.cs",
+      "startA": 149,
+      "fileB": "backend\\ArasBackend.Infrastructure\\Gateways\\AssertionGateway.cs",
+      "startB": 131,
+      "lines": 9,
+      "tokens": 0
+    },
+    {
+      "fileA": "backend\\ArasBackend.Infrastructure\\Gateways\\AssertionGateway.cs",
+      "startA": 167,
+      "fileB": "backend\\ArasBackend.Infrastructure\\Gateways\\AssertionGateway.cs",
+      "startB": 57,
+      "lines": 8,
+      "tokens": 0
+    },
+    {
+      "fileA": "backend\\ArasBackend.Core\\Models\\ArasModels.cs",
+      "startA": 217,
+      "fileB": "backend\\ArasBackend.Core\\Models\\ArasModels.cs",
+      "startB": 146,
+      "lines": 8,
+      "tokens": 0
+    },
+    {
+      "fileA": "backend\\ArasBackend.Core\\Models\\ArasModels.cs",
+      "startA": 250,
+      "fileB": "backend\\ArasBackend.Core\\Models\\ArasModels.cs",
+      "startB": 238,
+      "lines": 9,
+      "tokens": 0
+    },
+    {
+      "fileA": "backend\\ArasBackend.Core\\Models\\ArasModels.cs",
+      "startA": 262,
+      "fileB": "backend\\ArasBackend.Core\\Models\\ArasModels.cs",
+      "startB": 238,
+      "lines": 8,
+      "tokens": 0
+    },
+    {
+      "fileA": "backend\\ArasBackend\\Controllers\\ConnectionController.cs",
+      "startA": 1,
+      "fileB": "backend\\ArasBackend\\Controllers\\ItemController.cs",
+      "startB": 1,
+      "lines": 11,
+      "tokens": 0
+    },
+    {
+      "fileA": "renderer\\components\\TestTree.tsx",
+      "startA": 16,
+      "fileB": "renderer\\components\\tree\\TestNode.tsx",
+      "startB": 20,
+      "lines": 7,
+      "tokens": 0
+    }
+  ],
+  "duplicatedLines": 159,
+  "totalLines": 11587,
+  "percentage": 1.37
+}

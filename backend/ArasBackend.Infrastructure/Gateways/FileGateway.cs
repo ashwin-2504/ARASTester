@@ -3,13 +3,15 @@ using System.Threading;
 using System.Threading.Tasks;
 using ArasBackend.Core.Interfaces;
 using ArasBackend.Core.Models;
+using ArasBackend.Infrastructure.Options;
 using ArasBackend.Infrastructure.Services;
+using Microsoft.Extensions.Options;
 
 namespace ArasBackend.Infrastructure.Gateways;
 
 public class FileGateway : BaseGateway, IFileGateway
 {
-    public FileGateway(ArasSessionManager sessionManager) : base(sessionManager)
+    public FileGateway(ArasSessionManager sessionManager, IOptions<GatewayResponseOptions> gatewayResponseOptions) : base(sessionManager, gatewayResponseOptions)
     {
     }
 

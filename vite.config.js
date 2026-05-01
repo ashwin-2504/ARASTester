@@ -8,6 +8,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./renderer"),
+      "lucide-react": path.resolve(__dirname, "./renderer/lib/lucide-react.tsx"),
     },
   },
   build: {

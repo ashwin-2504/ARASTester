@@ -3,7 +3,7 @@ import { Plus } from "lucide-react";
 import { SavedSession, useSessionStore } from "@/stores/useSessionStore";
 import { Button } from "@/components/ui/button";
 import { ProfileCard } from "./ProfileCard";
-import { ProfileForm } from "./ProfileForm";
+import { ProfileForm, type ProfileFormValues } from "./ProfileForm";
 import { SidebarPanel } from "@/components/layout/SidebarPanel";
 import { PlanProfile } from "@/types/plan";
 
@@ -46,21 +46,27 @@ export function SessionManager({ profiles: injectedProfiles, onAdd, onUpdate, on
       setEditingSession(undefined);
   }
 
-  const handleFormSubmit = (data: any) => {
+  const handleFormSubmit = (data: ProfileFormValues) => {
+      const sessionValues = {
+          name: data.name,
+          sessionName: data.sessionName,
+          url: data.url,
+          database: data.database,
+          username: data.username,
+          password: data.password,
+      };
+
       if (isPlanMode) {
           if (editingSession) {
-              // Update
-              onUpdate?.(editingSession.id, data);
+              onUpdate?.(editingSession.id, sessionValues);
           } else {
-              // Create
-              onAdd?.({ ...data, id: crypto.randomUUID() });
+              onAdd?.({ ...sessionValues, id: crypto.randomUUID() });
           }
       } else {
-          // Global Store
           if (editingSession) {
-             updateSavedSession(editingSession.id, data);
+             updateSavedSession(editingSession.id, sessionValues);
           } else {
-             addSavedSession(data);
+             addSavedSession(sessionValues);
           }
       }
       handleBackToList();
@@ -87,7 +93,7 @@ export function SessionManager({ profiles: injectedProfiles, onAdd, onUpdate, on
         <Button
           variant="ghost"
           size="sm"
-          className="text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10 text-xs px-2 h-7"
+          className="h-8 px-2 text-xs text-success hover:bg-success/10 hover:text-success"
           onClick={handleCreateNew}
         >
           <Plus className="h-3 w-3 mr-1" /> New Profile
@@ -96,12 +102,12 @@ export function SessionManager({ profiles: injectedProfiles, onAdd, onUpdate, on
     >
       <div className="space-y-3">
         {displayProfiles.length === 0 ? (
-            <div className="text-center py-10 px-4">
-                <div className="h-12 w-12 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto mb-3 text-zinc-500">
+            <div className="app-empty-state px-4 py-10">
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border border-border/80 bg-panelMuted text-muted-foreground">
                     <Plus className="h-6 w-6" />
                 </div>
-                <h3 className="text-zinc-300 font-medium mb-1">No profiles yet</h3>
-                <p className="text-zinc-500 text-xs mb-4">
+                <h3 className="mb-1 font-medium text-foreground">No profiles yet</h3>
+                <p className="mb-4 text-xs text-muted-foreground">
                     {isPlanMode ? "Add a profile to this test plan." : "Create a global connection profile."}
                 </p>
                 <Button variant="outline" size="sm" onClick={handleCreateNew}>Create Profile</Button>

@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using global::ArasBackend.Application.Services;
 using global::ArasBackend.Core.Models;
+using ArasBackend.Options;
+using Microsoft.Extensions.Options;
 
 namespace ArasBackend.Controllers;
 
@@ -10,11 +12,16 @@ public class ConnectionController : ControllerBase
 {
     private readonly ConnectionAppService _connectionService;
     private readonly IWebHostEnvironment _env;
+    private readonly SessionResolutionOptions _sessionOptions;
 
-    public ConnectionController(ConnectionAppService connectionService, IWebHostEnvironment env)
+    public ConnectionController(
+        ConnectionAppService connectionService,
+        IWebHostEnvironment env,
+        IOptions<SessionResolutionOptions> sessionOptions)
     {
         _connectionService = connectionService;
         _env = env;
+        _sessionOptions = sessionOptions.Value;
     }
 
     [HttpPost("connect")]
@@ -34,7 +41,7 @@ public class ConnectionController : ControllerBase
                 SameSite = SameSiteMode.Lax
             };
             
-            Response.Cookies.Append("ARAS_SESSION_ID", response.SessionName, cookieOptions);
+            Response.Cookies.Append(_sessionOptions.SessionCookieName, response.SessionName, cookieOptions);
         }
 
         return Ok(response);
@@ -46,7 +53,7 @@ public class ConnectionController : ControllerBase
         var response = await _connectionService.Disconnect(HttpContext.RequestAborted);
         
         // Side-Effect: Clear Cookie
-        Response.Cookies.Delete("ARAS_SESSION_ID");
+        Response.Cookies.Delete(_sessionOptions.SessionCookieName);
         
         return Ok(response);
     }
@@ -57,10 +64,10 @@ public class ConnectionController : ControllerBase
         var response = await _connectionService.DisconnectSession(sessionName, HttpContext.RequestAborted);
         
         // If the session being disconnected matches the current cookie, clear the cookie
-        var currentCookie = Request.Cookies["ARAS_SESSION_ID"];
+        var currentCookie = Request.Cookies[_sessionOptions.SessionCookieName];
         if (!string.IsNullOrEmpty(currentCookie) && currentCookie == sessionName)
         {
-             Response.Cookies.Delete("ARAS_SESSION_ID");
+             Response.Cookies.Delete(_sessionOptions.SessionCookieName);
         }
         
         return Ok(response);

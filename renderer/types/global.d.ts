@@ -1,6 +1,7 @@
 export {};
 
 export interface IPCApi {
+  getRuntimeConfig: () => Promise<{ apiBaseUrl: string }>;
   pickFolder: () => Promise<Electron.OpenDialogReturnValue>;
   readFile: (baseDir: string, relativePath: string) => Promise<string>;
   writeFile: (baseDir: string, relativePath: string, data: unknown) => Promise<void>;

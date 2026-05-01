@@ -7,6 +7,8 @@ import { usePlanSelection } from "./hooks/usePlanSelection";
 import type { Test, Action } from "@/types/plan";
 
 export function usePlanDetails(filename: string, _onNavigate?: (path: string) => void) {
+  const requestPrefix = `plan-details:${filename}:`;
+
   const {
     plan, loading, error, isDirty, saveStatus,
     loadPlan, handleSave, addTest, addAction, deleteTest, deleteAction, 
@@ -20,14 +22,14 @@ export function usePlanDetails(filename: string, _onNavigate?: (path: string) =>
 
   const {
     logs, isRunning, initializingTestId, runTest, runAll, runAction
-  } = usePlanExecution(plan);
+  } = usePlanExecution(plan, undefined, requestPrefix);
 
   useEffect(() => {
-    // Cleanup: cancel pending API requests when leaving
+    // Cleanup only requests that belong to this screen.
     return () => {
-      apiClient.cancelAll();
+      apiClient.cancelByPrefix(requestPrefix);
     };
-  }, []);
+  }, [requestPrefix]);
 
   const handleAddTest = useCallback(() => {
     const newTest = addTest();

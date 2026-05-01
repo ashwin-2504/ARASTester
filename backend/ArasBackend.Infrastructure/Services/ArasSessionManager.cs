@@ -9,6 +9,8 @@ using ArasBackend.Core.Interfaces;
 using ArasBackend.Core.Exceptions;
 using ArasBackend.Core.Models;
 using ArasBackend.Application.Interfaces;
+using ArasBackend.Infrastructure.Options;
+using Microsoft.Extensions.Options;
 
 namespace ArasBackend.Infrastructure.Services;
 
@@ -17,16 +19,19 @@ public class ArasSessionManager : IArasSessionManager
     private readonly IConnectionStore _connectionStore;
     private readonly ISessionContext _sessionContext;
     private readonly ILogger<ArasSessionManager> _logger;
+    private readonly SessionStoreOptions _sessionStoreOptions;
     private const int DefaultTimeoutSeconds = 120;
 
     public ArasSessionManager(
         IConnectionStore connectionStore, 
         ISessionContext sessionContext,
-        ILogger<ArasSessionManager> logger)
+        ILogger<ArasSessionManager> logger,
+        IOptions<SessionStoreOptions> sessionStoreOptions)
     {
         _connectionStore = connectionStore;
         _sessionContext = sessionContext;
         _logger = logger;
+        _sessionStoreOptions = sessionStoreOptions.Value;
     }
 
     private string? GetSessionId()
@@ -52,7 +57,7 @@ public class ArasSessionManager : IArasSessionManager
 
     public ServerInfo? CurrentServerInfo => GetCurrentSession()?.ServerInfo;
 
-    public async Task<ConnectionResponse> Connect(ConnectionRequest request, CancellationToken cancellationToken = default)
+    public Task<ConnectionResponse> Connect(ConnectionRequest request, CancellationToken cancellationToken = default)
     {
         var sw = Stopwatch.StartNew();
         _logger.LogInformation("Connection attempt started for URL: {Url}, Database: {Database}, User: {User}", 
@@ -77,33 +82,20 @@ public class ArasSessionManager : IArasSessionManager
 
             _logger.LogInformation("IOM Connection object created in {ElapsedMs}ms. Starting Login()...", sw.ElapsedMilliseconds);
 
-            // Phase 2: Login (Potentially Slow/Blocking)
-            // We use Task.Run to offload the synchronous IOM Login call and WaitAsync for the timeout.
-            var loginTask = Task.Run(() => 
-            {
-                var loginSw = Stopwatch.StartNew();
-                try 
-                {
-                    Item result = connection.Login();
-                    _logger.LogInformation("IOM Login() internal call completed in {ElapsedMs}ms", loginSw.ElapsedMilliseconds);
-                    return result;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "IOM Login() threw an exception after {ElapsedMs}ms", loginSw.ElapsedMilliseconds);
-                    throw;
-                }
-            }, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
 
+            // IOM login is synchronous and not cancellable once started.
+            var loginSw = Stopwatch.StartNew();
             Item loginResult;
-            try 
+            try
             {
-                loginResult = await loginTask.WaitAsync(TimeSpan.FromSeconds(DefaultTimeoutSeconds), cancellationToken);
+                loginResult = connection.Login();
+                _logger.LogInformation("IOM Login() internal call completed in {ElapsedMs}ms", loginSw.ElapsedMilliseconds);
             }
-            catch (TimeoutException)
+            catch (Exception ex)
             {
-                _logger.LogWarning("Connection attempt timed out after {Timeout}s for {Url}", DefaultTimeoutSeconds, request.Url);
-                throw new ArasInfrastructureException($"Connection timed out after {DefaultTimeoutSeconds}s. Please check your network and Aras server status.");
+                _logger.LogError(ex, "IOM Login() threw an exception after {ElapsedMs}ms", loginSw.ElapsedMilliseconds);
+                throw;
             }
 
             if (loginResult.isError())
@@ -131,13 +123,13 @@ public class ArasSessionManager : IArasSessionManager
 
             _logger.LogInformation("Connected successfully to {Url} in {TotalMs}ms", request.Url, sw.ElapsedMilliseconds);
 
-            return new ConnectionResponse
+            return Task.FromResult(new ConnectionResponse
             {
                 Success = true,
                 Message = "Successfully connected",
                 ServerInfo = session.ServerInfo,
                 SessionName = sessionName
-            };
+            });
         }
         catch (ArasException ex)
         {
@@ -200,14 +192,14 @@ public class ArasSessionManager : IArasSessionManager
         });
     }
 
-    public async Task<ConnectionResponse> ValidateConnection(CancellationToken cancellationToken = default)
+    public Task<ConnectionResponse> ValidateConnection(CancellationToken cancellationToken = default)
     {
         var session = GetCurrentSession();
         if (session == null) throw new ArasAuthException("Not connected");
 
-        return await Task.Run(() => 
-        {
-            return Execute(inn =>
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(
+            Execute(inn =>
             {
                 var userId = inn.getUserID();
                 Item userItem = inn.getItemById("User", userId);
@@ -223,8 +215,7 @@ public class ArasSessionManager : IArasSessionManager
                     ServerInfo = session.ServerInfo,
                     SessionName = GetSessionId()
                 };
-            });
-        }, cancellationToken);
+            }));
     }
 
     internal T Execute<T>(Func<Innovator, T> action)
@@ -249,12 +240,45 @@ public class ArasSessionManager : IArasSessionManager
 
     internal void SetSessionVariable(string name, object? value)
     {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArasValidationException("Variable name is required.");
+        }
+
         var session = GetCurrentSession();
         if (session == null) throw new ArasAuthException("Session is not active.");
+
+        var maxVariables = Math.Max(1, _sessionStoreOptions.MaxSessionVariables);
         lock (session.Lock)
         {
-            if (value == null) session.Variables.Remove(name);
-            else session.Variables[name] = value;
+            if (value == null)
+            {
+                session.Variables.Remove(name);
+                return;
+            }
+
+            var isNewKey = !session.Variables.ContainsKey(name);
+            if (isNewKey)
+            {
+                while (session.Variables.Count >= maxVariables && session.VariableInsertionOrder.Count > 0)
+                {
+                    var keyToEvict = session.VariableInsertionOrder.Dequeue();
+                    if (session.Variables.Remove(keyToEvict))
+                    {
+                        _logger.LogWarning("Session variable cap reached. Evicted variable '{VariableName}'", keyToEvict);
+                    }
+                }
+
+                if (session.Variables.Count >= maxVariables)
+                {
+                    _logger.LogWarning("Session variable cap reached. Dropped new variable '{VariableName}'", name);
+                    return;
+                }
+
+                session.VariableInsertionOrder.Enqueue(name);
+            }
+
+            session.Variables[name] = value;
         }
     }
 
@@ -263,9 +287,26 @@ public class ArasSessionManager : IArasSessionManager
         var session = GetCurrentSession();
         if (session != null)
         {
+            var maxLogEntries = Math.Max(1, _sessionStoreOptions.MaxTestLogEntries);
+            var maxMessageLength = Math.Max(1, _sessionStoreOptions.MaxLogMessageLength);
+
             lock (session.Lock)
             {
-                session.TestLogs.Add($"[{DateTime.UtcNow:O}] {message}");
+                var normalized = message ?? string.Empty;
+                if (normalized.Length > maxMessageLength)
+                {
+                    _logger.LogWarning("Session log message length exceeded cap ({MaxMessageLength}). Message truncated.", maxMessageLength);
+                    normalized = normalized[..maxMessageLength];
+                }
+
+                session.TestLogs.Add($"[{DateTime.UtcNow:O}] {normalized}");
+
+                if (session.TestLogs.Count > maxLogEntries)
+                {
+                    var removeCount = session.TestLogs.Count - maxLogEntries;
+                    session.TestLogs.RemoveRange(0, removeCount);
+                    _logger.LogWarning("Session test log cap reached. Dropped {DroppedLogCount} old log entries.", removeCount);
+                }
             }
         }
     }

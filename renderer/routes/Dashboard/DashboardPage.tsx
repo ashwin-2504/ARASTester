@@ -1,17 +1,17 @@
-import React, { useState } from 'react'
+import { useState, type MouseEvent } from 'react'
 import { Plus, FolderOpen, Search, MoreVertical, Trash, FileText, Settings as SettingsIcon, Loader2 } from 'lucide-react'
-import { Button } from '@/components/ui/button.jsx'
-import { Input } from '@/components/ui/input.jsx'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card.jsx'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu.jsx"
+} from "@/components/ui/dropdown-menu"
 import { useDashboard } from './useDashboard'
 import PlanModal from '@/components/PlanModal.jsx'
-import { BackendStatus } from '@/components/BackendStatus.jsx'
+import { BackendStatus } from '@/components/BackendStatus'
 import { useNavigate } from 'react-router-dom'
 import type { TestPlan } from "@/types/plan"
 
@@ -55,40 +55,32 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-zinc-950/50">
-      <div className="container mx-auto p-8 space-y-8 animate-in fade-in duration-500 pb-24">
-        {/* Header Section */}
-        {/* Header Section */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between min-w-0">
-          <div className="space-y-1.5 flex-shrink-0 min-w-0">
-            <h1 className="text-2xl font-bold tracking-tight text-white truncate">Dashboard</h1>
+    <div className="app-page">
+      <div className="app-page-inner animate-in fade-in duration-500 pb-24">
+        <div className="app-page-header">
+          <div className="min-w-0 space-y-2">
+            <div className="app-section-label">Workspace</div>
+            <h1 className="app-page-title">Dashboard</h1>
             <BackendStatus />
           </div>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto min-w-0">
-            <div className="relative w-full sm:max-w-[300px]">
+          <div className="flex w-full min-w-0 flex-col items-stretch gap-3 sm:flex-row sm:items-center md:w-auto">
+            <div className="relative w-full sm:max-w-[320px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search plans..."
-                className="pl-9 bg-[#1c1c1f] border-zinc-800 text-sm h-10 focus-visible:ring-indigo-500 w-full"
+                className="h-11 w-full pl-9"
                 value={search}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
+                onChange={(e) => setSearch(e.target.value)}
               />
             </div>
 
-            <div className="flex items-center gap-3 flex-shrink-0 whitespace-nowrap">
-              <Button
-                variant="outline"
-                onClick={handleOpenFolder}
-                className="bg-[#1c1c1f] border-zinc-800 hover:bg-zinc-800 hover:text-white h-10 whitespace-nowrap"
-              >
+            <div className="flex flex-shrink-0 items-center gap-3 whitespace-nowrap">
+              <Button variant="outline" onClick={() => { void handleOpenFolder() }} className="h-11">
                 <FolderOpen className="mr-2 h-4 w-4" /> Open Folder
               </Button>
 
-              <Button
-                onClick={openCreateModal}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 h-10 px-6 font-medium shadow-[0_0_15px_rgba(79,70,229,0.3)] whitespace-nowrap"
-              >
+              <Button onClick={openCreateModal} className="h-11 px-5 whitespace-nowrap">
                 <Plus className="mr-2 h-4 w-4" /> New Plan
               </Button>
 
@@ -96,7 +88,7 @@ export default function DashboardPage() {
                 variant="ghost"
                 size="icon"
                 onClick={() => navigate('/settings')}
-                className="text-zinc-400 hover:text-white hover:bg-zinc-800 h-10 w-10 flex-shrink-0"
+                className="h-11 w-11 flex-shrink-0"
               >
                 <SettingsIcon className="h-5 w-5" />
               </Button>
@@ -106,32 +98,68 @@ export default function DashboardPage() {
 
         {/* Content */}
         {loading ? (
-          <div className="flex justify-center p-20">
-            <Loader2 className="h-10 w-10 animate-spin text-indigo-500" />
+          <div className="app-empty-state min-h-[320px]">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
           </div>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 min-[1800px]:grid-cols-5">
             {plans.map((plan) => (
               <Card
                 key={plan.__filename}
-                className="group relative bg-[#1c1c1f] border-zinc-800/50 hover:border-indigo-500/50 cursor-pointer transition-all duration-300 hover:shadow-[0_0_20px_rgba(79,70,229,0.1)] hover:-translate-y-1"
-                onClick={() => handleOpenPlan(plan.__filename || "")}
+                className="app-card-interactive group relative cursor-pointer"
+                onClick={(event: MouseEvent) => {
+                  if (event.defaultPrevented) return
+                  handleOpenPlan(plan.__filename || "")
+                }}
               >
                 <CardHeader className="flex flex-row items-start justify-between p-5 space-y-0">
-                  <CardTitle className="text-base font-semibold text-zinc-100 truncate pr-4 leading-tight">
+                  <CardTitle className="truncate pr-4 text-base font-semibold leading-tight text-foreground">
                     {plan.title}
                   </CardTitle>
                   <DropdownMenu>
-                    <DropdownMenuTrigger asChild onClick={(e: any) => e.stopPropagation()}>
-                      <Button variant="ghost" className="h-6 w-6 p-0 text-zinc-500 hover:text-white hover:bg-transparent -mt-1 -mr-2">
+                    <DropdownMenuTrigger
+                      asChild
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onClick={(event) => {
+                        event.preventDefault()
+                        event.stopPropagation()
+                      }}
+                    >
+                      <Button variant="ghost" className="-mr-2 -mt-1 h-8 w-8 p-0">
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="bg-[#1c1c1f] border-zinc-800 text-zinc-300">
-                      <DropdownMenuItem onClick={(e: any) => { e.stopPropagation(); openEditModal(plan) }} className="focus:bg-zinc-800 focus:text-white cursor-pointer">
+                    <DropdownMenuContent
+                      align="end"
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <DropdownMenuItem
+                        onClick={(event) => {
+                          event.preventDefault()
+                          event.stopPropagation()
+                          openEditModal(plan)
+                        }}
+                        onSelect={(event) => {
+                          event.preventDefault()
+                          openEditModal(plan)
+                        }}
+                        className="cursor-pointer"
+                      >
                         <FileText className="mr-2 h-4 w-4" /> Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="text-red-400 focus:bg-red-900/10 focus:text-red-400 cursor-pointer" onClick={(e: any) => { e.stopPropagation(); handleDeletePlan(plan.__filename || "") }}>
+                      <DropdownMenuItem
+                        className="cursor-pointer text-destructive focus:text-destructive"
+                        onClick={(event) => {
+                          event.preventDefault()
+                          event.stopPropagation()
+                          void handleDeletePlan(plan.__filename || "")
+                        }}
+                        onSelect={(event) => {
+                          event.preventDefault()
+                          void handleDeletePlan(plan.__filename || "")
+                        }}
+                      >
                         <Trash className="mr-2 h-4 w-4" /> Delete
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -139,15 +167,14 @@ export default function DashboardPage() {
                 </CardHeader>
 
                 <CardContent className="px-5 pb-5 pt-0">
-                  <p className="text-sm text-zinc-500 line-clamp-3 h-[60px] leading-relaxed">
+                  <p className="h-[60px] line-clamp-3 text-sm leading-relaxed text-muted-foreground">
                     {plan.description || "No description provided for this test plan."}
                   </p>
                 </CardContent>
 
-                <CardFooter className="px-5 py-4 border-t border-zinc-800/50 bg-[#161619] text-xs text-zinc-500 flex items-center justify-between">
-                  {/* Date Section */}
+                <CardFooter className="flex items-center justify-between border-t border-border/70 bg-panelMuted px-5 py-4 text-xs text-muted-foreground">
                   <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-zinc-700 group-hover:bg-indigo-500 transition-colors" />
+                    <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50 transition-colors group-hover:bg-primary" />
                     {new Date(plan.updated || plan.created).toLocaleDateString()}
                   </div>
                 </CardFooter>
@@ -156,12 +183,12 @@ export default function DashboardPage() {
 
             {/* Empty State */}
             {plans.length === 0 && (
-              <div className="col-span-full flex flex-col items-center justify-center p-20 text-muted-foreground border border-dashed border-zinc-800 bg-[#1c1c1f]/50 rounded-xl space-y-4">
-                <div className="p-4 rounded-full bg-zinc-900 border border-zinc-800">
-                  <FileText className="h-8 w-8 text-zinc-500" />
+              <div className="app-empty-state col-span-full space-y-4">
+                <div className="rounded-2xl border border-border/80 bg-panelMuted p-4">
+                  <FileText className="h-8 w-8 text-muted-foreground" />
                 </div>
                 <p>No plans found. Create a new one to get started.</p>
-                <Button onClick={openCreateModal} variant="outline" className="border-zinc-700 hover:bg-zinc-800">
+                <Button onClick={openCreateModal} variant="outline">
                   Create First Plan
                 </Button>
               </div>

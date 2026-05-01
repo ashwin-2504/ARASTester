@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { ActionExecutor } from "@/core/services/ActionExecutor";
 import { useSessionStore } from "@/stores/useSessionStore";
 import type { Test, Action, TestPlan } from "@/types/plan";
+import type { ApiOptions } from "@/core/api/client";
 
 export interface ExecutionLog {
   status: string;
@@ -9,7 +10,11 @@ export interface ExecutionLog {
   details?: unknown;
 }
 
-export function usePlanExecution(plan: TestPlan, onLogUpdate?: (logs: Record<string, ExecutionLog>) => void) {
+export function usePlanExecution(
+  plan: TestPlan,
+  onLogUpdate?: (logs: Record<string, ExecutionLog>) => void,
+  requestPrefix?: string
+) {
   const [logs, setLogs] = useState<Record<string, ExecutionLog>>({});
   const [isRunning, setIsRunning] = useState(false);
   const [initializingTestId, setInitializingTestId] = useState<string | null>(null);
@@ -30,6 +35,7 @@ export function usePlanExecution(plan: TestPlan, onLogUpdate?: (logs: Record<str
     const existing = store.activeSessions.find((s) => s.name === profile.name);
     if (existing) return existing.name;
 
+    const apiOptions: ApiOptions | undefined = requestPrefix ? { requestPrefix } : undefined;
     try {
       const result = await store.login({
         url: profile.url,
@@ -37,13 +43,13 @@ export function usePlanExecution(plan: TestPlan, onLogUpdate?: (logs: Record<str
         username: profile.username,
         password: profile.password || "",
         sessionName: profile.name,
-      });
+      }, apiOptions);
       return result.success ? (result.sessionName || profile.name) : undefined;
     } catch (err) {
       console.error("Auto-connect error:", err);
       return undefined;
     }
-  }, [plan.profiles]);
+  }, [plan.profiles, requestPrefix]);
 
   const runActionInternal = useCallback(async (action: Action, sessionName?: string) => {
     updateLog(action.actionID, {
@@ -51,14 +57,18 @@ export function usePlanExecution(plan: TestPlan, onLogUpdate?: (logs: Record<str
       timestamp: new Date().toISOString(),
     });
 
-    const result = await ActionExecutor.execute(action, sessionName);
+    const result = await ActionExecutor.execute(
+      action,
+      sessionName,
+      requestPrefix ? { requestPrefix } : undefined
+    );
 
     updateLog(action.actionID, {
       status: result.success ? "Success" : "Failed",
       details: result,
       timestamp: new Date().toISOString(),
     });
-  }, [updateLog]);
+  }, [updateLog, requestPrefix]);
 
   const runTestInternal = useCallback(async (test: Test) => {
     let sessionName: string | undefined = undefined;

@@ -11,11 +11,13 @@ import { confirm } from "@/lib/hooks/useConfirmDialog";
 
 export function useDashboard() {
   const navigate = useNavigate();
-  const { plans, setPlans } = usePlanCacheStore();
+  const { plans, setPlans, updatePlan, removePlan, isStale } = usePlanCacheStore();
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const loadPlans = useCallback(async () => {
+  const loadPlans = useCallback(async (force = false) => {
+    if (!force && plans.length > 0 && !isStale()) return;
+
     try {
       setLoading(true);
       const folder = await TestPlanAdapter.getFolderPath();
@@ -29,17 +31,17 @@ export function useDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [setPlans]);
+  }, [isStale, plans.length, setPlans]);
 
   useEffect(() => {
-    loadPlans();
+    loadPlans(false);
   }, [loadPlans]);
 
   const handleOpenFolder = useCallback(async () => {
     const res = await window.api.pickFolder();
     if (!res.canceled && res.filePaths.length > 0) {
       await setTestPlansFldrPath(res.filePaths[0]);
-      loadPlans();
+      loadPlans(true);
     }
   }, [loadPlans]);
 
@@ -62,12 +64,12 @@ export function useDashboard() {
 
       try {
         await TestPlanAdapter.deletePlan(filename);
-        loadPlans(); // Reload after delete
+        removePlan(filename);
       } catch (error) {
         console.error("Failed to delete plan:", error);
       }
     },
-    [loadPlans],
+    [removePlan],
   );
 
   const handleCreatePlan = useCallback(
@@ -77,7 +79,12 @@ export function useDashboard() {
           title || "New Test Plan",
           description || "",
         );
-        loadPlans(); // Reload to show new plan
+        if (newPlan?.__filename) {
+          const currentPlans = usePlanCacheStore.getState().plans;
+          setPlans([newPlan, ...currentPlans.filter((p) => p.__filename !== newPlan.__filename)]);
+        } else {
+          loadPlans(true);
+        }
         if (newPlan && newPlan.__filename) {
           navigate(`/plan/${encodeURIComponent(newPlan.__filename)}`); // Open the new plan
         }
@@ -85,19 +92,23 @@ export function useDashboard() {
         console.error("Failed to create plan:", error);
       }
     },
-    [loadPlans, navigate],
+    [loadPlans, navigate, setPlans],
   );
 
   const handleEditPlan = useCallback(
     async (filename: string, { title, description }: { title: string; description: string }) => {
       try {
-        await TestPlanAdapter.updatePlan(filename, { title, description });
-        loadPlans(); // Reload to show updated plan
+        const updated = await TestPlanAdapter.updatePlan(filename, { title, description });
+        if (updated) {
+          updatePlan(filename, updated);
+        } else {
+          updatePlan(filename, { title, description });
+        }
       } catch (error) {
         console.error("Failed to update plan:", error);
       }
     },
-    [loadPlans],
+    [updatePlan],
   );
 
   const filteredPlans = plans.filter((p) =>

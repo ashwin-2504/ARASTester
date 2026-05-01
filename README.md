@@ -9,7 +9,7 @@
 
 <br />
 
-![ARASTester Dashboard Preview](images/DASHBOARD.png)
+![ARASTester Dashboard Preview](docs/assets/DASHBOARD.png)
 
 <br />
 
@@ -116,8 +116,9 @@ npm run dev:electron
 
 ## 📚 Documentation
 
-For detailed technical documentation, see the [docs](docs/01_SYSTEM_OVERVIEW.md) folder:
+For detailed technical documentation, start with the [documentation index](docs/README.md):
 
+- [Documentation Index](docs/README.md)
 - [System Overview](docs/01_SYSTEM_OVERVIEW.md)
 - [Architecture](docs/02_ARCHITECTURE.md)
 - [Data & Control Flow](docs/03_DATA_AND_CONTROL_FLOW.md)
@@ -126,5 +127,7 @@ For detailed technical documentation, see the [docs](docs/01_SYSTEM_OVERVIEW.md)
 - [Security & Failures](docs/06_SECURITY_AND_FAILURES.md)
 - [Non-Goals & Gaps](docs/07_NON_GOALS_AND_GAPS.md)
 - [API Reference](docs/API_REFERENCE.md)
+- [Project Context](docs/context/APPLICATION_CONTEXT.md)
+- [Project Overview](docs/context/ARASTester-Overview.md)
 
 ---

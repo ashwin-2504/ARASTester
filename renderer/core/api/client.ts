@@ -1,7 +1,10 @@
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const DEFAULT_API_BASE = "http://localhost:5000";
+let resolvedApiBase: string | null = null;
+let pendingApiBaseResolution: Promise<string> | null = null;
 
 export interface ApiOptions {
   requestId?: string;
+  requestPrefix?: string;
   signal?: AbortSignal;
   sessionName?: string;
 }
@@ -88,10 +91,64 @@ export const apiClient = {
   },
 
   /**
+   * Cancel active requests whose id starts with a prefix
+   * @param prefix - Request id prefix
+   */
+  cancelByPrefix(prefix: string): void {
+    if (!prefix) return;
+    for (const [requestId, controller] of this._activeRequests) {
+      if (!requestId.startsWith(prefix)) continue;
+      try {
+        controller.abort();
+      } catch (_e) {
+        // Ignore abort errors
+      }
+      this._activeRequests.delete(requestId);
+    }
+  },
+
+  /**
    * Helper: Wait for a specified duration (ms)
    */
   async _wait(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  },
+
+  async _getApiBase(): Promise<string> {
+    if (resolvedApiBase) {
+      return resolvedApiBase;
+    }
+
+    if (pendingApiBaseResolution) {
+      return pendingApiBaseResolution;
+    }
+
+    pendingApiBaseResolution = (async () => {
+      const configured = import.meta.env.VITE_API_URL;
+      if (configured) {
+        resolvedApiBase = configured;
+        return configured;
+      }
+
+      try {
+        if (typeof window !== "undefined" && window.api?.getRuntimeConfig) {
+          const runtimeConfig = await window.api.getRuntimeConfig();
+          if (runtimeConfig?.apiBaseUrl) {
+            resolvedApiBase = runtimeConfig.apiBaseUrl;
+            return runtimeConfig.apiBaseUrl;
+          }
+        }
+      } catch (_e) {
+        // Fall through to default when runtime config is unavailable.
+      }
+
+      resolvedApiBase = DEFAULT_API_BASE;
+      return DEFAULT_API_BASE;
+    })();
+
+    const base = await pendingApiBaseResolution;
+    pendingApiBaseResolution = null;
+    return base;
   },
 
   /**
@@ -119,6 +176,47 @@ export const apiClient = {
     }
   },
 
+  async _parseResponseBody(response: Response): Promise<unknown> {
+    const raw = await response.text();
+    if (!raw.trim()) {
+      return null;
+    }
+
+    const contentType = response.headers.get("content-type")?.toLowerCase() || "";
+    const isJson =
+      contentType.includes("application/json") ||
+      contentType.includes("+json");
+
+    if (isJson) {
+      try {
+        return JSON.parse(raw);
+      } catch (_e) {
+        // Fall through to raw text so callers preserve HTTP-level details.
+        return raw;
+      }
+    }
+
+    return raw;
+  },
+
+  _extractErrorMessage(status: number, statusText: string, result: unknown): string {
+    if (result && typeof result === "object") {
+      const candidate = result as { message?: unknown; Message?: unknown; title?: unknown; Title?: unknown };
+      const message =
+        (typeof candidate.message === "string" && candidate.message) ||
+        (typeof candidate.Message === "string" && candidate.Message) ||
+        (typeof candidate.title === "string" && candidate.title) ||
+        (typeof candidate.Title === "string" && candidate.Title);
+      if (message) return message;
+    }
+
+    if (typeof result === "string" && result.trim()) {
+      return result.trim().slice(0, 300);
+    }
+
+    return statusText || `HTTP ${status}`;
+  },
+
   /**
    * Perform a POST request
    * @param endpoint - API Endpoint (e.g. /api/aras/connect)
@@ -127,18 +225,21 @@ export const apiClient = {
    */
   async post<T>(endpoint: string, data: unknown, options: ApiOptions = {}): Promise<T> {
     const controller = new AbortController();
-    const requestId = options.requestId || `post-${endpoint}-${Date.now()}`;
+    const requestId = options.requestId || `${options.requestPrefix || ""}post-${endpoint}-${Date.now()}`;
+    let onAbort: (() => void) | undefined;
 
     // Allow external signal to abort
     if (options.signal) {
-      options.signal.addEventListener("abort", () => controller.abort());
+      onAbort = () => controller.abort();
+      options.signal.addEventListener("abort", onAbort, { once: true });
     }
 
     this._activeRequests.set(requestId, controller);
 
     try {
+      const apiBase = await this._getApiBase();
       const response = await this._fetchWithRetry(
-        `${API_BASE}${endpoint}`,
+        `${apiBase}${endpoint}`,
         {
           method: "POST",
           headers: {
@@ -151,19 +252,22 @@ export const apiClient = {
         }
       );
 
-      const result = await response.json();
+      const result = await this._parseResponseBody(response);
 
       // Check for HTTP errors
       if (!response.ok) {
         throw new ApiError(
-          (result).message || (result).Message || `HTTP ${response.status}`,
+          this._extractErrorMessage(response.status, response.statusText, result),
           response.status,
           result
         );
       }
 
-      return normalizeResponse<T>(result);
+      return normalizeResponse<T>(result as T);
     } finally {
+      if (options.signal && onAbort) {
+        options.signal.removeEventListener("abort", onAbort);
+      }
       this._activeRequests.delete(requestId);
     }
   },
@@ -175,17 +279,20 @@ export const apiClient = {
    */
   async get<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
     const controller = new AbortController();
-    const requestId = options.requestId || `get-${endpoint}-${Date.now()}`;
+    const requestId = options.requestId || `${options.requestPrefix || ""}get-${endpoint}-${Date.now()}`;
+    let onAbort: (() => void) | undefined;
 
     if (options.signal) {
-      options.signal.addEventListener("abort", () => controller.abort());
+      onAbort = () => controller.abort();
+      options.signal.addEventListener("abort", onAbort, { once: true });
     }
 
     this._activeRequests.set(requestId, controller);
 
     try {
+      const apiBase = await this._getApiBase();
       const response = await this._fetchWithRetry(
-        `${API_BASE}${endpoint}`,
+        `${apiBase}${endpoint}`,
         {
           headers: {
             ...(options.sessionName ? { "X-Session-Name": options.sessionName } : {}),
@@ -195,18 +302,21 @@ export const apiClient = {
         }
       );
 
-      const result = await response.json();
+      const result = await this._parseResponseBody(response);
 
       if (!response.ok) {
         throw new ApiError(
-          (result).message || (result).Message || `HTTP ${response.status}`,
+          this._extractErrorMessage(response.status, response.statusText, result),
           response.status,
           result
         );
       }
 
-      return normalizeResponse<T>(result);
+      return normalizeResponse<T>(result as T);
     } finally {
+      if (options.signal && onAbort) {
+        options.signal.removeEventListener("abort", onAbort);
+      }
       this._activeRequests.delete(requestId);
     }
   },
